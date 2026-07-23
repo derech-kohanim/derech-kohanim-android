@@ -291,9 +291,12 @@ object MockData {
                 street = streets[i],
                 zone = if (i == 3) {
                     ManeuverZone(
-                        name = "Har HaMenuchot",
+                        name = "הר המנוחות",
                         nameHe = "הר המנוחות",
                         stringency = Stringency.BASIC,
+                        city = "ירושלים",
+                        description = "בית קברות מרכזי - קברי כהנים לאורך הכביש",
+                        danger = false,
                     )
                 } else {
                     null
@@ -314,39 +317,88 @@ object MockData {
             )
         }
 
-    /** One small polygon per stringency layer, so the per-layer colouring is demonstrable. */
+    /** One small polygon per stringency layer, with rich fields, so tap cards have content. */
     val zoneFeatures: List<com.abaye.derechkohanim.data.model.ZoneFeature> = listOf(
-        zoneFeature(1, "Har HaMenuchot", "הר המנוחות", Stringency.BASIC, LatLng(31.7960, 35.1830), 0.010),
-        zoneFeature(2, "Sanhedria", "סנהדריה", Stringency.TAHARAT, LatLng(31.7995, 35.2130), 0.008),
-        zoneFeature(3, "Givat Shaul", "גבעת שאול", Stringency.MACHMIRIM, LatLng(31.7930, 35.1930), 0.009),
+        zoneFeature(
+            1, "הר המנוחות", Stringency.BASIC, LatLng(31.7960, 35.1830), 0.010,
+            city = "ירושלים", street = "שדרות הרצל",
+            description = "בית הקברות הר המנוחות. קברי כהנים לאורך הכביש, איסור גמור לכל הדעות.",
+        ),
+        zoneFeature(
+            2, "סנהדריה", Stringency.TAHARAT, LatLng(31.7995, 35.2130), 0.008,
+            city = "ירושלים", street = "רחוב הרב סורוצקין",
+            description = "מערת הסנהדרין וקברים סמוכים, לפי הכרעת ועדת טהרת הכהנים.",
+        ),
+        zoneFeature(
+            3, "גבעת שאול", Stringency.MACHMIRIM, LatLng(31.7930, 35.1930), 0.009,
+            city = "ירושלים", street = null,
+            description = "אזור שיש בו ספק קברים, למחמירים בלבד.",
+        ),
+    )
+
+    /** Danger zones (Area A), a separate layer with their own rich fields. */
+    val dangerZoneFeatures: List<com.abaye.derechkohanim.data.model.DangerZoneFeature> = listOf(
+        dangerZoneFeature(
+            101, "שטח A - קלנדיה", LatLng(31.8620, 35.2210), 0.012,
+            city = "קלנדיה",
+            description = "שטח A בשליטה אזרחית וביטחונית פלסטינית. כניסת ישראלים אסורה ומסוכנת.",
+        ),
+        dangerZoneFeature(
+            102, "שטח A - אבו דיס", LatLng(31.7620, 35.2660), 0.010,
+            city = "אבו דיס",
+            description = "שטח A. אין להיכנס, סכנת חיים.",
+        ),
     )
 
     private fun zoneFeature(
         id: Int,
-        name: String,
         nameHe: String,
         stringency: Stringency,
         center: LatLng,
         half: Double,
-    ): com.abaye.derechkohanim.data.model.ZoneFeature {
-        // A closed square ring, [lng, lat] per RFC 7946.
-        val ring = listOf(
-            listOf(center.lng - half, center.lat - half),
-            listOf(center.lng + half, center.lat - half),
-            listOf(center.lng + half, center.lat + half),
-            listOf(center.lng - half, center.lat + half),
-            listOf(center.lng - half, center.lat - half),
-        )
-        return com.abaye.derechkohanim.data.model.ZoneFeature(
+        city: String?,
+        street: String?,
+        description: String?,
+    ): com.abaye.derechkohanim.data.model.ZoneFeature =
+        com.abaye.derechkohanim.data.model.ZoneFeature(
             properties = com.abaye.derechkohanim.data.model.ZoneProperties(
                 id = id,
-                name = name,
+                name = nameHe,
                 nameHe = nameHe,
                 stringency = stringency,
+                city = city,
+                street = street,
+                description = description,
             ),
-            geometry = com.abaye.derechkohanim.data.model.GeoJsonPolygon(coordinates = listOf(ring)),
+            geometry = com.abaye.derechkohanim.data.model.GeoJsonPolygon(coordinates = listOf(square(center, half))),
         )
-    }
+
+    private fun dangerZoneFeature(
+        id: Int,
+        name: String,
+        center: LatLng,
+        half: Double,
+        city: String?,
+        description: String?,
+    ): com.abaye.derechkohanim.data.model.DangerZoneFeature =
+        com.abaye.derechkohanim.data.model.DangerZoneFeature(
+            properties = com.abaye.derechkohanim.data.model.DangerZoneProperties(
+                id = id,
+                name = name,
+                city = city,
+                description = description,
+            ),
+            geometry = com.abaye.derechkohanim.data.model.GeoJsonPolygon(coordinates = listOf(square(center, half))),
+        )
+
+    /** A closed square ring around a centre, [lng, lat] per RFC 7946. */
+    private fun square(center: LatLng, half: Double): List<List<Double>> = listOf(
+        listOf(center.lng - half, center.lat - half),
+        listOf(center.lng + half, center.lat - half),
+        listOf(center.lng + half, center.lat + half),
+        listOf(center.lng - half, center.lat + half),
+        listOf(center.lng - half, center.lat - half),
+    )
 
     /** Layers are cumulative, so a stricter selection includes the looser ones. */
     fun zonesFor(stringency: Stringency): List<com.abaye.derechkohanim.data.model.ZoneFeature> {

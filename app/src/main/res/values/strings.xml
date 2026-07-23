@@ -267,7 +267,17 @@
     <string name="zone_legend_basic">אסור לכו״ע - איסור גמור לפי כל הדעות</string>
     <string name="zone_legend_taharat">הכרעת רבני התאחדות טהרת הכהנים</string>
     <string name="zone_legend_machmirim">יש מחמירין - אזור במחלוקת</string>
+    <string name="zone_legend_danger">אזור מסוכן / שטח A</string>
     <string name="cd_zone_legend">מקרא צבעי האזורים</string>
+
+    <!-- Zone info card and danger zones -->
+    <string name="route_avoid_danger_zones">הימנעות מאזורים מסוכנים</string>
+    <string name="zone_card_danger_title">אזור מסוכן - שטח A</string>
+    <string name="zone_card_layer_basic">אסור לכו״ע</string>
+    <string name="zone_card_layer_taharat">טהרת הכהנים</string>
+    <string name="zone_card_layer_machmirim">למחמירים</string>
+    <string name="zone_card_close">סגור</string>
+    <string name="cd_zone_close">סגירת פרטי האזור</string>
 
     <!-- Content descriptions -->
     <string name="cd_recenter">מרכז על המיקום שלי</string>

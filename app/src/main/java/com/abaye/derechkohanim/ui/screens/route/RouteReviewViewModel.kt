@@ -39,11 +39,14 @@ data class RouteReviewState(
     val unavoidedRoute: RouteResult? = null,
     val showUnavoided: Boolean = false,
     val zones: List<com.abaye.derechkohanim.data.model.ZoneFeature> = emptyList(),
+    val dangerZones: List<com.abaye.derechkohanim.data.model.DangerZoneFeature> = emptyList(),
     val stringency: Stringency = Stringency.BASIC,
     /** Drives whether travel time is priced with live traffic. Re-fetches on change. */
     val trafficAware: Boolean = true,
     /** Avoid toll roads. Persisted, re-computes on change. */
     val avoidTolls: Boolean = false,
+    /** Avoid danger zones (Area A). On by default. Persisted, re-computes on change. */
+    val avoidDangerZones: Boolean = true,
     /** True once the destination has been saved to favourites in this session. */
     val savedToFavorites: Boolean = false,
     val loading: Boolean = true,
@@ -104,6 +107,7 @@ class RouteReviewViewModel @Inject constructor(
                 stringency = snapshot.stringency,
                 trafficAware = snapshot.trafficAware,
                 avoidTolls = snapshot.avoidTolls,
+                avoidDangerZones = snapshot.avoidDangerZones,
                 loading = true,
                 errorCode = null,
             )
@@ -116,8 +120,11 @@ class RouteReviewViewModel @Inject constructor(
                 return@launch
             }
 
-            // Zones for the chosen layer, coloured per feature by their own stringency.
+            // Zones for the chosen layer, coloured per feature by their own stringency, plus
+            // the separate danger-zone (Area A) layer.
             val zones = (routingRepository.zones(snapshot.stringency, null) as? DkResult.Success)
+                ?.value?.features.orEmpty()
+            val dangerZones = (routingRepository.dangerZones(null) as? DkResult.Success)
                 ?.value?.features.orEmpty()
 
             // No engine is set: the server picks its default (hybrid), which prices travel
@@ -132,6 +139,7 @@ class RouteReviewViewModel @Inject constructor(
                     trafficAware = snapshot.trafficAware,
                     language = snapshot.language,
                     avoidTolls = snapshot.avoidTolls,
+                    avoidDangerZones = snapshot.avoidDangerZones,
                     includeUnavoided = true,
                 )
             )
@@ -146,11 +154,17 @@ class RouteReviewViewModel @Inject constructor(
                         selectedRouteId = selected?.id,
                         unavoidedRoute = plan.unavoidedRoute,
                         zones = zones,
+                        dangerZones = dangerZones,
                     )
                 }
 
                 is DkResult.Failure ->
-                    _state.value.copy(loading = false, errorCode = result.code, zones = zones)
+                    _state.value.copy(
+                        loading = false,
+                        errorCode = result.code,
+                        zones = zones,
+                        dangerZones = dangerZones,
+                    )
             }
         }
     }
@@ -176,6 +190,16 @@ class RouteReviewViewModel @Inject constructor(
         _state.value = _state.value.copy(avoidTolls = enabled)
         viewModelScope.launch {
             sessionStore.setAvoidTolls(enabled)
+            compute()
+        }
+    }
+
+    /** Avoiding danger zones changes the route, so recompute. Persisted, on by default. */
+    fun setAvoidDangerZones(enabled: Boolean) {
+        if (_state.value.loading || enabled == _state.value.avoidDangerZones) return
+        _state.value = _state.value.copy(avoidDangerZones = enabled)
+        viewModelScope.launch {
+            sessionStore.setAvoidDangerZones(enabled)
             compute()
         }
     }

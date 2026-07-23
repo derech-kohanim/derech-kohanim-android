@@ -30,6 +30,7 @@ object LightColors {
     val zoneBasic: Color = Color(0xFFE6378F)
     val zoneTaharat: Color = Color(0xFF955D37)
     val zoneMachmirim: Color = Color(0xFFF58514)
+    val zoneDanger: Color = Color(0xFF893BCE)
     val routeNaive: Color = Color(0xFF7E899A)
     val focus: Color = Color(0xFF0D84D3)
 }
@@ -57,6 +58,7 @@ object DarkColors {
     val zoneBasic: Color = Color(0xFFED5AA3)
     val zoneTaharat: Color = Color(0xFFBF794A)
     val zoneMachmirim: Color = Color(0xFFF7993B)
+    val zoneDanger: Color = Color(0xFFA767E0)
     val routeNaive: Color = Color(0xFF89919F)
     val focus: Color = Color(0xFF34AEF4)
 }

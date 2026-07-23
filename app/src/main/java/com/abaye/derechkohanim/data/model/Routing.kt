@@ -17,9 +17,16 @@ enum class RoutingEngine {
 @Serializable
 data class ZoneProperties(
     val id: Int,
+    /** Short Hebrew title of the reason. */
     val name: String,
     val nameHe: String,
     val stringency: Stringency,
+    /** Locality, e.g. "טבריה". */
+    val city: String? = null,
+    /** Street, when the reason is street-specific. */
+    val street: String? = null,
+    /** The full halachic explanation shown to the user. */
+    val description: String? = null,
 )
 
 @Serializable
@@ -37,6 +44,29 @@ data class ZoneCollection(
     val version: Int,
 )
 
+/** Danger zones (Area A), a separate layer from the halachic stringency zones. */
+@Serializable
+data class DangerZoneProperties(
+    val id: Int,
+    val name: String,
+    val city: String? = null,
+    val description: String? = null,
+)
+
+@Serializable
+data class DangerZoneFeature(
+    val type: String = "Feature",
+    val properties: DangerZoneProperties,
+    val geometry: GeoJsonPolygon,
+)
+
+@Serializable
+data class DangerZoneCollection(
+    val type: String = "FeatureCollection",
+    val features: List<DangerZoneFeature> = emptyList(),
+    val version: Int,
+)
+
 @Serializable
 enum class ZoneManeuverType {
     @SerialName("zone_enter") ZONE_ENTER,
@@ -50,6 +80,11 @@ data class ManeuverZone(
     val name: String,
     val nameHe: String,
     val stringency: Stringency,
+    /** The reason/explanation for this zone, surfaced in the alert. */
+    val description: String? = null,
+    val city: String? = null,
+    /** True when this is a danger zone (Area A) rather than a halachic stringency zone. */
+    val danger: Boolean? = null,
 )
 
 /**
@@ -82,6 +117,8 @@ data class RouteRequest(
     val engine: RoutingEngine? = null,
     /** Avoid toll roads. Passed through to the provider. */
     val avoidTolls: Boolean? = null,
+    /** Also avoid danger zones (Area A). Defaults to true on the server when omitted. */
+    val avoidDangerZones: Boolean? = null,
     /** Also return the plain provider route without zone avoidance, for comparison. */
     val includeUnavoided: Boolean? = null,
 )

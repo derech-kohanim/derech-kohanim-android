@@ -2,6 +2,7 @@ package com.abaye.derechkohanim.data.repository
 
 import com.abaye.derechkohanim.core.DkResult
 import com.abaye.derechkohanim.core.map
+import com.abaye.derechkohanim.data.model.DangerZoneCollection
 import com.abaye.derechkohanim.data.model.NavigationProgressRequest
 import com.abaye.derechkohanim.data.model.NavigationProgressResponse
 import com.abaye.derechkohanim.data.model.NavigationSession
@@ -23,6 +24,7 @@ interface RoutingRepository {
     suspend fun computeRoute(request: RouteRequest): DkResult<RoutePlan>
     suspend fun providers(): DkResult<List<ProviderInfo>>
     suspend fun zones(stringency: Stringency, sinceVersion: Int?): DkResult<ZoneCollection>
+    suspend fun dangerZones(sinceVersion: Int?): DkResult<DangerZoneCollection>
     suspend fun createSession(routeId: String, simulated: Boolean): DkResult<NavigationSession>
     suspend fun reportProgress(request: NavigationProgressRequest): DkResult<NavigationProgressResponse>
     suspend fun endSession(sessionId: String): DkResult<NavigationSession>
@@ -45,6 +47,9 @@ class RemoteRoutingRepository @Inject constructor(
 
     override suspend fun zones(stringency: Stringency, sinceVersion: Int?): DkResult<ZoneCollection> =
         apiCall { api.zones(stringency.wire, sinceVersion) }
+
+    override suspend fun dangerZones(sinceVersion: Int?): DkResult<DangerZoneCollection> =
+        apiCall { api.dangerZones(sinceVersion) }
 
     override suspend fun createSession(routeId: String, simulated: Boolean): DkResult<NavigationSession> =
         apiCall { api.createSession(NavigationSessionRequest(routeId, simulated)) }

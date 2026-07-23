@@ -27,7 +27,7 @@ import com.abaye.derechkohanim.ui.theme.DkTheme
  * correct in light and dark. The colours match exactly what DkMap paints per feature.
  */
 @Composable
-fun ZoneLegend(modifier: Modifier = Modifier) {
+fun ZoneLegend(modifier: Modifier = Modifier, showDanger: Boolean = false) {
     val colors = DkTheme.colors
     DkCard(modifier = modifier, color = colors.surfaceOverlay) {
         Text(
@@ -40,6 +40,9 @@ fun ZoneLegend(modifier: Modifier = Modifier) {
             LegendRow(colors.zoneBasic, stringResource(R.string.zone_legend_basic))
             LegendRow(colors.zoneTaharat, stringResource(R.string.zone_legend_taharat))
             LegendRow(colors.zoneMachmirim, stringResource(R.string.zone_legend_machmirim))
+            if (showDanger) {
+                LegendRow(colors.zoneDanger, stringResource(R.string.zone_legend_danger))
+            }
         }
     }
 }

@@ -37,6 +37,9 @@ data class RouteAlert(
     val type: RouteEventType,
     val title: String?,
     val distanceMeters: Double,
+    /** The reason and locality for a zone, surfaced with the alert (short) - not just a name. */
+    val city: String? = null,
+    val description: String? = null,
 ) {
     val isZone: Boolean get() = type == RouteEventType.ZONE
 }
@@ -250,8 +253,25 @@ class NavigationViewModel @Inject constructor(
         }
 
         val (event, remaining) = ahead
+        // Enrich a zone alert with the reason and city from the matching maneuver zone, so the
+        // alert carries the explanation, not just the layer name (the events feed has no
+        // description field). Falls back to name only when no match is found.
+        val eventName = event.labelHe ?: event.label
+        val zone = if (event.isZone) {
+            _state.value.route?.maneuvers
+                ?.mapNotNull { it.zone }
+                ?.firstOrNull { it.nameHe == eventName || it.name == eventName }
+        } else {
+            null
+        }
         _state.value = _state.value.copy(
-            activeAlert = RouteAlert(event.type, event.labelHe ?: event.label, remaining),
+            activeAlert = RouteAlert(
+                type = event.type,
+                title = event.labelHe ?: event.label,
+                distanceMeters = remaining,
+                city = zone?.city,
+                description = zone?.description,
+            ),
         )
         if (!announcedEvents.contains(event.id)) {
             announcedEvents.add(event.id)

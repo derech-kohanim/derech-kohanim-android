@@ -30,6 +30,7 @@ import com.abaye.derechkohanim.data.model.UserPreferences
 import com.abaye.derechkohanim.data.model.VoicePackManifest
 import com.abaye.derechkohanim.data.model.VoiceResolveRequest
 import com.abaye.derechkohanim.data.model.VoiceResolveResponse
+import com.abaye.derechkohanim.data.model.DangerZoneCollection
 import com.abaye.derechkohanim.data.model.ZoneCollection
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -124,6 +125,11 @@ interface DerechKohanimApi {
         @Query("stringency") stringency: String,
         @Query("sinceVersion") sinceVersion: Int? = null,
     ): ZoneCollection
+
+    @GET("danger-zones")
+    suspend fun dangerZones(
+        @Query("sinceVersion") sinceVersion: Int? = null,
+    ): DangerZoneCollection
 
     // Returns a RoutePlan; decoded as JsonElement so the repository can also accept the old
     // single RouteResult shape during the server rollout.

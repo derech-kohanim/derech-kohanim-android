@@ -126,24 +126,32 @@ private fun StepRow(maneuver: Maneuver, isCurrent: Boolean) {
             }
         }
         // Zone warnings live inline, in the danger colour, so a step that touches a zone is
-        // never mistaken for a clean one (spec 17.8).
+        // never mistaken for a clean one (spec 17.8). The full reason and city are shown here,
+        // where it is safe to read (before departure / stopped), not just the layer name.
         maneuver.zone?.let { zone ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(top = DkTheme.spacing.s2),
-            ) {
-                Icon(
-                    imageVector = zoneWarningIcon,
-                    contentDescription = stringResource(R.string.cd_zone_warning),
-                    tint = DkTheme.colors.danger,
-                    modifier = Modifier.size(DkTheme.spacing.s4),
-                )
-                Text(
-                    text = zone.nameHe,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DkTheme.colors.danger,
-                    modifier = Modifier.padding(start = DkTheme.spacing.s2),
-                )
+            Column(modifier = Modifier.padding(top = DkTheme.spacing.s2)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = zoneWarningIcon,
+                        contentDescription = stringResource(R.string.cd_zone_warning),
+                        tint = DkTheme.colors.danger,
+                        modifier = Modifier.size(DkTheme.spacing.s4),
+                    )
+                    Text(
+                        text = listOfNotNull(zone.nameHe, zone.city).joinToString(", "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DkTheme.colors.danger,
+                        modifier = Modifier.padding(start = DkTheme.spacing.s2),
+                    )
+                }
+                if (!zone.description.isNullOrBlank()) {
+                    Text(
+                        text = zone.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DkTheme.colors.textMuted,
+                        modifier = Modifier.padding(start = DkTheme.spacing.s6, top = DkTheme.spacing.s1),
+                    )
+                }
             }
         }
     }

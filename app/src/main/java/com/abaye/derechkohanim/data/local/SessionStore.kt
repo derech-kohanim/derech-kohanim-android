@@ -31,6 +31,8 @@ data class SessionSnapshot(
     val stringency: Stringency = Stringency.BASIC,
     val trafficAware: Boolean = true,
     val avoidTolls: Boolean = false,
+    /** Avoid danger zones (Area A). On by default. */
+    val avoidDangerZones: Boolean = true,
     val voiceEnabled: Boolean = true,
     val voiceId: String = "he-default",
     val acceptedTermsVersion: String? = null,
@@ -51,6 +53,7 @@ class SessionStore @Inject constructor(
         val stringency = stringPreferencesKey("stringency")
         val trafficAware = booleanPreferencesKey("traffic_aware")
         val avoidTolls = booleanPreferencesKey("avoid_tolls")
+        val avoidDangerZones = booleanPreferencesKey("avoid_danger_zones")
         val voiceEnabled = booleanPreferencesKey("voice_enabled")
         val voiceId = stringPreferencesKey("voice_id")
         val acceptedTermsVersion = stringPreferencesKey("accepted_terms_version")
@@ -66,6 +69,7 @@ class SessionStore @Inject constructor(
             stringency = prefs[Keys.stringency]?.let { enumOrNull<Stringency>(it) } ?: Stringency.BASIC,
             trafficAware = prefs[Keys.trafficAware] ?: true,
             avoidTolls = prefs[Keys.avoidTolls] ?: false,
+            avoidDangerZones = prefs[Keys.avoidDangerZones] ?: true,
             voiceEnabled = prefs[Keys.voiceEnabled] ?: true,
             voiceId = prefs[Keys.voiceId] ?: "he-default",
             acceptedTermsVersion = prefs[Keys.acceptedTermsVersion],
@@ -98,6 +102,10 @@ class SessionStore @Inject constructor(
 
     suspend fun setAvoidTolls(enabled: Boolean) = context.dataStore.edit {
         it[Keys.avoidTolls] = enabled
+    }
+
+    suspend fun setAvoidDangerZones(enabled: Boolean) = context.dataStore.edit {
+        it[Keys.avoidDangerZones] = enabled
     }
 
     suspend fun setVoiceEnabled(enabled: Boolean) = context.dataStore.edit {

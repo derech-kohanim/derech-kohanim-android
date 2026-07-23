@@ -29,14 +29,48 @@ import com.google.maps.android.compose.Polygon
 import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
+import com.abaye.derechkohanim.data.model.DangerZoneFeature
+import com.abaye.derechkohanim.data.model.DangerZoneProperties
 import com.abaye.derechkohanim.data.model.LatLng
 import com.abaye.derechkohanim.data.model.RouteEvent
 import com.abaye.derechkohanim.data.model.Stringency
 import com.abaye.derechkohanim.data.model.TrafficLevel
 import com.abaye.derechkohanim.data.model.TrafficSegment
 import com.abaye.derechkohanim.data.model.ZoneFeature
+import com.abaye.derechkohanim.data.model.ZoneProperties
 import com.abaye.derechkohanim.ui.theme.DkTheme
 import com.google.android.gms.maps.model.LatLng as GmsLatLng
+
+/**
+ * The detail a tapped zone or danger polygon reports, so the surrounding screen can show a
+ * card. `stringency` is null for a danger zone (Area A), which is not a halachic layer.
+ */
+data class ZoneTapInfo(
+    val name: String,
+    val city: String?,
+    val street: String?,
+    val description: String?,
+    val stringency: Stringency?,
+    val danger: Boolean,
+)
+
+fun ZoneProperties.toTapInfo() = ZoneTapInfo(
+    name = nameHe,
+    city = city,
+    street = street,
+    description = description,
+    stringency = stringency,
+    danger = false,
+)
+
+fun DangerZoneProperties.toTapInfo() = ZoneTapInfo(
+    name = name,
+    city = city,
+    street = null,
+    description = description,
+    stringency = null,
+    danger = true,
+)
 
 /**
  * Owns the map camera so the surrounding screen can drive it: follow the driver, toggle
@@ -121,6 +155,9 @@ fun DkMap(
     trafficSegments: List<TrafficSegment> = emptyList(),
     eventMarkers: List<RouteEvent> = emptyList(),
     zones: List<ZoneFeature> = emptyList(),
+    dangerZones: List<DangerZoneFeature> = emptyList(),
+    /** When set, tapping a zone or danger polygon reports its detail for a tap card. */
+    onZoneClick: ((ZoneTapInfo) -> Unit)? = null,
     currentLocation: LatLng? = null,
     routeIsClean: Boolean = true,
     interactive: Boolean = true,
@@ -162,18 +199,41 @@ fun DkMap(
         ),
     ) {
         // Zones sit beneath the route. Each feature is coloured by its own stringency layer
-        // (spec: pink basic, brown taharat, orange machmirim), translucent fill, opaque line.
+        // (pink basic, brown taharat, orange machmirim), translucent fill, opaque line, and is
+        // tappable to show its full detail.
         zones.forEach { feature ->
             val outer = feature.geometry.coordinates.firstOrNull().orEmpty().map {
                 GmsLatLng(it[1], it[0])
             }
             if (outer.size >= 3) {
                 val layerColor = zoneColor(feature.properties.stringency, colors)
+                val info = feature.properties.toTapInfo()
                 Polygon(
                     points = outer,
                     fillColor = layerColor.copy(alpha = ZONE_FILL_ALPHA),
                     strokeColor = layerColor,
                     strokeWidth = ZONE_STROKE_WIDTH,
+                    clickable = onZoneClick != null,
+                    onClick = { onZoneClick?.invoke(info) },
+                )
+            }
+        }
+        // Danger zones (Area A) are a separate layer, drawn in the distinct danger colour with
+        // a heavy dashed outline so they never read as one of the halachic stringency layers.
+        dangerZones.forEach { feature ->
+            val outer = feature.geometry.coordinates.firstOrNull().orEmpty().map {
+                GmsLatLng(it[1], it[0])
+            }
+            if (outer.size >= 3) {
+                val info = feature.properties.toTapInfo()
+                Polygon(
+                    points = outer,
+                    fillColor = colors.zoneDanger.copy(alpha = ZONE_FILL_ALPHA),
+                    strokeColor = colors.zoneDanger,
+                    strokeWidth = ZONE_STROKE_WIDTH + 1f,
+                    strokePattern = listOf(Dash(24f), Gap(14f)),
+                    clickable = onZoneClick != null,
+                    onClick = { onZoneClick?.invoke(info) },
                 )
             }
         }

@@ -267,7 +267,17 @@
     <string name="zone_legend_basic">Forbidden by all opinions - an absolute prohibition</string>
     <string name="zone_legend_taharat">Ruling of the Taharat HaKohanim rabbis</string>
     <string name="zone_legend_machmirim">Some are stringent - a disputed area</string>
+    <string name="zone_legend_danger">Danger zone / Area A</string>
     <string name="cd_zone_legend">Zone colour legend</string>
+
+    <!-- Zone info card and danger zones -->
+    <string name="route_avoid_danger_zones">Avoid danger zones</string>
+    <string name="zone_card_danger_title">Danger zone - Area A</string>
+    <string name="zone_card_layer_basic">Forbidden by all</string>
+    <string name="zone_card_layer_taharat">Taharat HaKohanim</string>
+    <string name="zone_card_layer_machmirim">Stringent</string>
+    <string name="zone_card_close">Close</string>
+    <string name="cd_zone_close">Close zone details</string>
 
     <!-- Content descriptions -->
     <string name="cd_recenter">Centre on my location</string>

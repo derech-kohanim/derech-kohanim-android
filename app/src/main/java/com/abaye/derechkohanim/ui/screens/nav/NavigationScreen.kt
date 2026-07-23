@@ -192,7 +192,7 @@ fun NavigationScreen(
         ) {
             val alert = state.activeAlert
             if (alert != null && alert.isZone) {
-                ZoneAlertBanner(text = zoneAlertText(context, alert.distanceMeters, alert.title))
+                ZoneAlertBanner(text = zoneAlertText(context, alert))
             } else {
                 NextManeuverPanel(state = state, onOpenSteps = { showSteps = true })
                 if (alert != null) {
@@ -567,10 +567,16 @@ private fun ArrivalPanel(onFinish: () -> Unit, modifier: Modifier = Modifier) {
     }
 }
 
-private fun zoneAlertText(context: Context, distanceMeters: Double, title: String?): String {
-    val distance = Formatters.distance(context, distanceMeters)
+/**
+ * A short driving alert: "forbidden zone in Xm - name, city". The reason (description) stays
+ * out of the driving banner (spec 17.2, no reading in motion); it is shown fully in the tap
+ * card on the review screen and in the step list.
+ */
+private fun zoneAlertText(context: Context, alert: RouteAlert): String {
+    val distance = Formatters.distance(context, alert.distanceMeters)
+    val place = listOfNotNull(alert.title?.takeIf { it.isNotBlank() }, alert.city).joinToString(", ")
     return context.getString(R.string.nav_zone_ahead_alert, distance)
-        .let { if (title.isNullOrBlank()) it else "$it - $title" }
+        .let { if (place.isBlank()) it else "$it - $place" }
 }
 
 private fun eventAlertText(context: Context, kind: RouteEventType, distanceMeters: Double): String =

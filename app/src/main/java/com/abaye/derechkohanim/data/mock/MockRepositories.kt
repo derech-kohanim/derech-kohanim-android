@@ -30,6 +30,7 @@ import com.abaye.derechkohanim.data.model.User
 import com.abaye.derechkohanim.data.model.UserPreferences
 import com.abaye.derechkohanim.data.model.VoicePackManifest
 import com.abaye.derechkohanim.data.model.VoiceResolveResponse
+import com.abaye.derechkohanim.data.model.DangerZoneCollection
 import com.abaye.derechkohanim.data.model.ZoneCollection
 import com.abaye.derechkohanim.data.repository.AuthRepository
 import com.abaye.derechkohanim.data.repository.PlacesRepository
@@ -134,6 +135,9 @@ class MockRoutingRepository @Inject constructor() : RoutingRepository {
 
     override suspend fun zones(stringency: Stringency, sinceVersion: Int?): DkResult<ZoneCollection> =
         DkResult.Success(ZoneCollection(features = MockData.zonesFor(stringency), version = 1))
+
+    override suspend fun dangerZones(sinceVersion: Int?): DkResult<DangerZoneCollection> =
+        DkResult.Success(DangerZoneCollection(features = MockData.dangerZoneFeatures, version = 1))
 
     override suspend fun createSession(routeId: String, simulated: Boolean): DkResult<NavigationSession> =
         DkResult.Success(MockData.session(routeId, simulated))

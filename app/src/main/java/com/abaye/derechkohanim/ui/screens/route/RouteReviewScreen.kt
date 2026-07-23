@@ -52,7 +52,9 @@ import com.abaye.derechkohanim.ui.components.DkButtonVariant
 import com.abaye.derechkohanim.ui.components.DkCard
 import com.abaye.derechkohanim.ui.components.DkMap
 import com.abaye.derechkohanim.ui.components.DkSwitchRow
+import com.abaye.derechkohanim.ui.components.ZoneInfoCard
 import com.abaye.derechkohanim.ui.components.ZoneLegend
+import com.abaye.derechkohanim.ui.components.ZoneTapInfo
 import com.abaye.derechkohanim.ui.theme.DerechKohanimTheme
 import com.abaye.derechkohanim.ui.theme.DkTheme
 
@@ -86,6 +88,7 @@ fun RouteReviewRoute(
         onSelectRoute = viewModel::selectRoute,
         onSetTrafficAware = viewModel::setTrafficAware,
         onSetAvoidTolls = viewModel::setAvoidTolls,
+        onSetAvoidDangerZones = viewModel::setAvoidDangerZones,
         onSetShowUnavoided = viewModel::setShowUnavoided,
         onSave = viewModel::saveDestination,
     )
@@ -103,9 +106,11 @@ fun RouteReviewScreen(
     onSelectRoute: (String) -> Unit = {},
     onSetTrafficAware: (Boolean) -> Unit = {},
     onSetAvoidTolls: (Boolean) -> Unit = {},
+    onSetAvoidDangerZones: (Boolean) -> Unit = {},
     onSetShowUnavoided: (Boolean) -> Unit = {},
     onSave: (PlaceCategory) -> Unit = {},
 ) {
+    var tappedZone by remember { mutableStateOf<ZoneTapInfo?>(null) }
     Box(modifier = Modifier.fillMaxSize()) {
         val route = state.route
         val selectedPoints = route?.geometry?.points().orEmpty()
@@ -118,6 +123,14 @@ fun RouteReviewScreen(
         } else {
             emptyList()
         }
+        // Zones now cover the whole country; only draw those near the route to stay smooth.
+        val allRoutePoints = selectedPoints + alternatives.flatten()
+        val visibleZones = remember(state.zones, allRoutePoints) {
+            zonesNearRoute(state.zones, allRoutePoints) { it.geometry }
+        }
+        val visibleDangerZones = remember(state.dangerZones, allRoutePoints) {
+            zonesNearRoute(state.dangerZones, allRoutePoints) { it.geometry }
+        }
 
         DkMap(
             center = selectedPoints.firstOrNull() ?: origin ?: FALLBACK_CENTER,
@@ -125,16 +138,31 @@ fun RouteReviewScreen(
             routePoints = selectedPoints,
             alternativeRoutes = alternatives,
             unavoidedRoutePoints = unavoidedPoints,
-            zones = state.zones,
+            zones = visibleZones,
+            dangerZones = visibleDangerZones,
+            onZoneClick = { tappedZone = it },
             routeIsClean = state.certainty != Certainty.Unverified,
             interactive = false,
         )
 
-        // The legend explains the per-layer zone colours; only shown when zones are present.
-        if (state.zones.isNotEmpty()) {
+        // The legend explains the per-layer zone colours; shown when any zones are present.
+        if (visibleZones.isNotEmpty() || visibleDangerZones.isNotEmpty()) {
             ZoneLegend(
+                showDanger = visibleDangerZones.isNotEmpty(),
                 modifier = Modifier
                     .align(Alignment.TopStart)
+                    .statusBarsPadding()
+                    .padding(DkTheme.spacing.s4),
+            )
+        }
+
+        // Tapping a zone shows its full detail. Sits above the bottom panel.
+        tappedZone?.let { info ->
+            ZoneInfoCard(
+                info = info,
+                onClose = { tappedZone = null },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
                     .statusBarsPadding()
                     .padding(DkTheme.spacing.s4),
             )
@@ -159,6 +187,7 @@ fun RouteReviewScreen(
                 onSelectRoute = onSelectRoute,
                 onSetTrafficAware = onSetTrafficAware,
                 onSetAvoidTolls = onSetAvoidTolls,
+                onSetAvoidDangerZones = onSetAvoidDangerZones,
                 onSetShowUnavoided = onSetShowUnavoided,
                 onSave = onSave,
                 onStart = onStart,
@@ -179,6 +208,7 @@ private fun RouteReadyPanel(
     onSelectRoute: (String) -> Unit,
     onSetTrafficAware: (Boolean) -> Unit,
     onSetAvoidTolls: (Boolean) -> Unit,
+    onSetAvoidDangerZones: (Boolean) -> Unit,
     onSetShowUnavoided: (Boolean) -> Unit,
     onSave: (PlaceCategory) -> Unit,
     onStart: (simulated: Boolean) -> Unit,
@@ -314,6 +344,12 @@ private fun RouteReadyPanel(
             label = stringResource(R.string.route_avoid_tolls),
             checked = state.avoidTolls,
             onCheckedChange = onSetAvoidTolls,
+        )
+        // Danger zones (Area A). On by default; recomputes on change.
+        DkSwitchRow(
+            label = stringResource(R.string.route_avoid_danger_zones),
+            checked = state.avoidDangerZones,
+            onCheckedChange = onSetAvoidDangerZones,
         )
         // Only offered when the server actually returned an unavoided route.
         if (state.unavoidedRoute != null) {
@@ -488,6 +524,31 @@ private fun RouteFailurePanel(
 
 private val FALLBACK_CENTER = LatLng(31.7942, 35.2000)
 
+/**
+ * Zones now cover the whole country (hundreds of polygons). Draw only those whose polygon has
+ * a vertex within a margin of the route's bounding box, so rendering stays smooth. Small sets
+ * (the mock, or a short trip) are drawn unfiltered.
+ */
+private const val ZONE_MARGIN_DEG = 0.06
+private const val ZONE_DRAW_ALL_BELOW = 40
+
+private fun <T> zonesNearRoute(
+    features: List<T>,
+    routePoints: List<LatLng>,
+    geometry: (T) -> com.abaye.derechkohanim.data.model.GeoJsonPolygon,
+): List<T> {
+    if (features.size <= ZONE_DRAW_ALL_BELOW || routePoints.isEmpty()) return features
+    val minLat = routePoints.minOf { it.lat } - ZONE_MARGIN_DEG
+    val maxLat = routePoints.maxOf { it.lat } + ZONE_MARGIN_DEG
+    val minLng = routePoints.minOf { it.lng } - ZONE_MARGIN_DEG
+    val maxLng = routePoints.maxOf { it.lng } + ZONE_MARGIN_DEG
+    return features.filter { feature ->
+        geometry(feature).coordinates.firstOrNull().orEmpty().any { c ->
+            c[1] in minLat..maxLat && c[0] in minLng..maxLng
+        }
+    }
+}
+
 private fun previewPlan(includeUnavoided: Boolean = true) = MockData.routePlan(
     com.abaye.derechkohanim.data.model.RouteRequest(
         origin = MockData.currentLocation,
@@ -513,6 +574,7 @@ private fun RouteReadyPreview() {
                 unavoidedRoute = plan.unavoidedRoute,
                 showUnavoided = true,
                 zones = MockData.zonesFor(Stringency.TAHARAT),
+                dangerZones = MockData.dangerZoneFeatures,
                 loading = false,
             ),
             origin = MockData.currentLocation,

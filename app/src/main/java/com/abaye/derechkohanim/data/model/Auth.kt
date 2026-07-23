@@ -25,6 +25,8 @@ data class UserPreferences(
     val theme: ThemePreference,
     val stringency: Stringency,
     val trafficAware: Boolean,
+    /** Avoid danger zones (Area A) by default. On unless the user turns it off. */
+    val avoidDangerZones: Boolean = true,
     val voiceEnabled: Boolean,
     /** Voice pack identifier, e.g. "he-default". */
     val voiceId: String,
