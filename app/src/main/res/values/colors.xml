@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        The launcher icon is drawn by the system before any Compose code runs, so it cannot
+        read the generated tokens. This value mirrors tokens.colors.light.primary and is the
+        only literal colour in the project. Update it when that token changes.
+    -->
+    <color name="ic_launcher_background">#0D84D3</color>
+</resources>

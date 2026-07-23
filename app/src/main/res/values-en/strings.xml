@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Derech Kohanim</string>
+
+    <!-- Common -->
+    <string name="action_cancel">Cancel</string>
+    <string name="action_confirm">Confirm</string>
+    <string name="action_back">Back</string>
+    <string name="action_close">Close</string>
+    <string name="action_retry">Try again</string>
+    <string name="action_continue">Continue</string>
+    <string name="action_skip">Skip</string>
+    <string name="action_save">Save</string>
+    <string name="state_loading">Loading</string>
+    <string name="error_generic">Something went wrong. Please try again.</string>
+    <string name="error_network">No connection to the server. Check your network and try again.</string>
+    <string name="error_unauthorized">Your session expired. Please sign in again.</string>
+
+    <!-- Units -->
+    <string name="unit_meters">%1$s m</string>
+    <string name="unit_kilometers">%1$s km</string>
+    <string name="duration_under_a_minute">Under a minute</string>
+    <string name="duration_minutes">%1$s min</string>
+    <string name="duration_hours">%1$s hr</string>
+    <string name="duration_hours_minutes">%1$s hr %2$s min</string>
+
+    <!-- Stringency -->
+    <string name="stringency_basic">Basic</string>
+    <string name="stringency_basic_description">Cemeteries and known burial areas.</string>
+    <string name="stringency_taharat">Taharat HaKohanim</string>
+    <string name="stringency_taharat_description">Includes Basic, plus areas marked by the Taharat HaKohanim committee.</string>
+    <string name="stringency_machmirim">Stringent</string>
+    <string name="stringency_machmirim_description">Includes the previous levels, plus areas that are only in doubt.</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_welcome_title">Welcome to Derech Kohanim</string>
+    <string name="onboarding_welcome_body">Full door to door navigation that plans the drive so it does not pass through forbidden areas.</string>
+    <string name="onboarding_promise_title">What the app promises</string>
+    <string name="onboarding_promise_body">Every route is checked against the zone layers for the stringency level you choose. When a route is verified clean, it says so, and it keeps saying so for the whole drive.</string>
+    <string name="onboarding_limits_title">And what it does not</string>
+    <string name="onboarding_limits_body">The data comes from layers supplied by the organisation and is not a substitute for a halachic ruling. When no clean route exists you are told before departure, not on the way.</string>
+    <string name="onboarding_stringency_title">Choose a stringency level</string>
+    <string name="onboarding_stringency_hint">Everything else follows from this choice. You can change it in settings at any time.</string>
+    <string name="onboarding_terms_title">Terms of use</string>
+    <string name="onboarding_terms_accept">I have read and accept the terms of use</string>
+    <string name="onboarding_terms_open">Read the terms</string>
+    <string name="onboarding_permission_title">Location permission</string>
+    <string name="onboarding_permission_body">Navigation needs to know where you are. Location is used to compute the route and to detect proximity to a zone, and is not stored on the server.</string>
+    <string name="onboarding_permission_grant">Allow location access</string>
+    <string name="onboarding_background_title">Background location</string>
+    <string name="onboarding_background_body">To keep navigating while the screen is off, background location is also needed. Without it navigation still works, but stops when you leave the app.</string>
+    <string name="onboarding_background_grant">Allow background location</string>
+    <string name="onboarding_downloads_title">Download in advance</string>
+    <string name="onboarding_downloads_body">Downloading the zone layers and the voice pack now keeps navigation working in poor reception.</string>
+    <string name="onboarding_downloads_action">Download now</string>
+    <string name="onboarding_finish">Start</string>
+
+    <!-- Auth -->
+    <string name="auth_login_title">Sign in</string>
+    <string name="auth_register_title">Create an account</string>
+    <string name="auth_email">Email</string>
+    <string name="auth_password">Password</string>
+    <string name="auth_password_hint">At least eight characters</string>
+    <string name="auth_display_name">Display name</string>
+    <string name="auth_login_action">Sign in</string>
+    <string name="auth_register_action">Register</string>
+    <string name="auth_google">Continue with Google</string>
+    <string name="auth_to_register">No account yet? Register</string>
+    <string name="auth_to_login">Already have an account? Sign in</string>
+    <string name="auth_continue_as_guest">Continue as a guest</string>
+    <string name="auth_error_invalid_credentials">Wrong email or password.</string>
+    <string name="auth_error_email_taken">That email is already registered.</string>
+    <string name="auth_error_terms_required">You must accept the terms of use to register.</string>
+    <string name="auth_error_google_unavailable">Google sign in is not available on this device.</string>
+
+    <!-- Home -->
+    <string name="home_search_hint">Where to?</string>
+    <string name="home_saved_places">Saved places</string>
+    <string name="home_recent_places">Recent</string>
+    <string name="home_recenter">Centre on my location</string>
+    <string name="home_settings">Settings</string>
+    <string name="home_location_unknown">Location not known yet</string>
+
+    <!-- Search -->
+    <string name="search_hint">Address, city or place name</string>
+    <string name="search_clear">Clear</string>
+    <string name="search_section_coordinates">Coordinates</string>
+    <string name="search_section_saved">Saved places</string>
+    <string name="search_section_recent">Recent</string>
+    <string name="search_section_results">Results</string>
+    <string name="search_empty">No results for \"%1$s\"</string>
+    <string name="search_error">Search failed. Check your connection and try again.</string>
+    <string name="search_prompt">Start typing to search for an address, a city or a place. You can also paste coordinates.</string>
+    <string name="search_navigate_to_point">Navigate to this point</string>
+    <string name="search_section_shortcuts">Shortcuts</string>
+    <string name="quick_slot_home_empty">Set home</string>
+    <string name="quick_slot_work_empty">Set work</string>
+    <string name="quick_slot_home_hint">Add your home address for quick access</string>
+    <string name="quick_slot_work_hint">Add your work address for quick access</string>
+    <string name="assign_home_banner">Pick an address to save as home</string>
+    <string name="assign_work_banner">Pick an address to save as work</string>
+    <string name="saved_home_confirmation">Home saved</string>
+    <string name="saved_work_confirmation">Work saved</string>
+    <string name="saved_place_confirmation">Place saved</string>
+    <string name="cd_edit_slot">Change address</string>
+
+    <!-- Place categories -->
+    <string name="category_address">Address</string>
+    <string name="category_city">City</string>
+    <string name="category_poi">Place</string>
+    <string name="category_synagogue">Synagogue</string>
+    <string name="category_coordinates">Coordinates</string>
+    <string name="category_home">Home</string>
+    <string name="category_work">Work</string>
+    <string name="category_other">Other</string>
+
+    <!-- Route review -->
+    <string name="route_title">Route</string>
+    <string name="route_verified_clean">Verified clean</string>
+    <string name="route_verified_clean_body">This route was checked and touches no zone.</string>
+    <string name="route_unverified">Not verified</string>
+    <string name="route_unverified_body">No clean route was found. Do not rely on this route.</string>
+    <string name="route_zone_ahead">Zone nearby</string>
+    <string name="route_zone_ahead_body">The route is clean, but it passes close to a zone.</string>
+    <string name="route_distance">Distance</string>
+    <string name="route_duration">Drive time</string>
+    <string name="route_eta">Arrival</string>
+    <string name="route_avoidance_cost">This route is %1$s minutes longer because of avoidance</string>
+    <string name="route_computing">Computing route...</string>
+    <string name="cd_route_computing">Computing route, please wait</string>
+    <string name="route_start">Start navigation</string>
+    <string name="route_simulate">Simulate</string>
+    <string name="route_traffic_aware">Traffic aware</string>
+    <string name="route_save">Save to favorites</string>
+    <string name="route_save_as">Save as</string>
+    <string name="route_save_other">Other</string>
+    <string name="route_saved">Saved</string>
+    <string name="route_maneuvers">Directions</string>
+    <string name="route_failure_title">No clean route found</string>
+    <string name="route_failure_body">Between the origin and the destination there is no way that avoids a forbidden zone at the stringency level you chose.</string>
+    <string name="route_failure_change_destination">Change destination</string>
+    <string name="route_failure_change_stringency">Change stringency</string>
+    <string name="route_failure_proceed">Drive anyway, on my responsibility</string>
+    <string name="route_attribution">Data source: %1$s</string>
+
+    <!-- Navigation -->
+    <string name="nav_prefix_in">In</string>
+    <string name="nav_now">Now</string>
+    <string name="nav_then">Then</string>
+    <string name="nav_remaining">Left</string>
+    <string name="nav_eta">Arrival</string>
+    <string name="nav_stop">Stop navigation</string>
+    <string name="nav_rerouting">Recalculating</string>
+    <string name="nav_badge_verified">Verified</string>
+    <string name="nav_badge_unverified">Not verified</string>
+    <string name="nav_badge_zone_ahead">Zone nearby</string>
+    <string name="nav_arrived_title">You have arrived</string>
+    <string name="nav_arrived_action">Finish</string>
+    <string name="nav_mute">Mute guidance</string>
+    <string name="nav_unmute">Unmute guidance</string>
+    <string name="nav_zone_ahead_alert">Forbidden zone in %1$s</string>
+    <string name="nav_zone_enter_alert">Entering a forbidden zone</string>
+    <string name="nav_zone_exit_alert">Leaving the zone</string>
+    <string name="nav_zone_origin_alert">The starting point is inside a forbidden zone</string>
+    <string name="nav_zone_destination_alert">The destination is inside a forbidden zone</string>
+    <string name="nav_simulation_banner">Simulation mode, not a real drive</string>
+    <string name="nav_simulation_speed">Simulation speed</string>
+    <string name="nav_simulation_play">Play</string>
+    <string name="nav_simulation_pause">Pause</string>
+    <string name="nav_simulation_restart">Restart</string>
+
+    <!-- Maneuver text -->
+    <string name="maneuver_depart">Start driving</string>
+    <string name="maneuver_turn_left">Turn left</string>
+    <string name="maneuver_turn_right">Turn right</string>
+    <string name="maneuver_slight_left">Bear left</string>
+    <string name="maneuver_slight_right">Bear right</string>
+    <string name="maneuver_sharp_left">Sharp left</string>
+    <string name="maneuver_sharp_right">Sharp right</string>
+    <string name="maneuver_keep_left">Keep left</string>
+    <string name="maneuver_keep_right">Keep right</string>
+    <string name="maneuver_continue">Continue straight</string>
+    <string name="maneuver_uturn">Make a U turn</string>
+    <string name="maneuver_roundabout">Enter the roundabout</string>
+    <string name="maneuver_merge">Merge</string>
+    <string name="maneuver_arrive">You have arrived</string>
+    <string name="maneuver_unknown">Follow the map</string>
+    <string name="maneuver_onto_street">onto %1$s</string>
+
+    <!-- Foreground service -->
+    <string name="service_channel_name">Active navigation</string>
+    <string name="service_channel_description">A persistent notification while navigation is running</string>
+    <string name="service_notification_title">Derech Kohanim is navigating</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_general">General</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_he">Hebrew</string>
+    <string name="settings_language_en">English</string>
+    <string name="settings_theme">Appearance</string>
+    <string name="settings_theme_system">Follow the device</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_stringency">Stringency level</string>
+    <string name="settings_section_navigation">Navigation</string>
+    <string name="settings_traffic_aware">Traffic aware routing</string>
+    <string name="settings_traffic_aware_hint">More accurate in real time, uses more data.</string>
+    <string name="settings_voice">Voice guidance</string>
+    <string name="settings_voice_hint">Voice is the primary channel while driving.</string>
+    <string name="settings_section_downloads">Downloads</string>
+    <string name="settings_download_zones">Zone layers</string>
+    <string name="settings_download_voice">Voice pack</string>
+    <string name="settings_section_account">Account</string>
+    <string name="settings_sign_in">Sign in</string>
+    <string name="settings_sign_out">Sign out</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_terms">Terms of use</string>
+    <string name="settings_version">Version %1$s</string>
+    <string name="settings_section_developer">Team tools</string>
+    <string name="settings_engine">Routing engine</string>
+    <string name="settings_show_naive">Show the route without avoidance</string>
+
+    <!-- Navigation map controls -->
+    <string name="nav_recenter">Recenter</string>
+    <string name="nav_heading_up">Heading up</string>
+    <string name="nav_north_up">North up</string>
+    <string name="nav_overview">Overview</string>
+    <string name="nav_zoom_in">Zoom in</string>
+    <string name="nav_zoom_out">Zoom out</string>
+    <string name="nav_speed_kmh">%1$s km/h</string>
+    <string name="nav_report">Report</string>
+    <string name="nav_steps_title">Route steps</string>
+    <string name="nav_step_current">Current step</string>
+    <string name="nav_previous_step">Previous step</string>
+    <string name="nav_next_step">Next step</string>
+
+    <!-- Route events and reports -->
+    <string name="report_sheet_title">What did you see?</string>
+    <string name="report_police">Police</string>
+    <string name="report_accident">Accident</string>
+    <string name="report_hazard">Hazard</string>
+    <string name="report_road_closure">Road closed</string>
+    <string name="report_traffic">Traffic</string>
+    <string name="report_added">Report sent, thank you</string>
+    <string name="event_zone">Forbidden zone</string>
+    <string name="event_ahead_announcement">%1$s in %2$s</string>
+    <string name="traffic_light">Light traffic</string>
+    <string name="traffic_moderate">Moderate traffic</string>
+    <string name="traffic_heavy">Heavy traffic</string>
+    <string name="nav_traffic_delay">%1$s from traffic</string>
+
+    <!-- Zone legend (meanings stay in Hebrew halachic terms) -->
+    <string name="zone_legend_title">Zone legend</string>
+    <string name="zone_legend_basic">Forbidden by all opinions - an absolute prohibition</string>
+    <string name="zone_legend_taharat">Ruling of the Taharat HaKohanim rabbis</string>
+    <string name="zone_legend_machmirim">Some are stringent - a disputed area</string>
+    <string name="cd_zone_legend">Zone colour legend</string>
+
+    <!-- Content descriptions -->
+    <string name="cd_recenter">Centre on my location</string>
+    <string name="cd_zoom_in">Zoom in</string>
+    <string name="cd_zoom_out">Zoom out</string>
+    <string name="cd_overview">Overview of the route</string>
+    <string name="cd_orientation">Map orientation</string>
+    <string name="cd_report">Report an event</string>
+    <string name="cd_open_steps">Open route steps</string>
+    <string name="cd_back">Back</string>
+    <string name="cd_clear">Clear</string>
+    <string name="cd_search">Search</string>
+    <string name="cd_settings">Settings</string>
+    <string name="cd_my_location">My location</string>
+    <string name="cd_zone_warning">Forbidden zone warning</string>
+</resources>

@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">דרך כהנים</string>
+
+    <!-- Common -->
+    <string name="action_cancel">ביטול</string>
+    <string name="action_confirm">אישור</string>
+    <string name="action_back">חזרה</string>
+    <string name="action_close">סגירה</string>
+    <string name="action_retry">נסה שוב</string>
+    <string name="action_continue">המשך</string>
+    <string name="action_skip">דלג</string>
+    <string name="action_save">שמירה</string>
+    <string name="state_loading">טוען</string>
+    <string name="error_generic">משהו השתבש. נסה שוב.</string>
+    <string name="error_network">אין חיבור לשרת. בדוק את הרשת ונסה שוב.</string>
+    <string name="error_unauthorized">ההתחברות פגה. יש להתחבר מחדש.</string>
+
+    <!-- Units -->
+    <string name="unit_meters">%1$s מ׳</string>
+    <string name="unit_kilometers">%1$s ק״מ</string>
+    <string name="duration_under_a_minute">פחות מדקה</string>
+    <string name="duration_minutes">%1$s דק׳</string>
+    <string name="duration_hours">%1$s שע׳</string>
+    <string name="duration_hours_minutes">%1$s שע׳ %2$s דק׳</string>
+
+    <!-- Stringency -->
+    <string name="stringency_basic">בסיסי</string>
+    <string name="stringency_basic_description">בתי קברות ואזורי קבורה ידועים.</string>
+    <string name="stringency_taharat">טהרת הכהנים</string>
+    <string name="stringency_taharat_description">כולל את הבסיסי, ובנוסף אזורים שסומנו על ידי ועדת טהרת הכהנים.</string>
+    <string name="stringency_machmirim">מחמירים</string>
+    <string name="stringency_machmirim_description">כולל את הקודמים, ובנוסף אזורים שיש בהם ספק בלבד.</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_welcome_title">ברוכים הבאים לדרך כהנים</string>
+    <string name="onboarding_welcome_body">ניווט מלא מנקודה לנקודה, שמתכנן את הדרך כך שלא תעבור באזורים אסורים.</string>
+    <string name="onboarding_promise_title">מה המערכת מבטיחה</string>
+    <string name="onboarding_promise_body">כל מסלול נבדק מול שכבות האזורים לפי רמת החומרה שבחרת. כשהמסלול מאומת נקי, זה נאמר במפורש ומוצג לאורך כל הנסיעה.</string>
+    <string name="onboarding_limits_title">ומה לא</string>
+    <string name="onboarding_limits_body">הנתונים נשענים על שכבות שמסופקות על ידי העמותה ואינם תחליף להכרעה הלכתית. כשלא נמצא מסלול נקי, נאמר לך זאת לפני היציאה ולא בדרך.</string>
+    <string name="onboarding_stringency_title">בחר רמת חומרה</string>
+    <string name="onboarding_stringency_hint">כל השאר נגזר מהבחירה הזו. אפשר לשנות אותה בהגדרות בכל רגע.</string>
+    <string name="onboarding_terms_title">תנאי השימוש</string>
+    <string name="onboarding_terms_accept">קראתי ואני מסכים לתנאי השימוש</string>
+    <string name="onboarding_terms_open">קריאת התנאים</string>
+    <string name="onboarding_permission_title">הרשאת מיקום</string>
+    <string name="onboarding_permission_body">כדי לנווט צריך לדעת איפה אתה. המיקום משמש לחישוב המסלול ולזיהוי קרבה לאזור, ואינו נשמר בשרת.</string>
+    <string name="onboarding_permission_grant">אפשר גישה למיקום</string>
+    <string name="onboarding_background_title">מיקום ברקע</string>
+    <string name="onboarding_background_body">כדי שהניווט ימשיך כשהמסך כבוי, נדרשת גם הרשאת מיקום ברקע. בלעדיה הניווט עובד, אך נעצר כשיוצאים מהאפליקציה.</string>
+    <string name="onboarding_background_grant">אפשר מיקום ברקע</string>
+    <string name="onboarding_downloads_title">הורדה מראש</string>
+    <string name="onboarding_downloads_body">מומלץ להוריד עכשיו את שכבות האזורים ואת חבילת הקול, כדי שהניווט יעבוד גם בקליטה גרועה.</string>
+    <string name="onboarding_downloads_action">הורד עכשיו</string>
+    <string name="onboarding_finish">התחל</string>
+
+    <!-- Auth -->
+    <string name="auth_login_title">התחברות</string>
+    <string name="auth_register_title">הרשמה</string>
+    <string name="auth_email">דואר אלקטרוני</string>
+    <string name="auth_password">סיסמה</string>
+    <string name="auth_password_hint">לפחות שמונה תווים</string>
+    <string name="auth_display_name">שם לתצוגה</string>
+    <string name="auth_login_action">התחבר</string>
+    <string name="auth_register_action">הירשם</string>
+    <string name="auth_google">התחברות עם Google</string>
+    <string name="auth_to_register">אין לך חשבון? הירשם</string>
+    <string name="auth_to_login">כבר יש לך חשבון? התחבר</string>
+    <string name="auth_continue_as_guest">המשך כאורח</string>
+    <string name="auth_error_invalid_credentials">הדואר או הסיסמה שגויים.</string>
+    <string name="auth_error_email_taken">כתובת הדואר כבר רשומה.</string>
+    <string name="auth_error_terms_required">יש לאשר את תנאי השימוש כדי להירשם.</string>
+    <string name="auth_error_google_unavailable">התחברות Google אינה זמינה במכשיר הזה.</string>
+
+    <!-- Home -->
+    <string name="home_search_hint">לאן נוסעים?</string>
+    <string name="home_saved_places">מקומות שמורים</string>
+    <string name="home_recent_places">אחרונים</string>
+    <string name="home_recenter">מרכז על המיקום שלי</string>
+    <string name="home_settings">הגדרות</string>
+    <string name="home_location_unknown">המיקום עדיין לא ידוע</string>
+
+    <!-- Search -->
+    <string name="search_hint">כתובת, עיר או שם מקום</string>
+    <string name="search_clear">נקה</string>
+    <string name="search_section_coordinates">נקודת ציון</string>
+    <string name="search_section_saved">מקומות שמורים</string>
+    <string name="search_section_recent">אחרונים</string>
+    <string name="search_section_results">תוצאות</string>
+    <string name="search_empty">לא נמצאו תוצאות עבור \"%1$s\"</string>
+    <string name="search_error">החיפוש נכשל. בדוק את החיבור ונסה שוב.</string>
+    <string name="search_prompt">התחילו להקליד כדי לחפש כתובת, עיר או מקום. אפשר גם להדביק נקודת ציון.</string>
+    <string name="search_navigate_to_point">נווט לנקודה הזו</string>
+    <string name="search_section_shortcuts">קיצורי דרך</string>
+    <string name="quick_slot_home_empty">הגדר בית</string>
+    <string name="quick_slot_work_empty">הגדר עבודה</string>
+    <string name="quick_slot_home_hint">הוסף את כתובת הבית לגישה מהירה</string>
+    <string name="quick_slot_work_hint">הוסף את כתובת העבודה לגישה מהירה</string>
+    <string name="assign_home_banner">בחרו כתובת לשמירה בתור בית</string>
+    <string name="assign_work_banner">בחרו כתובת לשמירה בתור עבודה</string>
+    <string name="saved_home_confirmation">הבית נשמר</string>
+    <string name="saved_work_confirmation">העבודה נשמרה</string>
+    <string name="saved_place_confirmation">המקום נשמר</string>
+    <string name="cd_edit_slot">שנה כתובת</string>
+
+    <!-- Place categories -->
+    <string name="category_address">כתובת</string>
+    <string name="category_city">עיר</string>
+    <string name="category_poi">מקום</string>
+    <string name="category_synagogue">בית כנסת</string>
+    <string name="category_coordinates">נקודת ציון</string>
+    <string name="category_home">בית</string>
+    <string name="category_work">עבודה</string>
+    <string name="category_other">אחר</string>
+
+    <!-- Route review -->
+    <string name="route_title">המסלול</string>
+    <string name="route_verified_clean">מסלול מאומת</string>
+    <string name="route_verified_clean_body">המסלול נבדק ואינו נוגע באף אזור.</string>
+    <string name="route_unverified">לא אומת</string>
+    <string name="route_unverified_body">לא נמצא מסלול נקי. אין להסתמך על המסלול הזה.</string>
+    <string name="route_zone_ahead">אזור בסמוך</string>
+    <string name="route_zone_ahead_body">המסלול נקי, אך חולף בסמוך לאזור.</string>
+    <string name="route_distance">מרחק</string>
+    <string name="route_duration">זמן נסיעה</string>
+    <string name="route_eta">הגעה משוערת</string>
+    <string name="route_avoidance_cost">המסלול ארוך ב-%1$s דקות בגלל הימנעות</string>
+    <string name="route_computing">מחשב מסלול...</string>
+    <string name="cd_route_computing">מחשב מסלול, אנא המתן</string>
+    <string name="route_start">התחל ניווט</string>
+    <string name="route_simulate">הרצה</string>
+    <string name="route_traffic_aware">התחשבות בעומסי תנועה</string>
+    <string name="route_save">שמור למועדפים</string>
+    <string name="route_save_as">שמור בתור</string>
+    <string name="route_save_other">אחר</string>
+    <string name="route_saved">נשמר</string>
+    <string name="route_maneuvers">הוראות הנסיעה</string>
+    <string name="route_failure_title">לא נמצא מסלול נקי</string>
+    <string name="route_failure_body">בין המוצא ליעד לא קיימת דרך שאינה נוגעת באזור אסור ברמת החומרה שבחרת.</string>
+    <string name="route_failure_change_destination">שינוי יעד</string>
+    <string name="route_failure_change_stringency">שינוי רמת חומרה</string>
+    <string name="route_failure_proceed">לנסוע בכל זאת, באחריותי</string>
+    <string name="route_attribution">מקור הנתונים: %1$s</string>
+
+    <!-- Navigation -->
+    <string name="nav_prefix_in">בעוד</string>
+    <string name="nav_now">עכשיו</string>
+    <string name="nav_then">לאחר מכן</string>
+    <string name="nav_remaining">נותר</string>
+    <string name="nav_eta">הגעה</string>
+    <string name="nav_stop">עצור ניווט</string>
+    <string name="nav_rerouting">מחשב מסלול מחדש</string>
+    <string name="nav_badge_verified">מאומת</string>
+    <string name="nav_badge_unverified">לא מאומת</string>
+    <string name="nav_badge_zone_ahead">אזור בסמוך</string>
+    <string name="nav_arrived_title">הגעת ליעד</string>
+    <string name="nav_arrived_action">סיום</string>
+    <string name="nav_mute">השתק הנחיות</string>
+    <string name="nav_unmute">הפעל הנחיות</string>
+    <string name="nav_zone_ahead_alert">אזור אסור בעוד %1$s</string>
+    <string name="nav_zone_enter_alert">נכנסים לאזור אסור</string>
+    <string name="nav_zone_exit_alert">יוצאים מהאזור</string>
+    <string name="nav_zone_origin_alert">נקודת המוצא נמצאת בתוך אזור אסור</string>
+    <string name="nav_zone_destination_alert">היעד נמצא בתוך אזור אסור</string>
+    <string name="nav_simulation_banner">מצב הרצה, לא נסיעה אמיתית</string>
+    <string name="nav_simulation_speed">מהירות הרצה</string>
+    <string name="nav_simulation_play">הפעל</string>
+    <string name="nav_simulation_pause">השהה</string>
+    <string name="nav_simulation_restart">התחל מחדש</string>
+
+    <!-- Maneuver text, used for the on screen line and as the voice text fallback -->
+    <string name="maneuver_depart">צא לדרך</string>
+    <string name="maneuver_turn_left">פנה שמאלה</string>
+    <string name="maneuver_turn_right">פנה ימינה</string>
+    <string name="maneuver_slight_left">סטה שמאלה</string>
+    <string name="maneuver_slight_right">סטה ימינה</string>
+    <string name="maneuver_sharp_left">פנה שמאלה בחדות</string>
+    <string name="maneuver_sharp_right">פנה ימינה בחדות</string>
+    <string name="maneuver_keep_left">היצמד שמאלה</string>
+    <string name="maneuver_keep_right">היצמד ימינה</string>
+    <string name="maneuver_continue">המשך ישר</string>
+    <string name="maneuver_uturn">בצע פניית פרסה</string>
+    <string name="maneuver_roundabout">היכנס לכיכר</string>
+    <string name="maneuver_merge">השתלב</string>
+    <string name="maneuver_arrive">הגעת ליעד</string>
+    <string name="maneuver_unknown">המשך לפי המפה</string>
+    <string name="maneuver_onto_street">אל %1$s</string>
+
+    <!-- Foreground service -->
+    <string name="service_channel_name">ניווט פעיל</string>
+    <string name="service_channel_description">התראה קבועה כל עוד ניווט פעיל</string>
+    <string name="service_notification_title">דרך כהנים מנווט</string>
+
+    <!-- Settings -->
+    <string name="settings_title">הגדרות</string>
+    <string name="settings_section_general">כללי</string>
+    <string name="settings_language">שפה</string>
+    <string name="settings_language_he">עברית</string>
+    <string name="settings_language_en">אנגלית</string>
+    <string name="settings_theme">מראה</string>
+    <string name="settings_theme_system">לפי המכשיר</string>
+    <string name="settings_theme_light">בהיר</string>
+    <string name="settings_theme_dark">כהה</string>
+    <string name="settings_stringency">רמת חומרה</string>
+    <string name="settings_section_navigation">ניווט</string>
+    <string name="settings_traffic_aware">התחשבות בעומסי תנועה</string>
+    <string name="settings_traffic_aware_hint">מדויק יותר בזמן אמת, וצורך יותר נתונים.</string>
+    <string name="settings_voice">הנחיות קוליות</string>
+    <string name="settings_voice_hint">הקול הוא הערוץ הראשי בזמן נהיגה.</string>
+    <string name="settings_section_downloads">הורדות</string>
+    <string name="settings_download_zones">שכבות האזורים</string>
+    <string name="settings_download_voice">חבילת הקול</string>
+    <string name="settings_section_account">חשבון</string>
+    <string name="settings_sign_in">התחברות</string>
+    <string name="settings_sign_out">התנתקות</string>
+    <string name="settings_section_about">אודות</string>
+    <string name="settings_terms">תנאי שימוש</string>
+    <string name="settings_version">גרסה %1$s</string>
+    <string name="settings_section_developer">כלים לצוות</string>
+    <string name="settings_engine">מנוע ניתוב</string>
+    <string name="settings_show_naive">הצג מסלול ללא הימנעות</string>
+
+    <!-- Navigation map controls -->
+    <string name="nav_recenter">מרכז עליי</string>
+    <string name="nav_heading_up">לפי כיוון הנסיעה</string>
+    <string name="nav_north_up">צפון למעלה</string>
+    <string name="nav_overview">מבט על</string>
+    <string name="nav_zoom_in">התקרב</string>
+    <string name="nav_zoom_out">התרחק</string>
+    <string name="nav_speed_kmh">%1$s קמ״ש</string>
+    <string name="nav_report">דיווח</string>
+    <string name="nav_steps_title">שלבי המסלול</string>
+    <string name="nav_step_current">שלב נוכחי</string>
+    <string name="nav_previous_step">שלב קודם</string>
+    <string name="nav_next_step">שלב הבא</string>
+
+    <!-- Route events and reports -->
+    <string name="report_sheet_title">מה ראית בדרך?</string>
+    <string name="report_police">משטרה</string>
+    <string name="report_accident">תאונה</string>
+    <string name="report_hazard">מפגע בכביש</string>
+    <string name="report_road_closure">כביש חסום</string>
+    <string name="report_traffic">עומס תנועה</string>
+    <string name="report_added">הדיווח נשלח, תודה</string>
+    <string name="event_zone">אזור אסור</string>
+    <string name="event_ahead_announcement">%1$s בעוד %2$s</string>
+    <string name="traffic_light">עומס קל</string>
+    <string name="traffic_moderate">עומס בינוני</string>
+    <string name="traffic_heavy">עומס כבד</string>
+    <string name="nav_traffic_delay">%1$s עקב עומס</string>
+
+    <!-- Zone legend -->
+    <string name="zone_legend_title">מקרא אזורים</string>
+    <string name="zone_legend_basic">אסור לכו״ע - איסור גמור לפי כל הדעות</string>
+    <string name="zone_legend_taharat">הכרעת רבני התאחדות טהרת הכהנים</string>
+    <string name="zone_legend_machmirim">יש מחמירין - אזור במחלוקת</string>
+    <string name="cd_zone_legend">מקרא צבעי האזורים</string>
+
+    <!-- Content descriptions -->
+    <string name="cd_recenter">מרכז על המיקום שלי</string>
+    <string name="cd_zoom_in">התקרב</string>
+    <string name="cd_zoom_out">התרחק</string>
+    <string name="cd_overview">מבט על המסלול</string>
+    <string name="cd_orientation">כיוון המפה</string>
+    <string name="cd_report">דיווח על אירוע</string>
+    <string name="cd_open_steps">פתח את שלבי המסלול</string>
+    <string name="cd_back">חזרה</string>
+    <string name="cd_clear">ניקוי</string>
+    <string name="cd_search">חיפוש</string>
+    <string name="cd_settings">הגדרות</string>
+    <string name="cd_my_location">המיקום שלי</string>
+    <string name="cd_zone_warning">אזהרת אזור אסור</string>
+</resources>

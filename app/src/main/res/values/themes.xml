@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        AppCompat is the parent because per-app language switching on Android 12 and below
+        goes through AppCompatDelegate. All visual styling lives in the Compose theme, which
+        is built from the generated tokens, so nothing is styled here.
+    -->
+    <style name="Theme.DerechKohanim" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>
