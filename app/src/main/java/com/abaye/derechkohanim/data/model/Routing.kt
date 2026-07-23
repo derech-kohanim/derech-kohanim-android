@@ -80,6 +80,10 @@ data class RouteRequest(
     val trafficAware: Boolean,
     val language: Language,
     val engine: RoutingEngine? = null,
+    /** Avoid toll roads. Passed through to the provider. */
+    val avoidTolls: Boolean? = null,
+    /** Also return the plain provider route without zone avoidance, for comparison. */
+    val includeUnavoided: Boolean? = null,
 )
 
 @Serializable
@@ -102,10 +106,26 @@ data class RouteResult(
     val reason: String? = null,
     val attribution: String,
     val engine: RoutingEngine,
+    /** True when this route avoids toll roads. */
+    val avoidsTolls: Boolean? = null,
+    /** Short label for an alternative, e.g. "fastest" | "shortest" | "alt". */
+    val label: String? = null,
     /** Returned distance divided by the direct route. 1 means avoidance cost nothing. */
     val detourRatio: Double? = null,
     val requiredVoiceKeys: List<String> = emptyList(),
     val debug: RouteDebug? = null,
+)
+
+/**
+ * Result of a compute: the chosen route plus up to two alternatives, plus optionally the
+ * plain provider route with no zone avoidance, for comparison. Mirrors the shared RoutePlan.
+ */
+@Serializable
+data class RoutePlan(
+    /** 1..3 zone-verified routes, best first. */
+    val routes: List<RouteResult> = emptyList(),
+    /** Plain provider route without avoidance. Always verifiedClean=false, never navigable. */
+    val unavoidedRoute: RouteResult? = null,
 )
 
 @Serializable

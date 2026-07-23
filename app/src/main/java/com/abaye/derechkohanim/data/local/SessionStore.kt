@@ -30,6 +30,7 @@ data class SessionSnapshot(
     val theme: ThemePreference = ThemePreference.SYSTEM,
     val stringency: Stringency = Stringency.BASIC,
     val trafficAware: Boolean = true,
+    val avoidTolls: Boolean = false,
     val voiceEnabled: Boolean = true,
     val voiceId: String = "he-default",
     val acceptedTermsVersion: String? = null,
@@ -49,6 +50,7 @@ class SessionStore @Inject constructor(
         val theme = stringPreferencesKey("theme")
         val stringency = stringPreferencesKey("stringency")
         val trafficAware = booleanPreferencesKey("traffic_aware")
+        val avoidTolls = booleanPreferencesKey("avoid_tolls")
         val voiceEnabled = booleanPreferencesKey("voice_enabled")
         val voiceId = stringPreferencesKey("voice_id")
         val acceptedTermsVersion = stringPreferencesKey("accepted_terms_version")
@@ -63,6 +65,7 @@ class SessionStore @Inject constructor(
             theme = prefs[Keys.theme]?.let { enumOrNull<ThemePreference>(it) } ?: ThemePreference.SYSTEM,
             stringency = prefs[Keys.stringency]?.let { enumOrNull<Stringency>(it) } ?: Stringency.BASIC,
             trafficAware = prefs[Keys.trafficAware] ?: true,
+            avoidTolls = prefs[Keys.avoidTolls] ?: false,
             voiceEnabled = prefs[Keys.voiceEnabled] ?: true,
             voiceId = prefs[Keys.voiceId] ?: "he-default",
             acceptedTermsVersion = prefs[Keys.acceptedTermsVersion],
@@ -91,6 +94,10 @@ class SessionStore @Inject constructor(
 
     suspend fun setTrafficAware(enabled: Boolean) = context.dataStore.edit {
         it[Keys.trafficAware] = enabled
+    }
+
+    suspend fun setAvoidTolls(enabled: Boolean) = context.dataStore.edit {
+        it[Keys.avoidTolls] = enabled
     }
 
     suspend fun setVoiceEnabled(enabled: Boolean) = context.dataStore.edit {

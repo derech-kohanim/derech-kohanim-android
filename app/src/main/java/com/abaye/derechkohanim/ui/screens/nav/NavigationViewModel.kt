@@ -270,9 +270,13 @@ class NavigationViewModel @Inject constructor(
     private fun triggerFor(type: RouteEventType): Double =
         if (type == RouteEventType.ZONE) ZONE_TRIGGER_METERS else REPORT_TRIGGER_METERS
 
-    /** The screen assembles the phrase, then hands it back here to play off the UI thread. */
+    /**
+     * The screen assembles the phrase, then hands it back here. Submitting is fire and forget:
+     * the player supersedes stale announcements itself, so navigation never waits and never
+     * chains through a backlog of passed manoeuvres.
+     */
     fun speak(instruction: SpokenInstruction) {
-        viewModelScope.launch { voicePlayer.speak(instruction) }
+        voicePlayer.submit(instruction)
     }
 
     fun toggleMute() {

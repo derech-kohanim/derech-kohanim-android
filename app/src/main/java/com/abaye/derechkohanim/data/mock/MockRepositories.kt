@@ -20,6 +20,7 @@ import com.abaye.derechkohanim.data.model.ProviderInfo
 import com.abaye.derechkohanim.data.model.RecentPlace
 import com.abaye.derechkohanim.data.model.RouteEvent
 import com.abaye.derechkohanim.data.model.RouteEventBundle
+import com.abaye.derechkohanim.data.model.RoutePlan
 import com.abaye.derechkohanim.data.model.RouteRequest
 import com.abaye.derechkohanim.data.model.RouteResult
 import com.abaye.derechkohanim.data.model.SavedPlace
@@ -123,14 +124,9 @@ class MockRouteEventsRepository @Inject constructor(
 
 class MockRoutingRepository @Inject constructor() : RoutingRepository {
 
-    override suspend fun computeRoute(request: RouteRequest): DkResult<RouteResult> {
+    override suspend fun computeRoute(request: RouteRequest): DkResult<RoutePlan> {
         delay(FAKE_LATENCY_MS * 2)
-        // Machmirim is the level where the fake server cannot find a clean route, so the
-        // failure screen is reachable without a backend.
-        val clean = request.stringency != Stringency.MACHMIRIM
-        return DkResult.Success(
-            MockData.route(request.origin, request.destination, clean, request.trafficAware)
-        )
+        return DkResult.Success(MockData.routePlan(request))
     }
 
     override suspend fun providers(): DkResult<List<ProviderInfo>> =

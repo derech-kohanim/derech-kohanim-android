@@ -58,17 +58,25 @@ object Formatters {
     }
 
     /**
-     * Spec 17.4: the driver hears the cost of avoidance in minutes, never as a ratio.
-     * The ratio stays in the debug surface.
+     * The true cost of zone avoidance: how much longer the chosen route is than the plain
+     * unavoided route the provider would have returned (spec 17.4, in minutes not a ratio).
+     * Returns null for a negligible or negative delta, so the caller shows the "no cost"
+     * line instead. This is NOT derived from detourRatio, which conflates road-vs-line length
+     * and alternative choice with real avoidance cost.
      */
-    fun avoidanceCost(context: Context, durationSeconds: Double, detourRatio: Double?): String? {
-        if (detourRatio == null || detourRatio <= 1.02) return null
-        val directSeconds = durationSeconds / detourRatio
-        val extraMinutes = ((durationSeconds - directSeconds) / 60.0).roundToInt()
+    fun avoidanceCostByDelta(context: Context, deltaSeconds: Double): String? {
+        if (deltaSeconds <= NEGLIGIBLE_AVOIDANCE_SECONDS) return null
+        val extraMinutes = (deltaSeconds / 60.0).roundToInt()
         if (extraMinutes < 1) return null
         return context.getString(
             R.string.route_avoidance_cost,
             NumberFormat.getInstance().format(extraMinutes),
         )
     }
+
+    /** A short "+Xmin" relative-time label for an alternative, versus the fastest route. */
+    fun relativeLonger(context: Context, deltaSeconds: Double): String =
+        context.getString(R.string.route_alt_plus, duration(context, deltaSeconds))
+
+    private const val NEGLIGIBLE_AVOIDANCE_SECONDS = 30.0
 }

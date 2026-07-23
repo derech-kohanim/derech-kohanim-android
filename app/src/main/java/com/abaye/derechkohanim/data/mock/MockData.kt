@@ -20,6 +20,8 @@ import com.abaye.derechkohanim.data.model.RecentPlace
 import com.abaye.derechkohanim.data.model.RouteEvent
 import com.abaye.derechkohanim.data.model.RouteEventBundle
 import com.abaye.derechkohanim.data.model.RouteEventType
+import com.abaye.derechkohanim.data.model.RoutePlan
+import com.abaye.derechkohanim.data.model.RouteRequest
 import com.abaye.derechkohanim.data.model.RouteResult
 import com.abaye.derechkohanim.data.model.RoutingEngine
 import com.abaye.derechkohanim.data.model.TrafficLevel
@@ -217,6 +219,60 @@ object MockData {
                 "action.turn_right", "action.turn_left", "action.continue", "action.arrive",
                 "zone.ahead",
             ),
+        )
+    }
+
+    /**
+     * A plan with up to three verified alternatives, plus the unavoided route when asked for.
+     * Mirrors what POST /api/routes/compute returns, so the review screen has real data to
+     * drive the picker, the toll flag and the unavoided overlay without a backend.
+     */
+    fun routePlan(request: RouteRequest): RoutePlan {
+        val clean = request.stringency != Stringency.MACHMIRIM
+        val base = route(request.origin, request.destination, clean, request.trafficAware)
+            .copy(id = "mock-route-0", label = "fastest", avoidsTolls = request.avoidTolls)
+        val routes = if (clean) {
+            listOf(
+                base,
+                variant(base, "mock-route-1", "shortest", 0.006, 0.94, 1.08)
+                    .copy(avoidsTolls = request.avoidTolls),
+                variant(base, "mock-route-2", "alt", -0.008, 1.06, 1.02)
+                    .copy(avoidsTolls = request.avoidTolls),
+            )
+        } else {
+            listOf(base)
+        }
+        // The unavoided route only makes sense when avoidance actually changed the outcome,
+        // which in the mock is the clean case (the naive route crosses a zone).
+        val unavoided = if (request.includeUnavoided == true && clean) {
+            route(request.origin, request.destination, clean = false, trafficAware = request.trafficAware)
+                .copy(id = "mock-unavoided", label = "unavoided")
+        } else {
+            null
+        }
+        return RoutePlan(routes = routes, unavoidedRoute = unavoided)
+    }
+
+    private fun variant(
+        base: RouteResult,
+        id: String,
+        label: String,
+        latShift: Double,
+        distFactor: Double,
+        durFactor: Double,
+    ): RouteResult {
+        val last = base.geometry.coordinates.lastIndex.coerceAtLeast(1)
+        val shifted = base.geometry.coordinates.mapIndexed { i, c ->
+            val t = i.toDouble() / last
+            val bow = Math.sin(t * Math.PI) * latShift
+            listOf(c[0], c[1] + bow)
+        }
+        return base.copy(
+            id = id,
+            label = label,
+            geometry = GeoJsonLineString(coordinates = shifted),
+            distanceMeters = base.distanceMeters * distFactor,
+            durationSeconds = base.durationSeconds * durFactor,
         )
     }
 

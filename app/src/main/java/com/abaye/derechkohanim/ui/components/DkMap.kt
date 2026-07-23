@@ -17,6 +17,8 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.Dash
+import com.google.android.gms.maps.model.Gap
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
@@ -112,6 +114,10 @@ fun DkMap(
     zoom: Float = DEFAULT_ZOOM,
     routePoints: List<LatLng> = emptyList(),
     naiveRoutePoints: List<LatLng> = emptyList(),
+    /** Non-selected alternatives, drawn faded beneath the selected route. */
+    alternativeRoutes: List<List<LatLng>> = emptyList(),
+    /** The unavoided (zone-crossing) route, drawn dashed in the warning colour. */
+    unavoidedRoutePoints: List<LatLng> = emptyList(),
     trafficSegments: List<TrafficSegment> = emptyList(),
     eventMarkers: List<RouteEvent> = emptyList(),
     zones: List<ZoneFeature> = emptyList(),
@@ -177,6 +183,26 @@ fun DkMap(
                 color = colors.routeNaive,
                 width = ROUTE_WIDTH * 0.7f,
             )
+        }
+        // The unavoided route (no zone avoidance) is drawn in a warning style, dashed, so it
+        // reads clearly as "for comparison, crosses zones, not navigable".
+        if (unavoidedRoutePoints.isNotEmpty()) {
+            Polyline(
+                points = unavoidedRoutePoints.map { GmsLatLng(it.lat, it.lng) },
+                color = colors.warning,
+                width = ROUTE_WIDTH * 0.8f,
+                pattern = listOf(Dash(28f), Gap(18f)),
+            )
+        }
+        // Alternatives sit under the selected route, faded, so the choice stands out.
+        alternativeRoutes.forEach { alt ->
+            if (alt.isNotEmpty()) {
+                Polyline(
+                    points = alt.map { GmsLatLng(it.lat, it.lng) },
+                    color = colors.routeNaive.copy(alpha = ALT_ROUTE_ALPHA),
+                    width = ROUTE_WIDTH * 0.85f,
+                )
+            }
         }
         if (routePoints.isNotEmpty()) {
             Polyline(
@@ -249,3 +275,4 @@ private const val DEFAULT_ZOOM = 14f
 private const val ROUTE_WIDTH = 16f
 private const val ZONE_FILL_ALPHA = 0.28f
 private const val ZONE_STROKE_WIDTH = 4f
+private const val ALT_ROUTE_ALPHA = 0.55f

@@ -40,8 +40,11 @@ object RepositoryModule {
 
     @Provides
     @Singleton
-    fun routingRepository(api: DerechKohanimApi): RoutingRepository =
-        if (BuildConfig.USE_MOCK_DATA) MockRoutingRepository() else RemoteRoutingRepository(api)
+    fun routingRepository(
+        api: DerechKohanimApi,
+        json: kotlinx.serialization.json.Json,
+    ): RoutingRepository =
+        if (BuildConfig.USE_MOCK_DATA) MockRoutingRepository() else RemoteRoutingRepository(api, json)
 
     @Provides
     @Singleton

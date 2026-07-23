@@ -125,8 +125,10 @@ interface DerechKohanimApi {
         @Query("sinceVersion") sinceVersion: Int? = null,
     ): ZoneCollection
 
+    // Returns a RoutePlan; decoded as JsonElement so the repository can also accept the old
+    // single RouteResult shape during the server rollout.
     @POST("routes/compute")
-    suspend fun computeRoute(@Body body: RouteRequest): RouteResult
+    suspend fun computeRoute(@Body body: RouteRequest): kotlinx.serialization.json.JsonElement
 
     @GET("providers")
     suspend fun providers(): List<ProviderInfo>

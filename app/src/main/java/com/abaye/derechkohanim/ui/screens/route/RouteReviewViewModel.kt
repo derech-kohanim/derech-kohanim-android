@@ -31,23 +31,37 @@ import javax.inject.Inject
 
 data class RouteReviewState(
     val destination: PlaceSuggestion? = null,
-    val route: RouteResult? = null,
+    /** Up to three zone-verified alternatives from the plan, best first. */
+    val routes: List<RouteResult> = emptyList(),
+    /** The alternative the user picked; drives certainty, stats and navigation. */
+    val selectedRouteId: String? = null,
+    /** Plain provider route with no avoidance. Shown for comparison, never navigable. */
+    val unavoidedRoute: RouteResult? = null,
+    val showUnavoided: Boolean = false,
     val zones: List<com.abaye.derechkohanim.data.model.ZoneFeature> = emptyList(),
     val stringency: Stringency = Stringency.BASIC,
     /** Drives whether travel time is priced with live traffic. Re-fetches on change. */
     val trafficAware: Boolean = true,
+    /** Avoid toll roads. Persisted, re-computes on change. */
+    val avoidTolls: Boolean = false,
     /** True once the destination has been saved to favourites in this session. */
     val savedToFavorites: Boolean = false,
     val loading: Boolean = true,
     val errorCode: String? = null,
 ) {
+    /** The selected route, defaulting to the first alternative. */
+    val route: RouteResult?
+        get() = routes.firstOrNull { it.id == selectedRouteId } ?: routes.firstOrNull()
+
     /** Spec 17.6: three states, and the interface must never blur them together. */
     val certainty: Certainty
-        get() = when {
-            route == null -> Certainty.Unknown
-            !route.verifiedClean -> Certainty.Unverified
-            route.maneuvers.any { it.zone != null } -> Certainty.ZoneNearby
-            else -> Certainty.VerifiedClean
+        get() = route.let { r ->
+            when {
+                r == null -> Certainty.Unknown
+                !r.verifiedClean -> Certainty.Unverified
+                r.maneuvers.any { it.zone != null } -> Certainty.ZoneNearby
+                else -> Certainty.VerifiedClean
+            }
         }
 }
 
@@ -89,6 +103,7 @@ class RouteReviewViewModel @Inject constructor(
                 destination = destination,
                 stringency = snapshot.stringency,
                 trafficAware = snapshot.trafficAware,
+                avoidTolls = snapshot.avoidTolls,
                 loading = true,
                 errorCode = null,
             )
@@ -106,7 +121,8 @@ class RouteReviewViewModel @Inject constructor(
                 ?.value?.features.orEmpty()
 
             // No engine is set: the server picks its default (hybrid), which prices travel
-            // time - with or without traffic - and returns it as durationSeconds.
+            // time - with or without traffic - and returns it as durationSeconds. We always
+            // ask for the unavoided route so the comparison toggle has data on demand.
             val result = routingRepository.computeRoute(
                 RouteRequest(
                     origin = origin,
@@ -115,17 +131,52 @@ class RouteReviewViewModel @Inject constructor(
                     mode = TravelMode.DRIVE,
                     trafficAware = snapshot.trafficAware,
                     language = snapshot.language,
+                    avoidTolls = snapshot.avoidTolls,
+                    includeUnavoided = true,
                 )
             )
             _state.value = when (result) {
                 is DkResult.Success -> {
-                    tripStore.setRoute(result.value)
-                    _state.value.copy(loading = false, route = result.value, zones = zones)
+                    val plan = result.value
+                    val selected = plan.routes.firstOrNull()
+                    if (selected != null) tripStore.setRoute(selected)
+                    _state.value.copy(
+                        loading = false,
+                        routes = plan.routes,
+                        selectedRouteId = selected?.id,
+                        unavoidedRoute = plan.unavoidedRoute,
+                        zones = zones,
+                    )
                 }
 
                 is DkResult.Failure ->
                     _state.value.copy(loading = false, errorCode = result.code, zones = zones)
             }
+        }
+    }
+
+    /**
+     * Picks an alternative. Navigation uses this route's id. The unavoided route is never
+     * selectable here, so navigation can never start on a zone-crossing route.
+     */
+    fun selectRoute(routeId: String) {
+        val chosen = _state.value.routes.firstOrNull { it.id == routeId } ?: return
+        tripStore.setRoute(chosen)
+        _state.value = _state.value.copy(selectedRouteId = chosen.id)
+    }
+
+    /** Toggles drawing the unavoided route overlay. Data is already fetched; no recompute. */
+    fun setShowUnavoided(show: Boolean) {
+        _state.value = _state.value.copy(showUnavoided = show)
+    }
+
+    /** Avoiding tolls changes the route, so recompute. Persisted like the traffic toggle. */
+    fun setAvoidTolls(enabled: Boolean) {
+        if (_state.value.loading || enabled == _state.value.avoidTolls) return
+        _state.value = _state.value.copy(avoidTolls = enabled)
+        viewModelScope.launch {
+            sessionStore.setAvoidTolls(enabled)
+            compute()
         }
     }
 
@@ -137,7 +188,13 @@ class RouteReviewViewModel @Inject constructor(
     fun cancelCompute() {
         computeJob?.cancel()
         computeJob = null
-        _state.value = _state.value.copy(loading = false, errorCode = null, route = null)
+        _state.value = _state.value.copy(
+            loading = false,
+            errorCode = null,
+            routes = emptyList(),
+            selectedRouteId = null,
+            unavoidedRoute = null,
+        )
         _cancelled.tryEmit(Unit)
     }
 
