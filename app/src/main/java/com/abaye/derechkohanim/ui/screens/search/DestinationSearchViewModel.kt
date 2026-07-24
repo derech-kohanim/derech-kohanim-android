@@ -70,6 +70,7 @@ class DestinationSearchViewModel @Inject constructor(
     private val placesRepository: PlacesRepository,
     private val sessionStore: SessionStore,
     private val deviceLocation: com.abaye.derechkohanim.service.DeviceLocation,
+    private val tripStore: com.abaye.derechkohanim.nav.TripStore,
 ) : ViewModel() {
 
     private val queryFlow = MutableStateFlow("")
@@ -186,6 +187,10 @@ class DestinationSearchViewModel @Inject constructor(
 
     private fun publish(suggestion: PlaceSuggestion) {
         sessionToken = UUID.randomUUID().toString()
+        // Persist the chosen destination (now carrying a resolved location) before signalling
+        // the screen to navigate. The route review reads it from here; without this the trip
+        // has no destination and every route fails with "no clean route". Mirrors HomeViewModel.
+        tripStore.setDestination(suggestion)
         _selection.value = suggestion
     }
 
