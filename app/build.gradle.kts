@@ -40,21 +40,35 @@ android {
         localeFilters += listOf("he", "en")
     }
 
+    // The one place the API address lives. Defaults to the live server, so any build - debug
+    // or release, on a device or the emulator - talks to production out of the box. For local
+    // development against the dev server on port 3001, override it and permit cleartext to the
+    // loopback host (already allowlisted in network_security_config.xml):
+    //     ./gradlew installDebug -PAPI_BASE_URL=http://127.0.0.1:3001/api/
+    // (reach it from a real device over USB with `adb reverse tcp:3001 tcp:3001`).
+    // HTTPS to the server is trusted on NetFree devices too: network_security_config.xml
+    // bundles the NetFree roots alongside the system store.
+    val apiBaseUrl = setting("API_BASE_URL", "https://derech-kohanim.dinobycloud.com/api/")
+
+    // The backend's Google OAuth *Web* client id, used as the serverClientId so the ID token
+    // the device returns is one the API can verify. It belongs to the deployment, not the
+    // source tree, so it is supplied at build time (local.properties: GOOGLE_SERVER_CLIENT_ID).
+    // Empty here means Google sign-in stays disabled rather than failing. Sign-in also needs an
+    // Android OAuth client registered in the same project (package + signing SHA-1).
+    val googleServerClientId = setting("GOOGLE_SERVER_CLIENT_ID", "")
+
     buildTypes {
         debug {
             isMinifyEnabled = false
-            // Real server data is the default. The dev server runs on port 3001. The base
-            // points at 127.0.0.1:3001, which reaches the host from BOTH a real device (over
-            // USB via `adb reverse tcp:3001 tcp:3001`) and the emulator. 127.0.0.1 is in the
-            // cleartext allowlist of the network security config, so NetFree does not block
-            // it. Override with -PAPI_BASE_URL=... (e.g. a host LAN IP on the same subnet).
-            buildConfigField("String", "API_BASE_URL", "\"${setting("API_BASE_URL", "http://127.0.0.1:3001/api/")}\"")
+            buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+            buildConfigField("String", "GOOGLE_SERVER_CLIENT_ID", "\"$googleServerClientId\"")
             buildConfigField("boolean", "USE_MOCK_DATA", setting("USE_MOCK_DATA", "false"))
         }
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            buildConfigField("String", "API_BASE_URL", "\"${setting("API_BASE_URL", "https://api.derechkohanim.org/api/")}\"")
+            buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+            buildConfigField("String", "GOOGLE_SERVER_CLIENT_ID", "\"$googleServerClientId\"")
             buildConfigField("boolean", "USE_MOCK_DATA", setting("USE_MOCK_DATA", "false"))
         }
     }

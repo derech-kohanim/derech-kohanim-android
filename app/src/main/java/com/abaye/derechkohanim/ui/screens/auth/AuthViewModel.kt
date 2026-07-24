@@ -18,6 +18,9 @@ data class AuthState(
     val displayName: String = "",
     val termsAccepted: Boolean = false,
     val busy: Boolean = false,
+    /** True from the moment the Google button is tapped until the flow resolves. Drives the
+     *  button spinner across the few seconds it takes Play Services to show its sheet. */
+    val googleBusy: Boolean = false,
     val errorCode: String? = null,
     val signedIn: Boolean = false,
 )
@@ -85,9 +88,17 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    /** Called the instant the Google button is tapped, before Play Services is invoked, so the
+     *  button shows a spinner during the noticeable delay until its sheet appears. */
+    fun onGoogleSignInStarted() {
+        _state.value = _state.value.copy(googleBusy = true, errorCode = null)
+    }
+
     fun loginWithGoogle(idToken: String?) {
         if (idToken == null) {
-            _state.value = _state.value.copy(errorCode = "google_unavailable")
+            // Cancelled or unavailable: stop the spinner. Only surface an error when Google
+            // actually failed, not when the user simply dismissed the sheet.
+            _state.value = _state.value.copy(googleBusy = false, errorCode = "google_unavailable")
             return
         }
         viewModelScope.launch {
@@ -98,8 +109,8 @@ class AuthViewModel @Inject constructor(
 
     private fun apply(result: DkResult<*>) {
         _state.value = when (result) {
-            is DkResult.Success -> _state.value.copy(busy = false, signedIn = true)
-            is DkResult.Failure -> _state.value.copy(busy = false, errorCode = result.code)
+            is DkResult.Success -> _state.value.copy(busy = false, googleBusy = false, signedIn = true)
+            is DkResult.Failure -> _state.value.copy(busy = false, googleBusy = false, errorCode = result.code)
         }
     }
 }

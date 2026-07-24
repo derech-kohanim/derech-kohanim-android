@@ -21,6 +21,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
@@ -60,6 +61,7 @@ fun LoginRoute(
         onSubmit = viewModel::login,
         onGoogle = {
             scope.launch {
+                viewModel.onGoogleSignInStarted()
                 viewModel.loginWithGoogle(
                     GoogleSignIn.requestIdToken(context, GOOGLE_SERVER_CLIENT_ID)
                 )
@@ -93,6 +95,7 @@ fun RegisterRoute(
         onSubmit = viewModel::register,
         onGoogle = {
             scope.launch {
+                viewModel.onGoogleSignInStarted()
                 viewModel.loginWithGoogle(
                     GoogleSignIn.requestIdToken(context, GOOGLE_SERVER_CLIENT_ID)
                 )
@@ -199,6 +202,8 @@ fun AuthScreen(
             DkButton(
                 text = stringResource(R.string.auth_google),
                 onClick = onGoogle,
+                loading = state.googleBusy,
+                leadingPainter = painterResource(R.drawable.ic_google_g),
                 variant = DkButtonVariant.Secondary,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -232,10 +237,11 @@ private fun authErrorRes(code: String): Int = when (code) {
 }
 
 /**
- * The backend OAuth client id. Left empty on purpose: it belongs to the deployment, not to
- * the source tree. Supply it through a build config field once the API exposes one.
+ * The backend OAuth client id, supplied at build time (see build.gradle.kts). Empty in a fresh
+ * checkout, which keeps Google sign-in disabled rather than failing; set GOOGLE_SERVER_CLIENT_ID
+ * in local.properties to enable it.
  */
-private val GOOGLE_SERVER_CLIENT_ID: String = ""
+private val GOOGLE_SERVER_CLIENT_ID: String = BuildConfig.GOOGLE_SERVER_CLIENT_ID
 
 @Preview(name = "Login", showBackground = true, locale = "he")
 @Composable

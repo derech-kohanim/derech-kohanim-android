@@ -1,5 +1,6 @@
 package com.abaye.derechkohanim.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -38,6 +40,8 @@ fun DkButton(
     loading: Boolean = false,
     large: Boolean = false,
     leadingIcon: ImageVector? = null,
+    /** A multi-colour logo (e.g. the Google G) drawn untinted, unlike [leadingIcon]. */
+    leadingPainter: Painter? = null,
 ) {
     val colors = DkTheme.colors
     val container = when (variant) {
@@ -74,6 +78,14 @@ fun DkButton(
             CircularProgressIndicator(
                 modifier = Modifier.size(DkTheme.spacing.s5),
                 color = content,
+            )
+            Spacer(Modifier.width(DkTheme.spacing.s2))
+        } else if (leadingPainter != null) {
+            // Drawn as an Image, not an Icon, so a multi-colour logo keeps its own colours.
+            Image(
+                painter = leadingPainter,
+                contentDescription = null,
+                modifier = Modifier.size(DkTheme.spacing.s5),
             )
             Spacer(Modifier.width(DkTheme.spacing.s2))
         } else if (leadingIcon != null) {
