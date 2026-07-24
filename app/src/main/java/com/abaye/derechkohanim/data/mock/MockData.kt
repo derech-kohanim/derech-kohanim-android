@@ -24,8 +24,6 @@ import com.abaye.derechkohanim.data.model.RoutePlan
 import com.abaye.derechkohanim.data.model.RouteRequest
 import com.abaye.derechkohanim.data.model.RouteResult
 import com.abaye.derechkohanim.data.model.RoutingEngine
-import com.abaye.derechkohanim.data.model.TrafficLevel
-import com.abaye.derechkohanim.data.model.TrafficSegment
 import com.abaye.derechkohanim.data.model.points
 import com.abaye.derechkohanim.data.model.SavedPlace
 import com.abaye.derechkohanim.data.model.Stringency
@@ -413,6 +411,12 @@ object MockData {
     /**
      * Route events keyed to the actual geometry, so markers sit on the drawn route and the
      * along-route distances match. Mirrors what GET /api/routes/{id}/events would return.
+     *
+     * Only real, meaningful events are seeded: the halachic zone crossings along the route.
+     * No fabricated community reports (police / accident / hazard) and no fake traffic are
+     * injected - those must come from live user reports through the API. This keeps the demo
+     * free of phantom reports, matching production, where the real endpoint returns none unless
+     * drivers actually raised them.
      */
     fun eventBundle(route: RouteResult): RouteEventBundle {
         val geometry = route.geometry.points()
@@ -431,31 +435,10 @@ object MockData {
                 labelHe = zone.nameHe,
             )
         }
-        val policeIndex = geometry.size / 3
-        val hazardIndex = geometry.size * 2 / 3
-        events += RouteEvent(
-            id = "report-police",
-            type = RouteEventType.POLICE,
-            location = geometry[policeIndex],
-            routeDistanceMeters = cumulative[policeIndex],
-        )
-        events += RouteEvent(
-            id = "report-hazard",
-            type = RouteEventType.HAZARD,
-            location = geometry[hazardIndex],
-            routeDistanceMeters = cumulative[hazardIndex],
-        )
-
-        val traffic = listOf(
-            TrafficSegment(geometry.size / 4, geometry.size / 3, TrafficLevel.MODERATE),
-            TrafficSegment(geometry.size / 2, geometry.size * 3 / 5, TrafficLevel.HEAVY),
-        )
 
         return RouteEventBundle(
             routeId = route.id,
             events = events,
-            traffic = traffic,
-            delaySeconds = 300.0,
         )
     }
 

@@ -27,6 +27,7 @@ import com.abaye.derechkohanim.data.model.Stringency
 import com.abaye.derechkohanim.data.model.points
 import com.abaye.derechkohanim.data.repository.RouteEventsRepository
 import com.abaye.derechkohanim.nav.TripStore
+import com.abaye.derechkohanim.service.DeviceLocation
 import com.abaye.derechkohanim.voice.SpokenInstruction
 import com.abaye.derechkohanim.voice.VoicePhrase
 import com.abaye.derechkohanim.voice.VoicePlayer
@@ -86,9 +87,11 @@ data class NavigationState(
 }
 
 /**
- * Drives both live navigation and simulation from one state machine (spec 15.4). The live
- * position feed is scaffolding: the simulator advances along the geometry, and a real device
- * feed would replace [tick] without changing the announcement, alert or ETA logic.
+ * Drives both live navigation and simulation from one state machine (spec 15.4). A real drive
+ * (`simulated == false`) is fed by the device GPS: each fix is snapped onto the route geometry
+ * to set [progressIndex], then run through the same [applyProgress] path the simulator uses, so
+ * announcements, zone alerts, ETA and server progress reporting are identical either way. The
+ * timer simulator runs only for `simulated == true`.
  */
 @HiltViewModel
 class NavigationViewModel @Inject constructor(
@@ -96,6 +99,7 @@ class NavigationViewModel @Inject constructor(
     private val tripStore: TripStore,
     private val routeEventsRepository: RouteEventsRepository,
     private val voicePlayer: VoicePlayer,
+    private val deviceLocation: DeviceLocation,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(NavigationState())
@@ -146,7 +150,9 @@ class NavigationViewModel @Inject constructor(
                 trafficDelaySeconds = bundle.delaySeconds,
                 distanceToManeuverMeters = route?.maneuvers?.getOrNull(1)?.distanceMeters ?: 0.0,
             )
-            if (route != null) startLoop()
+            if (route != null) {
+                if (simulated) startLoop() else startRealFeed()
+            }
         }
     }
 
@@ -164,16 +170,75 @@ class NavigationViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Live navigation from the real device GPS. Each fix is projected onto the route to advance
+     * [progressIndex], the heading is taken from the fix's own bearing or, failing that, derived
+     * from the motion between the last two fixes, and the shared [applyProgress] path handles the
+     * rest. If the stream never emits (permission denied, no fix) navigation simply waits - the
+     * timer simulator is never started for a real drive.
+     */
+    private fun startRealFeed() {
+        loop?.cancel()
+        loop = viewModelScope.launch {
+            deviceLocation.updates().collect { fix ->
+                val previous = _state.value.currentLocation
+                progressIndex = nearestIndex(fix.location, progressIndex)
+
+                val heading = fix.bearingDegrees
+                    ?: previous
+                        ?.takeIf { Geo.distanceMeters(it, fix.location) >= MIN_HEADING_MOVE_METERS }
+                        ?.let { Geo.bearingDegrees(it, fix.location) }
+                    ?: _state.value.headingDegrees
+                val speed = fix.speedMps ?: 0.0
+
+                applyProgress(fix.location, heading, speed)
+
+                if (progressIndex >= geometry.lastIndex) {
+                    _state.value = _state.value.copy(status = NavigationStatus.ARRIVED)
+                }
+            }
+        }
+    }
+
+    /**
+     * Nearest route vertex to a real fix, searched forward from the current index (with a small
+     * look-back for GPS jitter) so progress does not jump backwards when the route passes near
+     * itself. Falls back to a full scan only at the very start.
+     */
+    private fun nearestIndex(location: LatLng, from: Int): Int {
+        if (geometry.isEmpty()) return 0
+        val start = (from - LOOK_BACK_STEPS).coerceAtLeast(0)
+        var best = from.coerceIn(0, geometry.lastIndex)
+        var bestDist = Double.MAX_VALUE
+        for (i in start..geometry.lastIndex) {
+            val d = Geo.distanceMeters(location, geometry[i])
+            if (d < bestDist) {
+                bestDist = d
+                best = i
+            }
+        }
+        return best
+    }
+
     private fun progressedMeters(): Double = cumulative.getOrNull(progressIndex) ?: 0.0
 
+    /** The simulator step: the position is the next geometry vertex, heading and speed inferred. */
     private fun tick() {
-        val route = _state.value.route ?: return
         val previous = _state.value.currentLocation
         val location = geometry.getOrNull(progressIndex) ?: return
-        val fraction = progressIndex.toDouble() / geometry.lastIndex.coerceAtLeast(1)
-
         val heading = previous?.let { Geo.bearingDegrees(it, location) } ?: _state.value.headingDegrees
         val speed = previous?.let { Geo.distanceMeters(it, location) / (TICK_MS / 1000.0) } ?: 0.0
+        applyProgress(location, heading, speed)
+    }
+
+    /**
+     * The shared progress path for both the simulator and the real GPS feed. [progressIndex] must
+     * already be set; this maps it to the upcoming manoeuvre, ETA and traffic, then fires the
+     * announcement and alert logic - unchanged whichever source drove the update.
+     */
+    private fun applyProgress(location: LatLng, heading: Float, speed: Double) {
+        val route = _state.value.route ?: return
+        val fraction = progressIndex.toDouble() / geometry.lastIndex.coerceAtLeast(1)
 
         val upcomingIndex = route.maneuvers.indexOfFirst { it.geometryIndex >= progressIndex }
             .let { if (it < 0) route.maneuvers.lastIndex else it }
@@ -391,5 +456,10 @@ class NavigationViewModel @Inject constructor(
         const val NOW_THRESHOLD_METERS = 25.0
         const val ZONE_TRIGGER_METERS = 500.0
         const val REPORT_TRIGGER_METERS = 350.0
+        // Below this movement between fixes the derived bearing is just GPS noise, so the last
+        // heading is kept instead of spinning the map.
+        const val MIN_HEADING_MOVE_METERS = 3.0
+        // How far back along the route the snap may look, to absorb GPS jitter without jumping.
+        const val LOOK_BACK_STEPS = 2
     }
 }
