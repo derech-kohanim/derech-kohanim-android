@@ -85,10 +85,23 @@ class DestinationSearchViewModel @Inject constructor(
     private val _savedConfirmation = MutableSharedFlow<PlaceCategory>(extraBufferCapacity = 4)
     val savedConfirmation: SharedFlow<PlaceCategory> = _savedConfirmation.asSharedFlow()
 
+    /**
+     * Emitted when a guest attempts an account-only action (assigning home/work, saving a place).
+     * The screen shows the sign-in message and routes to login; the pending action is resumed
+     * automatically once the user signs in.
+     */
+    private val _requireLogin = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val requireLogin: SharedFlow<Unit> = _requireLogin.asSharedFlow()
+
     private var allSaved: List<PlaceSuggestion> = emptyList()
     private var allRecent: List<PlaceSuggestion> = emptyList()
     private var language: Language = Language.HE
     private var origin: LatLng? = null
+
+    /** Whether an account is currently signed in. Kept live from the session store. */
+    private var signedIn: Boolean = false
+    /** The save the guest intended, held across the login round-trip and replayed on success. */
+    private var pendingAssign: Pair<PlaceSuggestion, PlaceCategory>? = null
 
     /** Kept stable while the user types one destination, then rotated after a selection. */
     private var sessionToken: String = UUID.randomUUID().toString()
@@ -109,6 +122,29 @@ class DestinationSearchViewModel @Inject constructor(
             loadLocalPlaces()
         }
         observeQuery()
+        observeSession()
+    }
+
+    /**
+     * Tracks sign-in state. When the user returns from login having signed in, any account-only
+     * action they attempted as a guest (a pending home/work save) is replayed automatically, so
+     * the flow completes where it left off (return-to-after-login).
+     */
+    private fun observeSession() {
+        sessionStore.snapshots
+            .map { it.isSignedIn }
+            .distinctUntilChanged()
+            .onEach { nowSignedIn ->
+                val justSignedIn = nowSignedIn && !signedIn
+                signedIn = nowSignedIn
+                if (justSignedIn) {
+                    pendingAssign?.let { (suggestion, category) ->
+                        pendingAssign = null
+                        saveAs(suggestion, category)
+                    }
+                }
+            }
+            .launchIn(viewModelScope)
     }
 
     /** An explicit origin from the caller wins over the device location. */
@@ -159,6 +195,13 @@ class DestinationSearchViewModel @Inject constructor(
      * new home or work slot appears immediately. The saved place API is the store of record.
      */
     private fun saveAs(suggestion: PlaceSuggestion, category: PlaceCategory) {
+        // Saving a place is an account-only action. A guest is sent to sign in first; the intended
+        // save is remembered and replayed automatically once they are signed in.
+        if (!signedIn) {
+            pendingAssign = suggestion to category
+            _requireLogin.tryEmit(Unit)
+            return
+        }
         val request = suggestion.toCreateSavedRequest(category) ?: return
         viewModelScope.launch {
             when (placesRepository.addSavedPlace(request)) {

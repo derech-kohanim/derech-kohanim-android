@@ -103,6 +103,7 @@
     <string name="saved_work_confirmation">העבודה נשמרה</string>
     <string name="saved_place_confirmation">המקום נשמר</string>
     <string name="cd_edit_slot">שנה כתובת</string>
+    <string name="sign_in_required">זמין רק בעת התחברות לחשבון</string>
 
     <!-- Place categories -->
     <string name="category_address">כתובת</string>

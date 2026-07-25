@@ -103,6 +103,7 @@
     <string name="saved_work_confirmation">Work saved</string>
     <string name="saved_place_confirmation">Place saved</string>
     <string name="cd_edit_slot">Change address</string>
+    <string name="sign_in_required">Available only when signed in</string>
 
     <!-- Place categories -->
     <string name="category_address">Address</string>

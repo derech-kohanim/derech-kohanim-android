@@ -62,13 +62,28 @@ fun DestinationSearchRoute(
     onBack: () -> Unit,
     onDestinationChosen: (PlaceSuggestion) -> Unit,
     origin: LatLng? = null,
+    onRequireLogin: () -> Unit = {},
     viewModel: DestinationSearchViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val selection by viewModel.selection.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     var savedMessage by remember { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(origin) { viewModel.setOrigin(origin) }
+
+    // A guest tried an account-only action: tell them why, then send them to sign in. The pending
+    // action is replayed by the view model once they return signed in.
+    LaunchedEffect(Unit) {
+        viewModel.requireLogin.collect {
+            android.widget.Toast.makeText(
+                context,
+                context.getString(R.string.sign_in_required),
+                android.widget.Toast.LENGTH_SHORT,
+            ).show()
+            onRequireLogin()
+        }
+    }
 
     LaunchedEffect(selection) {
         selection?.let {

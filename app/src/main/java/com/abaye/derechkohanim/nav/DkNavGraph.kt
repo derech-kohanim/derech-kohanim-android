@@ -69,6 +69,9 @@ fun DkNavGraph(
                         popUpTo(Routes.SEARCH) { inclusive = true }
                     }
                 },
+                // Guests are routed to login for account-only actions; login pops back to search,
+                // where the pending action is replayed once signed in (return-to-after-login).
+                onRequireLogin = { navController.navigate(Routes.LOGIN) },
                 viewModel = hiltViewModel(),
             )
         }
