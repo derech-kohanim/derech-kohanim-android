@@ -185,6 +185,17 @@
     <string name="nav_simulation_restart">התחל מחדש</string>
     <string name="nav_offline_ready">מוכן לנסיעה גם ללא רשת</string>
 
+    <!-- End-of-trip feedback -->
+    <string name="nav_feedback_prompt">איך היה הניווט?</string>
+    <string name="nav_feedback_good">היה טוב</string>
+    <string name="nav_feedback_bad">לא היה טוב</string>
+    <string name="nav_feedback_dislike_placeholder">מה הייתה הבעיה?</string>
+    <string name="nav_feedback_submit">שליחה</string>
+    <string name="nav_feedback_skip">דלג</string>
+    <string name="nav_feedback_thanks">תודה על המשוב</string>
+    <string name="cd_feedback_good">ניווט טוב</string>
+    <string name="cd_feedback_bad">ניווט לא טוב</string>
+
     <!-- Connectivity / GPS status banner -->
     <string name="banner_no_internet">אין חיבור לאינטרנט</string>
     <string name="banner_no_gps">אין קליטת GPS</string>

@@ -185,6 +185,17 @@
     <string name="nav_simulation_restart">Restart</string>
     <string name="nav_offline_ready">Ready for offline driving</string>
 
+    <!-- End-of-trip feedback -->
+    <string name="nav_feedback_prompt">How was the navigation?</string>
+    <string name="nav_feedback_good">Good</string>
+    <string name="nav_feedback_bad">Bad</string>
+    <string name="nav_feedback_dislike_placeholder">What was the problem?</string>
+    <string name="nav_feedback_submit">Send</string>
+    <string name="nav_feedback_skip">Skip</string>
+    <string name="nav_feedback_thanks">Thanks for your feedback</string>
+    <string name="cd_feedback_good">Good navigation</string>
+    <string name="cd_feedback_bad">Bad navigation</string>
+
     <!-- Connectivity / GPS status banner -->
     <string name="banner_no_internet">No internet</string>
     <string name="banner_no_gps">No GPS</string>

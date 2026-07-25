@@ -22,6 +22,8 @@ import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.NavigateBefore
 import androidx.compose.material.icons.filled.NavigateNext
 import androidx.compose.material.icons.filled.Report
+import androidx.compose.material.icons.filled.ThumbDown
+import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Icon
@@ -45,6 +47,7 @@ import kotlinx.coroutines.delay
 import com.abaye.derechkohanim.R
 import com.abaye.derechkohanim.core.Formatters
 import com.abaye.derechkohanim.data.mock.MockData
+import com.abaye.derechkohanim.data.model.NavFeedbackRating
 import com.abaye.derechkohanim.data.model.NavigationStatus
 import com.abaye.derechkohanim.data.model.RouteEventType
 import com.abaye.derechkohanim.data.model.points
@@ -52,7 +55,9 @@ import com.abaye.derechkohanim.ui.components.DkBadge
 import com.abaye.derechkohanim.ui.components.DkBadgeTone
 import com.abaye.derechkohanim.ui.components.DkButton
 import com.abaye.derechkohanim.ui.components.DkButtonVariant
+import com.abaye.derechkohanim.ui.components.DkBottomSheet
 import com.abaye.derechkohanim.ui.components.DkCard
+import com.abaye.derechkohanim.ui.components.DkTextField
 import com.abaye.derechkohanim.ui.components.DkFloatingIconButton
 import com.abaye.derechkohanim.ui.components.DkMap
 import com.abaye.derechkohanim.ui.components.DkMapController
@@ -112,6 +117,7 @@ fun NavigationRoute(
         onSetSpeed = viewModel::setSimulationSpeed,
         onReport = viewModel::addReport,
         reportAdded = viewModel.reportAdded,
+        onSubmitFeedback = viewModel::submitFeedback,
         onFinish = {
             viewModel.stop()
             onFinished()
@@ -157,6 +163,7 @@ fun NavigationScreen(
     onSetSpeed: (Int) -> Unit = {},
     onReport: (RouteEventType) -> Unit,
     reportAdded: kotlinx.coroutines.flow.SharedFlow<Unit>? = null,
+    onSubmitFeedback: (NavFeedbackRating, String?) -> Unit = { _, _ -> },
     onFinish: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -164,6 +171,7 @@ fun NavigationScreen(
     var following by remember { mutableStateOf(true) }
     var showSteps by remember { mutableStateOf(false) }
     var showReport by remember { mutableStateOf(false) }
+    var showStopFeedback by remember { mutableStateOf(false) }
     var reportConfirmation by remember { mutableStateOf(false) }
     var offlineReadyVisible by remember { mutableStateOf(false) }
 
@@ -300,6 +308,7 @@ fun NavigationScreen(
 
         if (state.status == NavigationStatus.ARRIVED) {
             ArrivalPanel(
+                onSubmitFeedback = onSubmitFeedback,
                 onFinish = onFinish,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -316,7 +325,8 @@ fun NavigationScreen(
                 onPreviousStep = onPreviousStep,
                 onNextStep = onNextStep,
                 onSetSpeed = onSetSpeed,
-                onStop = onStop,
+                // Stopping early offers optional feedback first; the sheet's own actions stop.
+                onStop = { showStopFeedback = true },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
@@ -341,6 +351,19 @@ fun NavigationScreen(
                 showReport = false
             },
             onDismiss = { showReport = false },
+        )
+    }
+
+    // Optional feedback when stopping early. Dismissing keeps driving; the sheet's own Stop and
+    // Send actions both end navigation, so stopping never depends on leaving feedback.
+    if (showStopFeedback) {
+        StopFeedbackSheet(
+            onSubmitFeedback = onSubmitFeedback,
+            onStop = {
+                showStopFeedback = false
+                onStop()
+            },
+            onDismiss = { showStopFeedback = false },
         )
     }
 }
@@ -646,21 +669,185 @@ private fun SimulationBar(
 }
 
 @Composable
-private fun ArrivalPanel(onFinish: () -> Unit, modifier: Modifier = Modifier) {
+private fun ArrivalPanel(
+    onSubmitFeedback: (NavFeedbackRating, String?) -> Unit,
+    onFinish: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     DkCard(modifier = modifier, color = DkTheme.colors.surfaceOverlay) {
         Text(
             text = stringResource(R.string.nav_arrived_title),
             style = MaterialTheme.typography.displaySmall,
             color = DkTheme.colors.text,
         )
-        DkButton(
-            text = stringResource(R.string.nav_arrived_action),
-            onClick = onFinish,
-            large = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = DkTheme.spacing.s3),
+        FeedbackControls(
+            onSubmitFeedback = onSubmitFeedback,
+            onProceed = onFinish,
+            proceedLabelRes = R.string.nav_arrived_action,
+            modifier = Modifier.padding(top = DkTheme.spacing.s3),
         )
+    }
+}
+
+/**
+ * Optional feedback shown in a sheet when the driver stops early. Mirrors the arrival flow: a
+ * good/bad rating, a "what went wrong?" note on a bad rating, and either action ends the drive.
+ */
+@Composable
+private fun StopFeedbackSheet(
+    onSubmitFeedback: (NavFeedbackRating, String?) -> Unit,
+    onStop: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    DkBottomSheet(onDismissRequest = onDismiss) {
+        FeedbackControls(
+            onSubmitFeedback = onSubmitFeedback,
+            onProceed = onStop,
+            proceedLabelRes = R.string.nav_stop,
+        )
+    }
+}
+
+/**
+ * The shared good/bad feedback control. Thumbs up / thumbs down set the rating; a bad rating
+ * reveals the optional free-text note. Sending POSTs the feedback (fire and forget in the VM),
+ * shows a brief thank-you, then proceeds. The proceed action (finish or stop) always works even
+ * with no rating, so feedback never blocks leaving.
+ */
+@Composable
+private fun FeedbackControls(
+    onSubmitFeedback: (NavFeedbackRating, String?) -> Unit,
+    onProceed: () -> Unit,
+    proceedLabelRes: Int,
+    modifier: Modifier = Modifier,
+) {
+    var rating by remember { mutableStateOf<NavFeedbackRating?>(null) }
+    var dislikeText by remember { mutableStateOf("") }
+    var submitted by remember { mutableStateOf(false) }
+
+    if (submitted) {
+        // Brief confirmation, then proceed on its own so the flow never stalls.
+        LaunchedEffect(Unit) {
+            delay(1200)
+            onProceed()
+        }
+        Row(
+            modifier = modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.CheckCircle,
+                contentDescription = null,
+                tint = DkTheme.colors.success,
+                modifier = Modifier.size(DkTheme.spacing.s6),
+            )
+            Text(
+                text = stringResource(R.string.nav_feedback_thanks),
+                style = MaterialTheme.typography.titleMedium,
+                color = DkTheme.colors.text,
+                modifier = Modifier.padding(start = DkTheme.spacing.s3),
+            )
+        }
+        return
+    }
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s3),
+    ) {
+        Text(
+            text = stringResource(R.string.nav_feedback_prompt),
+            style = MaterialTheme.typography.titleMedium,
+            color = DkTheme.colors.text,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2)) {
+            ThumbButton(
+                icon = Icons.Filled.ThumbUp,
+                label = stringResource(R.string.nav_feedback_good),
+                contentDescription = stringResource(R.string.cd_feedback_good),
+                selected = rating == NavFeedbackRating.GOOD,
+                tone = DkBadgeTone.Success,
+                onClick = { rating = NavFeedbackRating.GOOD },
+                modifier = Modifier.weight(1f),
+            )
+            ThumbButton(
+                icon = Icons.Filled.ThumbDown,
+                label = stringResource(R.string.nav_feedback_bad),
+                contentDescription = stringResource(R.string.cd_feedback_bad),
+                selected = rating == NavFeedbackRating.BAD,
+                tone = DkBadgeTone.Danger,
+                onClick = { rating = NavFeedbackRating.BAD },
+                modifier = Modifier.weight(1f),
+            )
+        }
+        AnimatedVisibility(visible = rating == NavFeedbackRating.BAD) {
+            DkTextField(
+                value = dislikeText,
+                onValueChange = { dislikeText = it },
+                label = stringResource(R.string.nav_feedback_dislike_placeholder),
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            DkButton(
+                text = stringResource(proceedLabelRes),
+                onClick = onProceed,
+                variant = DkButtonVariant.Ghost,
+                modifier = Modifier.weight(1f),
+            )
+            DkButton(
+                text = stringResource(R.string.nav_feedback_submit),
+                onClick = {
+                    rating?.let { chosen ->
+                        onSubmitFeedback(chosen, dislikeText.takeIf { chosen == NavFeedbackRating.BAD })
+                        submitted = true
+                    }
+                },
+                enabled = rating != null,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ThumbButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    contentDescription: String,
+    selected: Boolean,
+    tone: DkBadgeTone,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val accent = if (tone == DkBadgeTone.Success) DkTheme.colors.success else DkTheme.colors.danger
+    DkCard(
+        modifier = modifier,
+        color = if (selected) accent else DkTheme.colors.surface,
+        borderColor = if (selected) accent else DkTheme.colors.border,
+        onClick = onClick,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = if (selected) DkTheme.colors.text else accent,
+                modifier = Modifier.size(DkTheme.spacing.s6),
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                color = DkTheme.colors.text,
+                modifier = Modifier.padding(start = DkTheme.spacing.s2),
+            )
+        }
     }
 }
 

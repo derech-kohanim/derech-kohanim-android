@@ -19,6 +19,8 @@ import com.abaye.derechkohanim.data.local.SessionStore
 import com.abaye.derechkohanim.data.model.CreateReportRequest
 import com.abaye.derechkohanim.data.model.LatLng
 import com.abaye.derechkohanim.data.model.Maneuver
+import com.abaye.derechkohanim.data.model.NavFeedbackRating
+import com.abaye.derechkohanim.data.model.NavFeedbackRequest
 import com.abaye.derechkohanim.data.model.NavigationStatus
 import com.abaye.derechkohanim.data.model.RouteEvent
 import com.abaye.derechkohanim.data.model.RouteEventBundle
@@ -655,6 +657,25 @@ class NavigationViewModel @Inject constructor(
         // Persist to the server; the optimistic marker already shows locally.
         viewModelScope.launch {
             routeEventsRepository.report(CreateReportRequest(routeId, type, location))
+        }
+    }
+
+    /**
+     * Sends optional end-of-trip feedback for the current route. Fire and forget and fully
+     * best-effort: a failure is swallowed so finishing or stopping the drive is never blocked
+     * (the endpoint is OptionalAuth, so it also works for guests). A BAD rating may carry the
+     * free-text note; an empty note is dropped.
+     */
+    fun submitFeedback(rating: NavFeedbackRating, text: String? = null) {
+        val routeId = _state.value.route?.id ?: tripStore.route.value?.id ?: return
+        viewModelScope.launch {
+            routingRepository.submitFeedback(
+                NavFeedbackRequest(
+                    routeId = routeId,
+                    rating = rating,
+                    text = text?.trim()?.ifBlank { null },
+                )
+            )
         }
     }
 
