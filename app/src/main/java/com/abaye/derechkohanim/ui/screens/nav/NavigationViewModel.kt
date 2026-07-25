@@ -35,8 +35,10 @@ import com.abaye.derechkohanim.nav.TripStore
 import com.abaye.derechkohanim.service.Connectivity
 import com.abaye.derechkohanim.service.DeviceLocation
 import com.abaye.derechkohanim.voice.SpokenInstruction
+import com.abaye.derechkohanim.voice.VoicePackManager
 import com.abaye.derechkohanim.voice.VoicePhrase
 import com.abaye.derechkohanim.voice.VoicePlayer
+import android.os.SystemClock
 import javax.inject.Inject
 
 /** The banner state for an approaching event, distinct from the on-screen maneuver panel. */
@@ -98,6 +100,12 @@ data class NavigationState(
     val simulationPaused: Boolean = false,
     /** Simulation playback speed multiplier: 1x, 2x, 4x or 8x. Higher advances faster. */
     val simulationSpeed: Int = 1,
+    /** No internet-capable network right now (drives the Waze-style status banner). */
+    val offline: Boolean = false,
+    /** No GPS fix: permission denied, or the last real fix is older than the staleness window. */
+    val noGps: Boolean = false,
+    /** The route's voice clips are all cached, so the drive can run with no connectivity. */
+    val offlineReady: Boolean = false,
 ) {
     val currentManeuver: Maneuver?
         get() = route?.maneuvers?.getOrNull(currentManeuverIndex)
@@ -121,6 +129,7 @@ class NavigationViewModel @Inject constructor(
     private val routeEventsRepository: RouteEventsRepository,
     private val routingRepository: RoutingRepository,
     private val voicePlayer: VoicePlayer,
+    private val voicePackManager: VoicePackManager,
     private val deviceLocation: DeviceLocation,
     private val connectivity: Connectivity,
 ) : ViewModel() {
@@ -149,6 +158,9 @@ class NavigationViewModel @Inject constructor(
     /** Consecutive fixes seen beyond the off-route threshold; a reroute triggers past a floor. */
     private var offRouteFixes = 0
     private var rerouteJob: Job? = null
+    /** Uptime of the last real GPS fix, for the "no GPS" staleness check. */
+    private var lastFixMs = 0L
+    private var gpsWatchdog: Job? = null
 
     private val announcedManeuverRungs = mutableSetOf<String>()
     private val announcedEvents = mutableSetOf<String>()
@@ -186,7 +198,56 @@ class NavigationViewModel @Inject constructor(
                 distanceToManeuverMeters = route?.maneuvers?.getOrNull(1)?.distanceMeters ?: 0.0,
             )
             if (route != null) {
+                prefetchRouteClips(route)
                 if (simulated) startLoop() else startRealFeed()
+            }
+        }
+        observeConnectivity()
+    }
+
+    /**
+     * Streams real connectivity into the state so the banner reacts the instant the network drops
+     * or returns. The route geometry and events are already in memory, so an offline drop never
+     * stops the drive - only the banner appears.
+     */
+    private fun observeConnectivity() {
+        viewModelScope.launch {
+            connectivity.online().collect { online ->
+                _state.value = _state.value.copy(offline = !online)
+            }
+        }
+    }
+
+    /**
+     * Per-drive prefetch (offline continuity): resolve and cache the route's required voice clips
+     * that are not already in the pack (typically street-name clips), so the whole drive can run
+     * with no connectivity. Non-blocking; a clip that cannot be fetched simply falls back to TTS.
+     * On completion the "ready for offline" indicator is shown.
+     */
+    private fun prefetchRouteClips(route: RouteResult) {
+        viewModelScope.launch {
+            voicePackManager.ensureRouteClips(route.requiredVoiceKeys)
+            _state.value = _state.value.copy(offlineReady = true)
+        }
+    }
+
+    /**
+     * Watches the age of the last GPS fix during a real drive. [DeviceLocation.updates] emits
+     * nothing without permission or a fix, so a stale age (or none at all) flips the "no GPS" state
+     * that drives the banner. Simulated drives never lack a fix, so the watchdog runs only for real
+     * navigation.
+     */
+    private fun startGpsWatchdog() {
+        gpsWatchdog?.cancel()
+        // Grant the initial fix a full window before declaring no GPS.
+        lastFixMs = SystemClock.elapsedRealtime()
+        gpsWatchdog = viewModelScope.launch {
+            while (true) {
+                val stale = SystemClock.elapsedRealtime() - lastFixMs > GPS_STALE_MS
+                if (_state.value.noGps != stale) {
+                    _state.value = _state.value.copy(noGps = stale)
+                }
+                delay(GPS_CHECK_MS)
             }
         }
     }
@@ -215,8 +276,11 @@ class NavigationViewModel @Inject constructor(
      */
     private fun startRealFeed() {
         loop?.cancel()
+        startGpsWatchdog()
         loop = viewModelScope.launch {
             deviceLocation.updates().collect { fix ->
+                lastFixMs = SystemClock.elapsedRealtime()
+                if (_state.value.noGps) _state.value = _state.value.copy(noGps = false)
                 val previous = _state.value.currentLocation
                 progressIndex = nearestIndex(fix.location, progressIndex)
 
@@ -602,6 +666,7 @@ class NavigationViewModel @Inject constructor(
 
     override fun onCleared() {
         loop?.cancel()
+        gpsWatchdog?.cancel()
         voicePlayer.release()
     }
 
@@ -629,5 +694,8 @@ class NavigationViewModel @Inject constructor(
         const val OFF_ROUTE_THRESHOLD_METERS = 45.0
         // Consecutive off-route fixes before reacting, to ignore a single bad GPS reading.
         const val OFF_ROUTE_MIN_FIXES = 2
+        // No real fix within this window (or no permission) counts as "no GPS".
+        const val GPS_STALE_MS = 10_000L
+        const val GPS_CHECK_MS = 2_000L
     }
 }

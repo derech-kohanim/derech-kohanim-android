@@ -41,6 +41,7 @@ import com.abaye.derechkohanim.ui.components.DkBadge
 import com.abaye.derechkohanim.ui.components.DkFloatingIconButton
 import com.abaye.derechkohanim.ui.components.DkMap
 import com.abaye.derechkohanim.ui.components.MapControls
+import com.abaye.derechkohanim.ui.components.StatusBanner
 import com.abaye.derechkohanim.ui.components.rememberDkMapController
 import com.abaye.derechkohanim.ui.icons.categoryIcon
 import com.abaye.derechkohanim.ui.screens.onboarding.stringencyTitleRes
@@ -118,6 +119,9 @@ fun HomeScreen(
             }
 
             DkBadge(text = stringResource(stringencyTitleRes(state.stringency)))
+
+            // Waze-style connectivity banner at the top of the home view.
+            StatusBanner(offline = state.offline, noGps = false)
         }
 
         MapControls(

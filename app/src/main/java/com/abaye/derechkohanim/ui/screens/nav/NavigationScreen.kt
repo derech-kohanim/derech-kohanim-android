@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.NavigateBefore
 import androidx.compose.material.icons.filled.NavigateNext
 import androidx.compose.material.icons.filled.Report
@@ -56,6 +57,7 @@ import com.abaye.derechkohanim.ui.components.DkFloatingIconButton
 import com.abaye.derechkohanim.ui.components.DkMap
 import com.abaye.derechkohanim.ui.components.DkMapController
 import com.abaye.derechkohanim.ui.components.MapControls
+import com.abaye.derechkohanim.ui.components.StatusBanner
 import com.abaye.derechkohanim.ui.components.rememberDkMapController
 import com.abaye.derechkohanim.ui.icons.eventIcon
 import com.abaye.derechkohanim.ui.icons.eventLabelRes
@@ -163,6 +165,16 @@ fun NavigationScreen(
     var showSteps by remember { mutableStateOf(false) }
     var showReport by remember { mutableStateOf(false) }
     var reportConfirmation by remember { mutableStateOf(false) }
+    var offlineReadyVisible by remember { mutableStateOf(false) }
+
+    // Surface the "ready for offline" confirmation briefly once prefetch reports done.
+    LaunchedEffect(state.offlineReady) {
+        if (state.offlineReady) {
+            offlineReadyVisible = true
+            delay(3000)
+            offlineReadyVisible = false
+        }
+    }
 
     val fullRoutePoints = remember(state.route) { state.route?.geometry?.points().orEmpty() }
     // Draw only the route still ahead (from the location marker onward), not the driven part.
@@ -230,6 +242,16 @@ fun NavigationScreen(
                     text = stringResource(R.string.report_added),
                     tone = DkBadgeTone.Success,
                     icon = Icons.Filled.CheckCircle,
+                )
+            }
+            // Waze-style status banner, directly under the instruction card.
+            StatusBanner(offline = state.offline, noGps = state.noGps)
+            // A brief "ready for offline" confirmation once the drive's clips are cached.
+            AnimatedVisibility(visible = offlineReadyVisible) {
+                DkBadge(
+                    text = stringResource(R.string.nav_offline_ready),
+                    tone = DkBadgeTone.Success,
+                    icon = Icons.Filled.CloudDone,
                 )
             }
         }

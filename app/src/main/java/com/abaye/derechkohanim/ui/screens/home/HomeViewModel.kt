@@ -17,6 +17,7 @@ import com.abaye.derechkohanim.data.model.SavedPlace
 import com.abaye.derechkohanim.data.model.Stringency
 import com.abaye.derechkohanim.data.repository.PlacesRepository
 import com.abaye.derechkohanim.nav.TripStore
+import com.abaye.derechkohanim.service.Connectivity
 import com.abaye.derechkohanim.service.DeviceLocation
 import javax.inject.Inject
 
@@ -24,6 +25,8 @@ data class HomeState(
     val origin: LatLng? = null,
     val stringency: Stringency = Stringency.BASIC,
     val savedPlaces: List<SavedPlace> = emptyList(),
+    /** No internet-capable network right now (drives the status banner). */
+    val offline: Boolean = false,
 )
 
 @HiltViewModel
@@ -32,6 +35,7 @@ class HomeViewModel @Inject constructor(
     private val sessionStore: SessionStore,
     private val deviceLocation: DeviceLocation,
     private val tripStore: TripStore,
+    private val connectivity: Connectivity,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
@@ -39,11 +43,16 @@ class HomeViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            connectivity.online().collect { online ->
+                _state.value = _state.value.copy(offline = !online)
+            }
+        }
+        viewModelScope.launch {
             val snapshot = sessionStore.snapshot()
             val located = deviceLocation.lastKnown()
                 ?: if (BuildConfig.USE_MOCK_DATA) MockData.currentLocation else null
             val saved = placesRepository.savedPlaces()
-            _state.value = HomeState(
+            _state.value = _state.value.copy(
                 origin = located,
                 stringency = snapshot.stringency,
                 savedPlaces = (saved as? DkResult.Success)?.value.orEmpty(),
