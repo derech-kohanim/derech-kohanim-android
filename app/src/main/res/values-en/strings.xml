@@ -183,6 +183,11 @@
     <string name="nav_simulation_play">Play</string>
     <string name="nav_simulation_pause">Pause</string>
     <string name="nav_simulation_restart">Restart</string>
+    <string name="nav_offline_ready">Ready for offline driving</string>
+
+    <!-- Connectivity / GPS status banner -->
+    <string name="banner_no_internet">No internet</string>
+    <string name="banner_no_gps">No GPS</string>
 
     <!-- Maneuver text -->
     <string name="maneuver_depart">Start driving</string>
@@ -230,6 +235,12 @@
     <string name="settings_section_downloads">Downloads</string>
     <string name="settings_download_zones">Zone layers</string>
     <string name="settings_download_voice">Voice pack</string>
+    <string name="settings_download_action">Download / update now</string>
+    <string name="settings_download_voice_status_none">Not downloaded</string>
+    <string name="settings_download_voice_status_downloading">Downloading…</string>
+    <string name="settings_download_voice_status_ready">Up to date · version %1$d · %2$d clips</string>
+    <string name="settings_download_voice_status_error">Download failed</string>
+    <string name="settings_download_zones_status_stub">Coming soon</string>
     <string name="settings_section_account">Account</string>
     <string name="settings_sign_in">Sign in</string>
     <string name="settings_sign_out">Sign out</string>

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.stateIn
 import com.abaye.derechkohanim.data.local.SessionStore
 import com.abaye.derechkohanim.data.model.ThemePreference
 import com.abaye.derechkohanim.nav.Routes
+import com.abaye.derechkohanim.voice.VoicePackManager
 import javax.inject.Inject
 
 data class AppUiState(
@@ -21,7 +22,15 @@ data class AppUiState(
 @HiltViewModel
 class AppViewModel @Inject constructor(
     sessionStore: SessionStore,
+    voicePackManager: VoicePackManager,
 ) : ViewModel() {
+
+    init {
+        // Loads the cached voice pack into the player and refreshes it in the background. The
+        // endpoint has no auth, so this runs at app start whether signed in or a guest. Never
+        // blocks the UI; a failure quietly leaves the previous cache (or TTS) in place.
+        voicePackManager.start()
+    }
 
     val state: StateFlow<AppUiState> = sessionStore.snapshots
         .map { snapshot ->

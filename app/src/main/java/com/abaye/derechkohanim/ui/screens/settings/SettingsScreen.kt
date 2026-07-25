@@ -38,6 +38,8 @@ import com.abaye.derechkohanim.ui.components.DkSwitchRow
 import com.abaye.derechkohanim.ui.screens.onboarding.StringencyOption
 import com.abaye.derechkohanim.ui.theme.DerechKohanimTheme
 import com.abaye.derechkohanim.ui.theme.DkTheme
+import com.abaye.derechkohanim.voice.VoicePackState
+import com.abaye.derechkohanim.voice.VoicePackStatus
 
 @Composable
 fun SettingsRoute(
@@ -57,6 +59,7 @@ fun SettingsRoute(
         onVoiceEnabled = viewModel::setVoiceEnabled,
         onAvoidDangerZones = viewModel::setAvoidDangerZones,
         onAvoidTolls = viewModel::setAvoidTolls,
+        onDownloadVoice = viewModel::downloadVoicePack,
         onSignOut = viewModel::signOut,
     )
 }
@@ -73,6 +76,7 @@ fun SettingsScreen(
     onVoiceEnabled: (Boolean) -> Unit,
     onAvoidDangerZones: (Boolean) -> Unit,
     onAvoidTolls: (Boolean) -> Unit,
+    onDownloadVoice: () -> Unit = {},
     onSignOut: () -> Unit,
 ) {
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
@@ -165,6 +169,22 @@ fun SettingsScreen(
                 )
             }
 
+            Section(stringResource(R.string.settings_section_downloads)) {
+                DownloadRow(
+                    label = stringResource(R.string.settings_download_voice),
+                    status = voicePackStatusText(state.voicePack),
+                    actionEnabled = state.voicePack.state != VoicePackState.DOWNLOADING,
+                    onAction = onDownloadVoice,
+                )
+                // Zone-layer caching is not built yet; the row is a placeholder for it.
+                DownloadRow(
+                    label = stringResource(R.string.settings_download_zones),
+                    status = stringResource(R.string.settings_download_zones_status_stub),
+                    actionEnabled = false,
+                    onAction = {},
+                )
+            }
+
             Section(stringResource(R.string.settings_section_account)) {
                 if (state.signedIn) {
                     DkButton(
@@ -195,6 +215,55 @@ fun SettingsScreen(
                         horizontal = DkTheme.spacing.s4,
                         vertical = DkTheme.spacing.s2,
                     ),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun voicePackStatusText(status: VoicePackStatus): String = when (status.state) {
+    VoicePackState.DOWNLOADING -> stringResource(R.string.settings_download_voice_status_downloading)
+    VoicePackState.READY -> stringResource(
+        R.string.settings_download_voice_status_ready,
+        status.version,
+        status.clipCount,
+    )
+    VoicePackState.ERROR -> stringResource(R.string.settings_download_voice_status_error)
+    VoicePackState.UNKNOWN -> stringResource(R.string.settings_download_voice_status_none)
+}
+
+@Composable
+private fun DownloadRow(
+    label: String,
+    status: String,
+    actionEnabled: Boolean,
+    onAction: () -> Unit,
+) {
+    DkCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = DkTheme.spacing.s4, vertical = DkTheme.spacing.s1),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = DkTheme.colors.text,
+                )
+                Text(
+                    text = status,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = DkTheme.colors.textMuted,
+                    modifier = Modifier.padding(top = DkTheme.spacing.s1),
+                )
+            }
+            if (actionEnabled) {
+                DkButton(
+                    text = stringResource(R.string.settings_download_action),
+                    onClick = onAction,
+                    variant = DkButtonVariant.Secondary,
                 )
             }
         }

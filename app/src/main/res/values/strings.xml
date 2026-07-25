@@ -183,6 +183,11 @@
     <string name="nav_simulation_play">הפעל</string>
     <string name="nav_simulation_pause">השהה</string>
     <string name="nav_simulation_restart">התחל מחדש</string>
+    <string name="nav_offline_ready">מוכן לנסיעה גם ללא רשת</string>
+
+    <!-- Connectivity / GPS status banner -->
+    <string name="banner_no_internet">אין חיבור לאינטרנט</string>
+    <string name="banner_no_gps">אין קליטת GPS</string>
 
     <!-- Maneuver text, used for the on screen line and as the voice text fallback -->
     <string name="maneuver_depart">צא לדרך</string>
@@ -230,6 +235,12 @@
     <string name="settings_section_downloads">הורדות</string>
     <string name="settings_download_zones">שכבות האזורים</string>
     <string name="settings_download_voice">חבילת הקול</string>
+    <string name="settings_download_action">הורד/עדכן עכשיו</string>
+    <string name="settings_download_voice_status_none">לא הורדה</string>
+    <string name="settings_download_voice_status_downloading">מוריד…</string>
+    <string name="settings_download_voice_status_ready">מעודכן · גרסה %1$d · %2$d קטעים</string>
+    <string name="settings_download_voice_status_error">ההורדה נכשלה</string>
+    <string name="settings_download_zones_status_stub">בקרוב</string>
     <string name="settings_section_account">חשבון</string>
     <string name="settings_sign_in">התחברות</string>
     <string name="settings_sign_out">התנתקות</string>

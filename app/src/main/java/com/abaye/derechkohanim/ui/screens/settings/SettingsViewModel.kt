@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import com.abaye.derechkohanim.core.AppLocale
@@ -14,6 +14,8 @@ import com.abaye.derechkohanim.data.model.Language
 import com.abaye.derechkohanim.data.model.Stringency
 import com.abaye.derechkohanim.data.model.ThemePreference
 import com.abaye.derechkohanim.data.repository.AuthRepository
+import com.abaye.derechkohanim.voice.VoicePackManager
+import com.abaye.derechkohanim.voice.VoicePackStatus
 import javax.inject.Inject
 
 data class SettingsState(
@@ -25,16 +27,18 @@ data class SettingsState(
     val avoidDangerZones: Boolean = true,
     val avoidTolls: Boolean = false,
     val signedIn: Boolean = false,
+    val voicePack: VoicePackStatus = VoicePackStatus(),
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val sessionStore: SessionStore,
     private val authRepository: AuthRepository,
+    private val voicePackManager: VoicePackManager,
 ) : ViewModel() {
 
-    val state: StateFlow<SettingsState> = sessionStore.snapshots
-        .map { snapshot ->
+    val state: StateFlow<SettingsState> =
+        combine(sessionStore.snapshots, voicePackManager.status) { snapshot, voicePack ->
             SettingsState(
                 language = snapshot.language,
                 theme = snapshot.theme,
@@ -44,6 +48,7 @@ class SettingsViewModel @Inject constructor(
                 avoidDangerZones = snapshot.avoidDangerZones,
                 avoidTolls = snapshot.avoidTolls,
                 signedIn = snapshot.isSignedIn,
+                voicePack = voicePack,
             )
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsState())
@@ -76,6 +81,10 @@ class SettingsViewModel @Inject constructor(
 
     fun setAvoidTolls(enabled: Boolean) {
         viewModelScope.launch { sessionStore.setAvoidTolls(enabled) }
+    }
+
+    fun downloadVoicePack() {
+        voicePackManager.refreshNow()
     }
 
     fun signOut() {

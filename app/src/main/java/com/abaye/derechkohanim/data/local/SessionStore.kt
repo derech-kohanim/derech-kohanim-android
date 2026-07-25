@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -37,6 +38,10 @@ data class SessionSnapshot(
     val voiceId: String = "he-default",
     val acceptedTermsVersion: String? = null,
     val onboardingComplete: Boolean = false,
+    /** The voice-pack version already downloaded and cached, per [voicePackLanguage]. */
+    val voicePackVersion: Int = 0,
+    /** The language tag the cached voice pack was downloaded for. */
+    val voicePackLanguage: String? = null,
 ) {
     val isSignedIn: Boolean get() = accessToken != null
 }
@@ -58,6 +63,8 @@ class SessionStore @Inject constructor(
         val voiceId = stringPreferencesKey("voice_id")
         val acceptedTermsVersion = stringPreferencesKey("accepted_terms_version")
         val onboardingComplete = booleanPreferencesKey("onboarding_complete")
+        val voicePackVersion = intPreferencesKey("voice_pack_version")
+        val voicePackLanguage = stringPreferencesKey("voice_pack_language")
     }
 
     val snapshots: Flow<SessionSnapshot> = context.dataStore.data.map { prefs ->
@@ -74,6 +81,8 @@ class SessionStore @Inject constructor(
             voiceId = prefs[Keys.voiceId] ?: "he-default",
             acceptedTermsVersion = prefs[Keys.acceptedTermsVersion],
             onboardingComplete = prefs[Keys.onboardingComplete] ?: false,
+            voicePackVersion = prefs[Keys.voicePackVersion] ?: 0,
+            voicePackLanguage = prefs[Keys.voicePackLanguage],
         )
     }
 
@@ -118,6 +127,12 @@ class SessionStore @Inject constructor(
 
     suspend fun setOnboardingComplete(complete: Boolean) = context.dataStore.edit {
         it[Keys.onboardingComplete] = complete
+    }
+
+    /** Records the voice-pack version and language now held in the on-disk cache. */
+    suspend fun setVoicePack(language: Language, version: Int) = context.dataStore.edit {
+        it[Keys.voicePackVersion] = version
+        it[Keys.voicePackLanguage] = language.tag
     }
 
     suspend fun clearSession() = context.dataStore.edit {
