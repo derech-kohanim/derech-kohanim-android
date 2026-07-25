@@ -4,6 +4,7 @@ local.properties
 .idea/
 .DS_Store
 build/
+app/debug/
 captures/
 .externalNativeBuild/
 .cxx/
@@ -12,3 +13,5 @@ captures/
 *.aab
 *.keystore
 !debug.keystore
+
+keys/
