@@ -82,18 +82,31 @@ class DkMapController(val cameraPositionState: CameraPositionState) {
     /** Heading-up rotates the map with the drive; north-up keeps north at the top. */
     var headingUp by mutableStateOf(true)
 
-    fun follow(location: LatLng, bearingDegrees: Float) {
+    /**
+     * While on, the driving camera picks its own zoom from the current speed instead of sitting
+     * at the overview zoom the screen opened with. The zoom buttons turn it off so a deliberate
+     * zoom sticks; recentring turns it back on.
+     */
+    var autoZoom by mutableStateOf(true)
+        private set
+
+    fun follow(location: LatLng, bearingDegrees: Float, speedMps: Double = 0.0) {
         val bearing = if (headingUp) bearingDegrees else 0f
-        // Preserve whatever zoom the driver set with the zoom buttons.
-        val currentZoom = cameraPositionState.position.zoom.takeIf { it > 2f } ?: FOLLOW_ZOOM
+        // Auto zoom drives itself off the speed; otherwise keep whatever zoom the driver set.
+        val zoom = if (autoZoom) drivingZoom(speedMps) else currentZoom()
         move(
             CameraPosition.Builder()
                 .target(GmsLatLng(location.lat, location.lng))
-                .zoom(currentZoom)
+                .zoom(zoom)
                 .bearing(bearing)
                 .tilt(if (headingUp) FOLLOW_TILT else 0f)
                 .build()
         )
+    }
+
+    /** Hands the zoom back to the speed-driven camera, e.g. when the driver recentres. */
+    fun resumeAutoZoom() {
+        autoZoom = true
     }
 
     fun center(location: LatLng, zoom: Float = FOLLOW_ZOOM) {
@@ -101,6 +114,8 @@ class DkMapController(val cameraPositionState: CameraPositionState) {
     }
 
     fun zoomBy(delta: Float) {
+        // A deliberate zoom wins over the automatic one until the driver recentres.
+        autoZoom = false
         val current = cameraPositionState.position
         move(
             CameraPosition.Builder(current)
@@ -121,16 +136,38 @@ class DkMapController(val cameraPositionState: CameraPositionState) {
         }
     }
 
+    private fun currentZoom(): Float =
+        cameraPositionState.position.zoom.takeIf { it > 2f } ?: FOLLOW_ZOOM
+
     private fun move(position: CameraPosition) {
         runCatching { cameraPositionState.position = position }
     }
 
     companion object {
-        const val FOLLOW_ZOOM = 16.5f
+        const val FOLLOW_ZOOM = 17f
         const val FOLLOW_TILT = 45f
         private const val MIN_ZOOM = 5f
         private const val MAX_ZOOM = 20f
         private const val OVERVIEW_PADDING_PX = 160
+
+        /**
+         * The zoom the driving camera holds at a given speed: close in when crawling through
+         * streets, a step wider at motorway speed so the next manoeuvre is still on screen.
+         * Quantised to half steps, so a speed that wobbles does not nudge the camera every fix.
+         */
+        fun drivingZoom(speedMps: Double): Float {
+            val span = (FAST_MPS - SLOW_MPS)
+            val fraction = ((speedMps - SLOW_MPS) / span).coerceIn(0.0, 1.0)
+            val zoom = CLOSE_ZOOM - fraction * (CLOSE_ZOOM - WIDE_ZOOM)
+            return (Math.round(zoom * 2.0) / 2.0).toFloat()
+        }
+
+        /** Below this (about 14 km/h) the camera is at its closest. */
+        private const val SLOW_MPS = 4.0
+        /** At this (about 100 km/h) it has pulled back to [WIDE_ZOOM]. */
+        private const val FAST_MPS = 28.0
+        private const val CLOSE_ZOOM = 18.0
+        private const val WIDE_ZOOM = 16.0
     }
 }
 

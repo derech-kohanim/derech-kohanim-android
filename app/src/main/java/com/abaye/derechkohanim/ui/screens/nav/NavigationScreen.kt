@@ -54,6 +54,7 @@ import com.abaye.derechkohanim.ui.components.DkButtonVariant
 import com.abaye.derechkohanim.ui.components.DkCard
 import com.abaye.derechkohanim.ui.components.DkFloatingIconButton
 import com.abaye.derechkohanim.ui.components.DkMap
+import com.abaye.derechkohanim.ui.components.DkMapController
 import com.abaye.derechkohanim.ui.components.MapControls
 import com.abaye.derechkohanim.ui.components.rememberDkMapController
 import com.abaye.derechkohanim.ui.icons.eventIcon
@@ -154,9 +155,11 @@ fun NavigationScreen(
 
     val routePoints = remember(state.route) { state.route?.geometry?.points().orEmpty() }
 
-    LaunchedEffect(state.currentLocation, following, controller.headingUp) {
+    LaunchedEffect(state.currentLocation, following, controller.headingUp, controller.autoZoom) {
         val location = state.currentLocation
-        if (following && location != null) controller.follow(location, state.headingDegrees)
+        if (following && location != null) {
+            controller.follow(location, state.headingDegrees, state.speedMps)
+        }
     }
 
     LaunchedEffect(reportAdded) {
@@ -171,6 +174,9 @@ fun NavigationScreen(
         DkMap(
             center = state.currentLocation ?: FALLBACK_CENTER,
             controller = controller,
+            // Driving view: open close in, not at the wide default, so the first frame is
+            // already a navigation view. follow() takes the zoom from there.
+            zoom = DkMapController.FOLLOW_ZOOM,
             modifier = Modifier.fillMaxSize(),
             routePoints = routePoints,
             trafficSegments = state.events.traffic,
@@ -215,7 +221,10 @@ fun NavigationScreen(
         MapControls(
             onRecenter = {
                 following = true
-                state.currentLocation?.let { controller.follow(it, state.headingDegrees) }
+                controller.resumeAutoZoom()
+                state.currentLocation?.let {
+                    controller.follow(it, state.headingDegrees, state.speedMps)
+                }
             },
             onZoomIn = { controller.zoomBy(1f) },
             onZoomOut = { controller.zoomBy(-1f) },
