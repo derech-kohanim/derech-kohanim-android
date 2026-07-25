@@ -1,5 +1,6 @@
 package com.abaye.derechkohanim.data.model
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -32,4 +33,23 @@ data class CreateRecentPlaceRequest(
     val title: String,
     val subtitle: String? = null,
     val location: LatLng,
+)
+
+/** The two-way end-of-trip rating. Serialised as "good"/"bad" to match the server contract. */
+@Serializable
+enum class NavFeedbackRating {
+    @SerialName("good") GOOD,
+    @SerialName("bad") BAD,
+}
+
+/**
+ * POST body for end-of-trip feedback (POST /api/nav/feedback). Guarded by OptionalAuth on the
+ * server, so it works anonymously for guests and is auto-associated when signed in. The optional
+ * [text] carries the free-text "what went wrong?" note, typically only sent with a BAD rating.
+ */
+@Serializable
+data class NavFeedbackRequest(
+    val routeId: String,
+    val rating: NavFeedbackRating,
+    val text: String? = null,
 )

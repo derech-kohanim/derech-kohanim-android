@@ -10,6 +10,7 @@ import com.abaye.derechkohanim.data.model.CreateReportRequest
 import com.abaye.derechkohanim.data.model.CreateSavedPlaceRequest
 import com.abaye.derechkohanim.data.model.Language
 import com.abaye.derechkohanim.data.model.LatLng
+import com.abaye.derechkohanim.data.model.NavFeedbackRequest
 import com.abaye.derechkohanim.data.model.NavigationProgressRequest
 import com.abaye.derechkohanim.data.model.NavigationProgressResponse
 import com.abaye.derechkohanim.data.model.NavigationSession
@@ -156,6 +157,11 @@ class MockRoutingRepository @Inject constructor() : RoutingRepository {
 
     override suspend fun endSession(sessionId: String): DkResult<NavigationSession> =
         DkResult.Success(MockData.session(sessionId, simulated = false).copy(status = NavigationStatus.ARRIVED))
+
+    override suspend fun submitFeedback(request: NavFeedbackRequest): DkResult<Unit> {
+        delay(FAKE_LATENCY_MS)
+        return DkResult.Success(Unit)
+    }
 }
 
 class MockAuthRepository @Inject constructor(

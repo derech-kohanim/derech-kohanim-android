@@ -3,6 +3,7 @@ package com.abaye.derechkohanim.data.repository
 import com.abaye.derechkohanim.core.DkResult
 import com.abaye.derechkohanim.core.map
 import com.abaye.derechkohanim.data.model.DangerZoneCollection
+import com.abaye.derechkohanim.data.model.NavFeedbackRequest
 import com.abaye.derechkohanim.data.model.NavigationProgressRequest
 import com.abaye.derechkohanim.data.model.NavigationProgressResponse
 import com.abaye.derechkohanim.data.model.NavigationSession
@@ -28,6 +29,7 @@ interface RoutingRepository {
     suspend fun createSession(routeId: String, simulated: Boolean): DkResult<NavigationSession>
     suspend fun reportProgress(request: NavigationProgressRequest): DkResult<NavigationProgressResponse>
     suspend fun endSession(sessionId: String): DkResult<NavigationSession>
+    suspend fun submitFeedback(request: NavFeedbackRequest): DkResult<Unit>
 }
 
 class RemoteRoutingRepository @Inject constructor(
@@ -61,6 +63,9 @@ class RemoteRoutingRepository @Inject constructor(
 
     override suspend fun endSession(sessionId: String): DkResult<NavigationSession> =
         apiCall { api.endSession(sessionId) }
+
+    override suspend fun submitFeedback(request: NavFeedbackRequest): DkResult<Unit> =
+        apiCall { api.submitFeedback(request) }
 }
 
 /**

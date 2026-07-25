@@ -9,6 +9,7 @@ import com.abaye.derechkohanim.data.model.CreateSavedPlaceRequest
 import com.abaye.derechkohanim.data.model.GoogleAuthRequest
 import com.abaye.derechkohanim.data.model.LoginRequest
 import com.abaye.derechkohanim.data.model.LogoutRequest
+import com.abaye.derechkohanim.data.model.NavFeedbackRequest
 import com.abaye.derechkohanim.data.model.NavigationProgressRequest
 import com.abaye.derechkohanim.data.model.NavigationProgressResponse
 import com.abaye.derechkohanim.data.model.NavigationSession
@@ -161,6 +162,10 @@ interface DerechKohanimApi {
 
     @POST("nav/sessions/{id}/end")
     suspend fun endSession(@Path("id") sessionId: String): NavigationSession
+
+    // End-of-trip feedback. OptionalAuth: anonymous for guests, auto-associated when signed in.
+    @POST("nav/feedback")
+    suspend fun submitFeedback(@Body body: NavFeedbackRequest)
 
     // Voice
     @GET("voice/packs")
