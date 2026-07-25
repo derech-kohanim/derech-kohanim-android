@@ -1,12 +1,17 @@
 package com.abaye.derechkohanim.nav
 
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.abaye.derechkohanim.R
 import com.abaye.derechkohanim.ui.screens.auth.LoginRoute
 import com.abaye.derechkohanim.ui.screens.auth.RegisterRoute
 import com.abaye.derechkohanim.ui.screens.home.HomeRoute
@@ -23,6 +28,9 @@ import com.abaye.derechkohanim.ui.screens.settings.SettingsRoute
 @Composable
 fun DkNavGraph(
     startDestination: String,
+    pendingResume: Boolean = false,
+    onConfirmResume: () -> Unit = {},
+    onDiscardResume: () -> Unit = {},
     navController: NavHostController = rememberNavController(),
 ) {
     NavHost(navController = navController, startDestination = startDestination) {
@@ -110,5 +118,30 @@ fun DkNavGraph(
                 onSignIn = { navController.navigate(Routes.LOGIN) },
             )
         }
+    }
+
+    // Offered once on launch when a real drive was still active when the app was killed. Confirming
+    // hands the saved drive to the engine and jumps to the navigation screen; declining discards it.
+    if (pendingResume) {
+        AlertDialog(
+            onDismissRequest = onDiscardResume,
+            title = { Text(stringResource(R.string.nav_resume_title)) },
+            text = { Text(stringResource(R.string.nav_resume_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    onConfirmResume()
+                    navController.navigate(Routes.NAVIGATION) {
+                        popUpTo(Routes.HOME)
+                    }
+                }) {
+                    Text(stringResource(R.string.nav_resume_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDiscardResume) {
+                    Text(stringResource(R.string.nav_resume_dismiss))
+                }
+            },
+        )
     }
 }

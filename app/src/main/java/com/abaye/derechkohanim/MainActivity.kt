@@ -1,12 +1,17 @@
 package com.abaye.derechkohanim
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.getValue
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import com.abaye.derechkohanim.data.model.ThemePreference
@@ -23,9 +28,16 @@ class MainActivity : AppCompatActivity() {
 
     private val appViewModel: AppViewModel by viewModels()
 
+    // POST_NOTIFICATIONS is declared but must be requested at runtime from Android 13+. The
+    // ongoing navigation notification depends on it, so we ask once at app start; a denial only
+    // means the drive runs without its notification, never that navigation fails.
+    private val notificationPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* best effort */ }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        requestNotificationPermissionIfNeeded()
         setContent {
             val state by appViewModel.state.collectAsStateWithLifecycle()
             val dark = when (state.theme) {
@@ -35,10 +47,22 @@ class MainActivity : AppCompatActivity() {
             }
             DerechKohanimTheme(darkTheme = dark) {
                 if (state.ready) {
-                    DkNavGraph(startDestination = state.startDestination)
+                    DkNavGraph(
+                        startDestination = state.startDestination,
+                        pendingResume = state.pendingResume != null,
+                        onConfirmResume = appViewModel::confirmResume,
+                        onDiscardResume = appViewModel::discardResume,
+                    )
                 }
             }
         }
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+        if (!granted) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 
     /**

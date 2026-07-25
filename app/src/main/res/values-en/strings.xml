@@ -223,6 +223,12 @@
     <string name="service_channel_description">A persistent notification while navigation is running</string>
     <string name="service_notification_title">Derech Kohanim is navigating</string>
 
+    <!-- Resume after kill -->
+    <string name="nav_resume_title">Continue navigation?</string>
+    <string name="nav_resume_body">Navigation stopped before you reached your destination. Continue from where you left off?</string>
+    <string name="nav_resume_confirm">Yes, I\'m still on the way</string>
+    <string name="nav_resume_dismiss">No</string>
+
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="settings_section_general">General</string>

@@ -223,6 +223,12 @@
     <string name="service_channel_description">התראה קבועה כל עוד ניווט פעיל</string>
     <string name="service_notification_title">דרך כהנים מנווט</string>
 
+    <!-- Resume after kill -->
+    <string name="nav_resume_title">להמשיך בניווט?</string>
+    <string name="nav_resume_body">הניווט הופסק לפני שהגעת ליעד. להמשיך מהמקום שבו עצרת?</string>
+    <string name="nav_resume_confirm">כן, אני עדיין בדרך</string>
+    <string name="nav_resume_dismiss">לא</string>
+
     <!-- Settings -->
     <string name="settings_title">הגדרות</string>
     <string name="settings_section_general">כללי</string>
