@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -173,7 +175,9 @@ fun RouteReviewScreen(
             state.loading -> Unit
             state.certainty == Certainty.Unverified || route == null ->
                 RouteFailurePanel(
-                    modifier = Modifier.align(Alignment.BottomCenter),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding(),
                     onChangeDestination = onChangeDestination,
                     onChangeStringency = onChangeStringency,
                     onProceed = { onStart(false) },
@@ -181,7 +185,9 @@ fun RouteReviewScreen(
                 )
 
             else -> RouteReadyPanel(
-                modifier = Modifier.align(Alignment.BottomCenter),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding(),
                 state = state,
                 route = route,
                 onSelectRoute = onSelectRoute,
@@ -400,8 +406,11 @@ private fun RouteChoiceCard(
     val context = LocalContext.current
     val isFastest = deltaToFastestSeconds < 60.0
     DkCard(
+        // A fixed width: inside a horizontalScroll the child gets an unbounded width, and the
+        // weight(1f) below then collapses the label to zero width, wrapping the Hebrew one glyph
+        // per line (columns instead of a row). A concrete width keeps the row readable.
         modifier = Modifier
-            .widthIn(min = 140.dp)
+            .width(180.dp)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
         color = if (selected) DkTheme.colors.surfaceMuted else DkTheme.colors.surface,
         borderColor = if (selected) DkTheme.colors.primary else DkTheme.colors.border,
@@ -415,6 +424,8 @@ private fun RouteChoiceCard(
                 },
                 style = MaterialTheme.typography.titleSmall,
                 color = DkTheme.colors.text,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
             if (route.verifiedClean) {

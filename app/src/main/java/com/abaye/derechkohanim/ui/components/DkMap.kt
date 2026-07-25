@@ -183,6 +183,17 @@ fun DkMap(
         position = CameraPosition.fromLatLngZoom(GmsLatLng(center.lat, center.lng), zoom)
     }
 
+    // An external controller starts at the map default (lat/lng 0, zoom 0) - the whole world.
+    // Focus it on `center` once, so the map opens zoomed in like Waze instead of showing the
+    // globe; the screen's own follow()/center() calls take over from there. The zoom guard
+    // means this never stomps a camera the driver has already moved.
+    androidx.compose.runtime.LaunchedEffect(controller) {
+        if (controller != null && cameraPositionState.position.zoom < 2f) {
+            cameraPositionState.position =
+                CameraPosition.fromLatLngZoom(GmsLatLng(center.lat, center.lng), zoom)
+        }
+    }
+
     GoogleMap(
         modifier = modifier.fillMaxSize(),
         cameraPositionState = cameraPositionState,
