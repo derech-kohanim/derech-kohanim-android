@@ -129,6 +129,7 @@
     <string name="route_avoidance_none">Avoidance did not make the trip longer</string>
     <string name="route_alt_plus">+%1$s</string>
     <string name="route_computing">Computing route...</string>
+    <string name="route_computing_to">Computing route to %1$s</string>
     <string name="cd_route_computing">Computing route, please wait</string>
     <string name="route_start">Start navigation</string>
     <string name="route_simulate">Simulate</string>

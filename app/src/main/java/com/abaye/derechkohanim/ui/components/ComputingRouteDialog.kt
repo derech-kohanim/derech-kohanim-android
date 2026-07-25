@@ -41,7 +41,7 @@ import com.abaye.derechkohanim.ui.theme.DkTheme
  * cancellation of the in-flight request. Everything is token-driven and theme-aware.
  */
 @Composable
-fun ComputingRouteDialog(onCancel: () -> Unit) {
+fun ComputingRouteDialog(onCancel: () -> Unit, destinationName: String? = null) {
     Dialog(
         onDismissRequest = { /* blocking: dismissal only through Cancel */ },
         properties = DialogProperties(
@@ -67,7 +67,11 @@ fun ComputingRouteDialog(onCancel: () -> Unit) {
             ) {
                 ComputingRouteAnimation()
                 Text(
-                    text = stringResource(R.string.route_computing),
+                    text = if (destinationName.isNullOrBlank()) {
+                        stringResource(R.string.route_computing)
+                    } else {
+                        stringResource(R.string.route_computing_to, destinationName)
+                    },
                     style = MaterialTheme.typography.titleMedium,
                     color = DkTheme.colors.text,
                     textAlign = TextAlign.Center,

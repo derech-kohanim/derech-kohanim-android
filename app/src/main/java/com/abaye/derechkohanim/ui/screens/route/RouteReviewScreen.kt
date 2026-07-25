@@ -203,7 +203,10 @@ fun RouteReviewScreen(
 
     // The blocking modal: dismissed only on a result (loading flips false) or by Cancel.
     if (state.loading) {
-        ComputingRouteDialog(onCancel = onCancelCompute)
+        ComputingRouteDialog(
+            onCancel = onCancelCompute,
+            destinationName = state.destination?.title,
+        )
     }
 }
 

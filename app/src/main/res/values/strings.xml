@@ -129,6 +129,7 @@
     <string name="route_avoidance_none">ההימנעות לא האריכה את הנסיעה</string>
     <string name="route_alt_plus">+%1$s</string>
     <string name="route_computing">מחשב מסלול...</string>
+    <string name="route_computing_to">מחשב מסלול אל %1$s</string>
     <string name="cd_route_computing">מחשב מסלול, אנא המתן</string>
     <string name="route_start">התחל ניווט</string>
     <string name="route_simulate">הרצה</string>
