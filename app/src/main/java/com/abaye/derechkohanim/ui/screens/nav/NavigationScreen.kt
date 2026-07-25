@@ -98,6 +98,7 @@ fun NavigationRoute(
         onStop = viewModel::stop,
         onPreviousStep = viewModel::jumpToPreviousManeuver,
         onNextStep = viewModel::jumpToNextManeuver,
+        onSetSpeed = viewModel::setSimulationSpeed,
         onReport = viewModel::addReport,
         reportAdded = viewModel.reportAdded,
         onFinish = {
@@ -142,6 +143,7 @@ fun NavigationScreen(
     onStop: () -> Unit,
     onPreviousStep: () -> Unit,
     onNextStep: () -> Unit,
+    onSetSpeed: (Int) -> Unit = {},
     onReport: (RouteEventType) -> Unit,
     reportAdded: kotlinx.coroutines.flow.SharedFlow<Unit>? = null,
     onFinish: () -> Unit,
@@ -153,7 +155,10 @@ fun NavigationScreen(
     var showReport by remember { mutableStateOf(false) }
     var reportConfirmation by remember { mutableStateOf(false) }
 
-    val routePoints = remember(state.route) { state.route?.geometry?.points().orEmpty() }
+    val fullRoutePoints = remember(state.route) { state.route?.geometry?.points().orEmpty() }
+    // Draw only the route still ahead (from the location marker onward), not the driven part.
+    // Falls back to the full route before any progress has been applied.
+    val routePoints = state.remainingRoutePoints.ifEmpty { fullRoutePoints }
 
     LaunchedEffect(state.currentLocation, following, controller.headingUp, controller.autoZoom) {
         val location = state.currentLocation
@@ -179,7 +184,7 @@ fun NavigationScreen(
             zoom = DkMapController.FOLLOW_ZOOM,
             modifier = Modifier.fillMaxSize(),
             routePoints = routePoints,
-            trafficSegments = state.events.traffic,
+            trafficSegments = state.remainingTraffic,
             eventMarkers = state.events.events,
             currentLocation = state.currentLocation,
             routeIsClean = state.verifiedClean,
@@ -273,6 +278,7 @@ fun NavigationScreen(
                 onRestart = onRestart,
                 onPreviousStep = onPreviousStep,
                 onNextStep = onNextStep,
+                onSetSpeed = onSetSpeed,
                 onStop = onStop,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -447,6 +453,7 @@ private fun BottomBar(
     onRestart: () -> Unit,
     onPreviousStep: () -> Unit,
     onNextStep: () -> Unit,
+    onSetSpeed: (Int) -> Unit,
     onStop: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -456,10 +463,12 @@ private fun BottomBar(
             SimulationBar(
                 paused = state.simulationPaused,
                 progress = state.simulationProgress,
+                speed = state.simulationSpeed,
                 onTogglePause = onTogglePause,
                 onRestart = onRestart,
                 onPreviousStep = onPreviousStep,
                 onNextStep = onNextStep,
+                onSetSpeed = onSetSpeed,
             )
         }
         DkCard(color = DkTheme.colors.surfaceOverlay) {
@@ -510,10 +519,12 @@ private fun BottomBar(
 private fun SimulationBar(
     paused: Boolean,
     progress: Float,
+    speed: Int,
     onTogglePause: () -> Unit,
     onRestart: () -> Unit,
     onPreviousStep: () -> Unit,
     onNextStep: () -> Unit,
+    onSetSpeed: (Int) -> Unit,
 ) {
     DkCard(color = DkTheme.colors.surfaceOverlay, borderColor = DkTheme.colors.accent) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -538,6 +549,24 @@ private fun SimulationBar(
                 contentDescription = stringResource(R.string.nav_next_step),
                 onClick = onNextStep,
             )
+        }
+        // Playback-speed chips (1x/2x/4x/8x), matching the web app. The selected step is filled.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = DkTheme.spacing.s2),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s1),
+        ) {
+            DkBadge(text = stringResource(R.string.nav_simulation_speed))
+            Spacer(Modifier.weight(1f))
+            listOf(1, 2, 4, 8).forEach { option ->
+                DkButton(
+                    text = stringResource(R.string.nav_simulation_speed_value, option),
+                    onClick = { onSetSpeed(option) },
+                    variant = if (speed == option) DkButtonVariant.Primary else DkButtonVariant.Ghost,
+                )
+            }
         }
         Row(
             modifier = Modifier

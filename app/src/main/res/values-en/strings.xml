@@ -178,6 +178,7 @@
     <string name="nav_zone_destination_alert">The destination is inside a forbidden zone</string>
     <string name="nav_simulation_banner">Simulation mode, not a real drive</string>
     <string name="nav_simulation_speed">Simulation speed</string>
+    <string name="nav_simulation_speed_value">%1$dx</string>
     <string name="nav_simulation_play">Play</string>
     <string name="nav_simulation_pause">Pause</string>
     <string name="nav_simulation_restart">Restart</string>

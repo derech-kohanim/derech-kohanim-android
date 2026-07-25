@@ -24,6 +24,7 @@ import com.abaye.derechkohanim.data.model.RouteEventBundle
 import com.abaye.derechkohanim.data.model.RouteEventType
 import com.abaye.derechkohanim.data.model.RouteResult
 import com.abaye.derechkohanim.data.model.Stringency
+import com.abaye.derechkohanim.data.model.TrafficSegment
 import com.abaye.derechkohanim.data.model.points
 import com.abaye.derechkohanim.data.repository.RouteEventsRepository
 import com.abaye.derechkohanim.nav.TripStore
@@ -69,6 +70,14 @@ data class NavigationState(
     val durationRemainingSeconds: Double = 0.0,
     val trafficDelaySeconds: Double = 0.0,
     val currentLocation: LatLng? = null,
+    /**
+     * The route still ahead: the current position followed by the remaining geometry from
+     * [NavigationViewModel.progressIndex] onward. The map draws only this, so the portion
+     * already driven is not painted over. Empty until progress has been applied.
+     */
+    val remainingRoutePoints: List<LatLng> = emptyList(),
+    /** Traffic segments re-based onto [remainingRoutePoints] indices; passed ones are dropped. */
+    val remainingTraffic: List<com.abaye.derechkohanim.data.model.TrafficSegment> = emptyList(),
     val headingDegrees: Float = 0f,
     val speedMps: Double = 0.0,
     val stringency: Stringency = Stringency.BASIC,
@@ -77,6 +86,8 @@ data class NavigationState(
     val activeAlert: RouteAlert? = null,
     val simulationProgress: Float = 0f,
     val simulationPaused: Boolean = false,
+    /** Simulation playback speed multiplier: 1x, 2x, 4x or 8x. Higher advances faster. */
+    val simulationSpeed: Int = 1,
 ) {
     val currentManeuver: Maneuver?
         get() = route?.maneuvers?.getOrNull(currentManeuverIndex)
@@ -145,6 +156,8 @@ class NavigationViewModel @Inject constructor(
                 muted = !snapshot.voiceEnabled,
                 status = if (route == null) NavigationStatus.IDLE else NavigationStatus.NAVIGATING,
                 currentLocation = geometry.firstOrNull(),
+                remainingRoutePoints = geometry,
+                remainingTraffic = bundle.traffic,
                 distanceRemainingMeters = route?.distanceMeters ?: 0.0,
                 durationRemainingSeconds = (route?.durationSeconds ?: 0.0) + bundle.delaySeconds,
                 trafficDelaySeconds = bundle.delaySeconds,
@@ -164,7 +177,8 @@ class NavigationViewModel @Inject constructor(
                     progressIndex++
                     tick()
                 }
-                delay(TICK_MS)
+                // Higher playback speed shortens the per-tick delay proportionally.
+                delay(TICK_MS / _state.value.simulationSpeed.coerceAtLeast(1))
             }
             _state.value = _state.value.copy(status = NavigationStatus.ARRIVED)
         }
@@ -222,6 +236,33 @@ class NavigationViewModel @Inject constructor(
 
     private fun progressedMeters(): Double = cumulative.getOrNull(progressIndex) ?: 0.0
 
+    /**
+     * The route still ahead: the exact current position, then the geometry vertices from just
+     * past [progressIndex] to the end. Drawing only this leaves the already-driven stretch
+     * unpainted, so the line runs from the location marker to the destination.
+     */
+    private fun remainingFrom(location: LatLng): List<LatLng> {
+        if (geometry.isEmpty()) return listOf(location)
+        val start = (progressIndex + 1).coerceIn(0, geometry.size)
+        return buildList {
+            add(location)
+            if (start < geometry.size) addAll(geometry.subList(start, geometry.size))
+        }
+    }
+
+    /**
+     * Traffic segments re-based onto [remainingFrom]'s indices. Trimmed index 0 is the current
+     * position (~ [progressIndex]), so every segment shifts back by [progressIndex]; segments
+     * fully behind the driver are dropped, and a straddling one is clamped to start at 0.
+     */
+    private fun remainingTrafficFrom(): List<TrafficSegment> =
+        _state.value.events.traffic.mapNotNull { segment ->
+            if (segment.toIndex <= progressIndex) return@mapNotNull null
+            val from = (segment.fromIndex - progressIndex).coerceAtLeast(0)
+            val to = (segment.toIndex - progressIndex).coerceAtLeast(from)
+            segment.copy(fromIndex = from, toIndex = to)
+        }
+
     /** The simulator step: the position is the next geometry vertex, heading and speed inferred. */
     private fun tick() {
         val previous = _state.value.currentLocation
@@ -253,6 +294,8 @@ class NavigationViewModel @Inject constructor(
 
         _state.value = _state.value.copy(
             currentLocation = location,
+            remainingRoutePoints = remainingFrom(location),
+            remainingTraffic = remainingTrafficFrom(),
             headingDegrees = heading,
             speedMps = speed,
             currentManeuverIndex = (upcomingIndex - 1).coerceAtLeast(0),
@@ -375,6 +418,12 @@ class NavigationViewModel @Inject constructor(
         _state.value = _state.value.copy(simulationPaused = !_state.value.simulationPaused)
     }
 
+    /** Sets the simulation playback speed. Clamped to the supported 1x/2x/4x/8x steps. */
+    fun setSimulationSpeed(speed: Int) {
+        val clamped = if (speed in SIMULATION_SPEEDS) speed else 1
+        _state.value = _state.value.copy(simulationSpeed = clamped)
+    }
+
     /** Simulation review controls: jump straight to the next or previous manoeuvre. */
     fun jumpToNextManeuver() {
         val route = _state.value.route ?: return
@@ -453,6 +502,7 @@ class NavigationViewModel @Inject constructor(
 
     private companion object {
         const val TICK_MS = 220L
+        val SIMULATION_SPEEDS = listOf(1, 2, 4, 8)
         const val NOW_THRESHOLD_METERS = 25.0
         const val ZONE_TRIGGER_METERS = 500.0
         const val REPORT_TRIGGER_METERS = 350.0

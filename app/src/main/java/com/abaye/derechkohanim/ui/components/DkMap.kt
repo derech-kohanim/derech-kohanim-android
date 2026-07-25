@@ -99,7 +99,8 @@ class DkMapController(val cameraPositionState: CameraPositionState) {
                 .target(GmsLatLng(location.lat, location.lng))
                 .zoom(zoom)
                 .bearing(bearing)
-                .tilt(if (headingUp) FOLLOW_TILT else 0f)
+                // Always a 3D perspective while driving, regardless of the heading-up toggle.
+                .tilt(FOLLOW_TILT)
                 .build()
         )
     }
@@ -290,6 +291,7 @@ fun DkMap(
                 points = naiveRoutePoints.map { GmsLatLng(it.lat, it.lng) },
                 color = colors.routeNaive,
                 width = ROUTE_WIDTH * 0.7f,
+                zIndex = ROUTE_Z_ALT,
             )
         }
         // The unavoided route (no zone avoidance) is drawn in a warning style, dashed, so it
@@ -300,26 +302,42 @@ fun DkMap(
                 color = colors.warning,
                 width = ROUTE_WIDTH * 0.8f,
                 pattern = listOf(Dash(28f), Gap(18f)),
+                zIndex = ROUTE_Z_ALT,
             )
         }
-        // Alternatives sit under the selected route, faded, so the choice stands out.
+        // Alternatives sit under the selected route, faded and grey, so the choice stands out.
         alternativeRoutes.forEach { alt ->
             if (alt.isNotEmpty()) {
                 Polyline(
                     points = alt.map { GmsLatLng(it.lat, it.lng) },
-                    color = colors.routeNaive.copy(alpha = ALT_ROUTE_ALPHA),
-                    width = ROUTE_WIDTH * 0.85f,
+                    color = ROUTE_ALT_COLOR.copy(alpha = ALT_ROUTE_ALPHA),
+                    width = ROUTE_WIDTH,
+                    zIndex = ROUTE_Z_ALT,
                 )
             }
         }
+        // The selected route is drawn as two stacked lines - a darker, wider casing beneath a
+        // brighter, narrower active line - so it reads with depth, Waze style. zIndex keeps the
+        // casing below the active line and both above the alternatives. An unverified route keeps
+        // its warning treatment: a danger active over a darker danger casing.
         if (routePoints.isNotEmpty()) {
+            val pts = routePoints.map { GmsLatLng(it.lat, it.lng) }
+            val casingColor = if (routeIsClean) ROUTE_CASING_COLOR else ROUTE_CASING_DANGER
+            val activeColor = if (routeIsClean) ROUTE_ACTIVE_COLOR else colors.danger
             Polyline(
-                points = routePoints.map { GmsLatLng(it.lat, it.lng) },
-                color = if (routeIsClean) colors.primary else colors.danger,
+                points = pts,
+                color = casingColor,
+                width = ROUTE_CASING_WIDTH,
+                zIndex = ROUTE_Z_CASING,
+            )
+            Polyline(
+                points = pts,
+                color = activeColor,
                 width = ROUTE_WIDTH,
+                zIndex = ROUTE_Z_ACTIVE,
             )
         }
-        // Traffic is drawn over the base route so a loaded stretch stands out, Waze style.
+        // Traffic is drawn over the active route so a loaded stretch stands out, Waze style.
         trafficSegments.forEach { segment ->
             val last = routePoints.lastIndex.coerceAtLeast(0)
             val from = segment.fromIndex.coerceIn(0, last)
@@ -330,6 +348,7 @@ fun DkMap(
                     points = slice.map { GmsLatLng(it.lat, it.lng) },
                     color = trafficColor(segment.level, colors),
                     width = ROUTE_WIDTH,
+                    zIndex = ROUTE_Z_TRAFFIC,
                 )
             }
         }
@@ -380,7 +399,23 @@ private fun markerHue(event: RouteEvent): Float = when (event.type) {
 }
 
 private const val DEFAULT_ZOOM = 14f
+/** The bright active route line (Waze "weight 8"). */
 private const val ROUTE_WIDTH = 16f
+/** The darker casing drawn under the active line (Waze "weight 12", i.e. ~1.5x). */
+private const val ROUTE_CASING_WIDTH = 24f
 private const val ZONE_FILL_ALPHA = 0.28f
 private const val ZONE_STROKE_WIDTH = 4f
-private const val ALT_ROUTE_ALPHA = 0.55f
+private const val ALT_ROUTE_ALPHA = 0.9f
+
+// Route layering, low to high: alternatives < casing < active < traffic.
+private const val ROUTE_Z_ALT = 0f
+private const val ROUTE_Z_CASING = 1f
+private const val ROUTE_Z_ACTIVE = 2f
+private const val ROUTE_Z_TRAFFIC = 3f
+
+// Waze-style dimensional route colours (explicit values from the design).
+private val ROUTE_CASING_COLOR = Color(0xFF1565C0)
+private val ROUTE_ACTIVE_COLOR = Color(0xFF2D8CFF)
+private val ROUTE_ALT_COLOR = Color(0xFF9AA5B1)
+/** Darker casing under the danger-coloured active line for an unverified route. */
+private val ROUTE_CASING_DANGER = Color(0xFF7F1D1D)

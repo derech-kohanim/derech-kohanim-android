@@ -178,6 +178,7 @@
     <string name="nav_zone_destination_alert">היעד נמצא בתוך אזור אסור</string>
     <string name="nav_simulation_banner">מצב הרצה, לא נסיעה אמיתית</string>
     <string name="nav_simulation_speed">מהירות הרצה</string>
+    <string name="nav_simulation_speed_value">%1$dx</string>
     <string name="nav_simulation_play">הפעל</string>
     <string name="nav_simulation_pause">השהה</string>
     <string name="nav_simulation_restart">התחל מחדש</string>
