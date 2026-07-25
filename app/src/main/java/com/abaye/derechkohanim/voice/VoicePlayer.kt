@@ -54,6 +54,9 @@ class VoicePlayer @Inject constructor(
     private var tts: TextToSpeech? = null
     private var ttsReady = false
     @Volatile private var muted = false
+    /** True while the announcement currently playing is urgent (a zone warning), so [dropStale]
+     *  never cuts it. */
+    @Volatile private var currentUrgent = false
 
     init {
         startWorker()
@@ -74,11 +77,14 @@ class VoicePlayer @Inject constructor(
                 }
                 if (muted) continue
 
+                currentUrgent = current.urgent
                 playJob = scope.launch { playInstruction(current) }
                 try {
                     playJob?.join()
                 } catch (_: CancellationException) {
                     // Cut by an urgent alert; the loop moves on to the newest request.
+                } finally {
+                    currentUrgent = false
                 }
             }
         }
@@ -97,6 +103,20 @@ class VoicePlayer @Inject constructor(
             playJob?.cancel()
         }
         queue.trySend(instruction)
+    }
+
+    /**
+     * Preempts a now-stale announcement: stops the current clip/utterance and drops the queued
+     * backlog, so the player jumps to the next fresh situation instead of finishing a line that
+     * belongs to a manoeuvre the driver has already passed. Reuses the urgent-preempt path
+     * (tts.stop() + playJob cancel). An active zone warning is never cut - it is urgent and must
+     * be heard - so this is a no-op while an urgent announcement is playing.
+     */
+    fun dropStale() {
+        if (currentUrgent) return
+        tts?.stop()
+        playJob?.cancel()
+        drainQueue()
     }
 
     fun setPack(clips: List<VoiceClip>) {

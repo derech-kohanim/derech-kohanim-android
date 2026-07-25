@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.abaye.derechkohanim.R
 import com.abaye.derechkohanim.core.DkResult
 import com.abaye.derechkohanim.core.Geo
 import com.abaye.derechkohanim.data.local.SessionStore
@@ -22,12 +23,16 @@ import com.abaye.derechkohanim.data.model.NavigationStatus
 import com.abaye.derechkohanim.data.model.RouteEvent
 import com.abaye.derechkohanim.data.model.RouteEventBundle
 import com.abaye.derechkohanim.data.model.RouteEventType
+import com.abaye.derechkohanim.data.model.RouteRequest
 import com.abaye.derechkohanim.data.model.RouteResult
 import com.abaye.derechkohanim.data.model.Stringency
 import com.abaye.derechkohanim.data.model.TrafficSegment
+import com.abaye.derechkohanim.data.model.TravelMode
 import com.abaye.derechkohanim.data.model.points
 import com.abaye.derechkohanim.data.repository.RouteEventsRepository
+import com.abaye.derechkohanim.data.repository.RoutingRepository
 import com.abaye.derechkohanim.nav.TripStore
+import com.abaye.derechkohanim.service.Connectivity
 import com.abaye.derechkohanim.service.DeviceLocation
 import com.abaye.derechkohanim.voice.SpokenInstruction
 import com.abaye.derechkohanim.voice.VoicePhrase
@@ -84,6 +89,11 @@ data class NavigationState(
     val simulated: Boolean = false,
     val muted: Boolean = false,
     val activeAlert: RouteAlert? = null,
+    /**
+     * True while the driver has left the route and a new one is being computed (online only).
+     * The instruction card shows a "recalculating" line instead of the next manoeuvre.
+     */
+    val rerouting: Boolean = false,
     val simulationProgress: Float = 0f,
     val simulationPaused: Boolean = false,
     /** Simulation playback speed multiplier: 1x, 2x, 4x or 8x. Higher advances faster. */
@@ -109,8 +119,10 @@ class NavigationViewModel @Inject constructor(
     private val sessionStore: SessionStore,
     private val tripStore: TripStore,
     private val routeEventsRepository: RouteEventsRepository,
+    private val routingRepository: RoutingRepository,
     private val voicePlayer: VoicePlayer,
     private val deviceLocation: DeviceLocation,
+    private val connectivity: Connectivity,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(NavigationState())
@@ -118,6 +130,10 @@ class NavigationViewModel @Inject constructor(
 
     private val _announcements = MutableSharedFlow<Announcement>(extraBufferCapacity = 8)
     val announcements: SharedFlow<Announcement> = _announcements.asSharedFlow()
+
+    /** Ready-made voice prompts by string resource (e.g. rerouting), spoken as plain text. */
+    private val _voicePrompts = MutableSharedFlow<Int>(extraBufferCapacity = 4)
+    val voicePrompts: SharedFlow<Int> = _voicePrompts.asSharedFlow()
 
     private val _reportAdded = MutableSharedFlow<Unit>(extraBufferCapacity = 4)
     val reportAdded: SharedFlow<Unit> = _reportAdded.asSharedFlow()
@@ -127,6 +143,12 @@ class NavigationViewModel @Inject constructor(
     private var cumulative: List<Double> = emptyList()
     private var progressIndex = 0
     private var announcementId = 0L
+    /** The upcoming-manoeuvre index last seen, so a stale announcement can be preempted when the
+     *  driver passes a manoeuvre and it advances. */
+    private var lastUpcomingIndex = -1
+    /** Consecutive fixes seen beyond the off-route threshold; a reroute triggers past a floor. */
+    private var offRouteFixes = 0
+    private var rerouteJob: Job? = null
 
     private val announcedManeuverRungs = mutableSetOf<String>()
     private val announcedEvents = mutableSetOf<String>()
@@ -205,6 +227,7 @@ class NavigationViewModel @Inject constructor(
                     ?: _state.value.headingDegrees
                 val speed = fix.speedMps ?: 0.0
 
+                trackOffRoute(fix.location)
                 applyProgress(fix.location, heading, speed)
 
                 if (progressIndex >= geometry.lastIndex) {
@@ -212,6 +235,89 @@ class NavigationViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /**
+     * Off-route detection for a real drive. The offset is the distance from the fix to the nearest
+     * route vertex (already found by [nearestIndex]). Once the driver stays beyond the threshold
+     * for a few consecutive fixes, we react by connectivity: online, recompute the route from here;
+     * offline, keep the existing route and current position on screen so the driver can steer back.
+     */
+    private fun trackOffRoute(location: LatLng) {
+        if (_state.value.rerouting || geometry.isEmpty()) return
+        val nearest = geometry.getOrNull(progressIndex) ?: return
+        val offset = Geo.distanceMeters(location, nearest)
+        if (offset <= OFF_ROUTE_THRESHOLD_METERS) {
+            offRouteFixes = 0
+            return
+        }
+        offRouteFixes++
+        if (offRouteFixes < OFF_ROUTE_MIN_FIXES) return
+        offRouteFixes = 0
+        // Offline: do not recompute. The existing route and the live position stay on screen.
+        if (connectivity.isOnline()) reroute(location)
+    }
+
+    /**
+     * Recomputes the route from the current position after going off-route. Shows a "recalculating"
+     * state and speaks the rerouting prompt while the request is in flight; on success the active
+     * route and geometry are replaced and navigation continues. On failure the old route is kept.
+     */
+    private fun reroute(origin: LatLng) {
+        if (rerouteJob?.isActive == true) return
+        val destination = tripStore.destination.value?.location ?: geometry.lastOrNull() ?: return
+        _state.value = _state.value.copy(rerouting = true, status = NavigationStatus.REROUTING)
+        _voicePrompts.tryEmit(R.string.nav_rerouting)
+        rerouteJob = viewModelScope.launch {
+            val snapshot = sessionStore.snapshot()
+            val result = routingRepository.computeRoute(
+                RouteRequest(
+                    origin = origin,
+                    destination = destination,
+                    stringency = snapshot.stringency,
+                    mode = TravelMode.DRIVE,
+                    trafficAware = snapshot.trafficAware,
+                    language = snapshot.language,
+                    avoidTolls = snapshot.avoidTolls,
+                    avoidDangerZones = snapshot.avoidDangerZones,
+                )
+            )
+            val newRoute = (result as? DkResult.Success)?.value?.routes?.firstOrNull()
+            if (newRoute != null) {
+                replaceRoute(newRoute)
+            } else {
+                // Keep the existing route; just leave the recalculating state.
+                _state.value = _state.value.copy(rerouting = false, status = NavigationStatus.NAVIGATING)
+            }
+        }
+    }
+
+    /** Swaps in a freshly computed route: resets progress and announcement bookkeeping, reloads
+     *  its events, and continues from the start of the new geometry (the current position). */
+    private suspend fun replaceRoute(route: RouteResult) {
+        tripStore.setRoute(route)
+        geometry = route.geometry.points()
+        cumulative = cumulativeDistances(geometry)
+        progressIndex = 0
+        lastUpcomingIndex = -1
+        offRouteFixes = 0
+        announcedManeuverRungs.clear()
+        announcedEvents.clear()
+        val bundle = (routeEventsRepository.events(route.id) as? DkResult.Success)?.value
+            ?: RouteEventBundle.empty(route.id)
+        _state.value = _state.value.copy(
+            route = route,
+            events = bundle,
+            rerouting = false,
+            status = NavigationStatus.NAVIGATING,
+            currentManeuverIndex = 0,
+            currentLocation = geometry.firstOrNull(),
+            remainingRoutePoints = geometry,
+            remainingTraffic = bundle.traffic,
+            distanceRemainingMeters = route.distanceMeters,
+            durationRemainingSeconds = route.durationSeconds + bundle.delaySeconds,
+            trafficDelaySeconds = bundle.delaySeconds,
+        )
     }
 
     /**
@@ -285,6 +391,14 @@ class NavigationViewModel @Inject constructor(
             .let { if (it < 0) route.maneuvers.lastIndex else it }
         val toManeuver = route.maneuvers.getOrNull(upcomingIndex)
         val distanceToManeuver = toManeuver?.let { Geo.distanceMeters(location, it.point) } ?: 0.0
+
+        // Progress just passed a manoeuvre: preempt any in-flight/queued announcement that belonged
+        // to it, so the device does not keep reading a now-stale instruction (fast simulation and
+        // real drives alike). An active zone warning is spared inside the player.
+        if (lastUpcomingIndex in 0 until upcomingIndex) {
+            voicePlayer.dropStale()
+        }
+        lastUpcomingIndex = upcomingIndex
 
         val trafficAhead = if (_state.value.events.traffic.any { it.toIndex > progressIndex }) {
             _state.value.events.delaySeconds
@@ -511,5 +625,9 @@ class NavigationViewModel @Inject constructor(
         const val MIN_HEADING_MOVE_METERS = 3.0
         // How far back along the route the snap may look, to absorb GPS jitter without jumping.
         const val LOOK_BACK_STEPS = 2
+        // Distance from the route beyond which a fix counts as off-route.
+        const val OFF_ROUTE_THRESHOLD_METERS = 45.0
+        // Consecutive off-route fixes before reacting, to ignore a single bad GPS reading.
+        const val OFF_ROUTE_MIN_FIXES = 2
     }
 }

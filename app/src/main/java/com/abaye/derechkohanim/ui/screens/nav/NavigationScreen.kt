@@ -90,6 +90,15 @@ fun NavigationRoute(
         }
     }
 
+    // Ready-made prompts (e.g. rerouting) are spoken as plain text through the same player.
+    LaunchedEffect(Unit) {
+        viewModel.voicePrompts.collect { res ->
+            viewModel.speak(
+                SpokenInstruction(clipKeys = emptyList(), text = context.getString(res), urgent = false)
+            )
+        }
+    }
+
     NavigationScreen(
         state = state,
         onToggleMute = viewModel::toggleMute,
@@ -205,6 +214,8 @@ fun NavigationScreen(
             val alert = state.activeAlert
             if (alert != null && alert.isZone) {
                 ZoneAlertBanner(text = zoneAlertText(context, alert))
+            } else if (state.rerouting) {
+                ReroutingPanel()
             } else {
                 NextManeuverPanel(state = state, onOpenSteps = { showSteps = true })
                 if (alert != null) {
@@ -254,11 +265,15 @@ fun NavigationScreen(
             verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2),
         ) {
             SpeedPill(text = Formatters.speed(context, state.speedMps))
-            DkFloatingIconButton(
-                icon = Icons.Filled.Report,
-                contentDescription = stringResource(R.string.cd_report),
-                onClick = { showReport = true },
-            )
+            // In-drive reporting is temporarily hidden behind REPORTING_ENABLED. The ReportSheet
+            // and its handling are kept intact so it can be re-enabled by flipping the flag.
+            if (REPORTING_ENABLED) {
+                DkFloatingIconButton(
+                    icon = Icons.Filled.Report,
+                    contentDescription = stringResource(R.string.cd_report),
+                    onClick = { showReport = true },
+                )
+            }
         }
 
         if (state.status == NavigationStatus.ARRIVED) {
@@ -297,7 +312,7 @@ fun NavigationScreen(
         )
     }
 
-    if (showReport) {
+    if (REPORTING_ENABLED && showReport) {
         ReportSheet(
             onPick = { kind ->
                 onReport(kind)
@@ -365,6 +380,25 @@ private fun NextManeuverPanel(state: NavigationState, onOpenSteps: () -> Unit) {
         ) {
             CertaintyChip(state)
             DkBadge(text = stringResource(stringencyTitleRes(state.stringency)))
+        }
+    }
+}
+
+/** Replaces the manoeuvre card while a new route is being computed after going off-route. */
+@Composable
+private fun ReroutingPanel() {
+    DkCard(color = DkTheme.colors.surfaceOverlay) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            androidx.compose.material3.CircularProgressIndicator(
+                color = DkTheme.colors.primary,
+                modifier = Modifier.size(DkTheme.spacing.s6),
+            )
+            Text(
+                text = stringResource(R.string.nav_rerouting),
+                style = DkNavTextStyles.instruction,
+                color = DkTheme.colors.text,
+                modifier = Modifier.padding(start = DkTheme.spacing.s4),
+            )
         }
     }
 }
@@ -629,6 +663,12 @@ private fun eventAlertText(context: Context, kind: RouteEventType, distanceMeter
 
 private val FALLBACK_CENTER = MockData.currentLocation
 private val BOTTOM_BAR_CLEARANCE = androidx.compose.ui.unit.Dp(120f)
+
+/**
+ * In-drive reporting (the report FAB and its ReportSheet) is temporarily hidden. Flip to true to
+ * restore the entry point; the ReportSheet and its wiring are left in place.
+ */
+private const val REPORTING_ENABLED = false
 
 @Preview(name = "Navigation, simulation", showBackground = true, locale = "he")
 @Composable
