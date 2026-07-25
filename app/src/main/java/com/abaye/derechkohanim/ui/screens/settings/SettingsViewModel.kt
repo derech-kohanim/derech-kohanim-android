@@ -22,6 +22,8 @@ data class SettingsState(
     val stringency: Stringency = Stringency.BASIC,
     val trafficAware: Boolean = true,
     val voiceEnabled: Boolean = true,
+    val avoidDangerZones: Boolean = true,
+    val avoidTolls: Boolean = false,
     val signedIn: Boolean = false,
 )
 
@@ -39,6 +41,8 @@ class SettingsViewModel @Inject constructor(
                 stringency = snapshot.stringency,
                 trafficAware = snapshot.trafficAware,
                 voiceEnabled = snapshot.voiceEnabled,
+                avoidDangerZones = snapshot.avoidDangerZones,
+                avoidTolls = snapshot.avoidTolls,
                 signedIn = snapshot.isSignedIn,
             )
         }
@@ -64,6 +68,14 @@ class SettingsViewModel @Inject constructor(
 
     fun setVoiceEnabled(enabled: Boolean) {
         viewModelScope.launch { sessionStore.setVoiceEnabled(enabled) }
+    }
+
+    fun setAvoidDangerZones(enabled: Boolean) {
+        viewModelScope.launch { sessionStore.setAvoidDangerZones(enabled) }
+    }
+
+    fun setAvoidTolls(enabled: Boolean) {
+        viewModelScope.launch { sessionStore.setAvoidTolls(enabled) }
     }
 
     fun signOut() {

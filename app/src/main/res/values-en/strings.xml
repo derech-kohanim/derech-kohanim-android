@@ -220,6 +220,10 @@
     <string name="settings_traffic_aware_hint">More accurate in real time, uses more data.</string>
     <string name="settings_voice">Voice guidance</string>
     <string name="settings_voice_hint">Voice is the primary channel while driving.</string>
+    <string name="settings_avoid_danger_zones">Avoid danger zones</string>
+    <string name="settings_avoid_danger_zones_hint">Routes around Area A and security hotspots. Turn off to reach a destination inside one.</string>
+    <string name="settings_avoid_tolls">Avoid toll roads</string>
+    <string name="settings_avoid_tolls_hint">Prefers toll-free routes, even if longer.</string>
     <string name="settings_section_downloads">Downloads</string>
     <string name="settings_download_zones">Zone layers</string>
     <string name="settings_download_voice">Voice pack</string>

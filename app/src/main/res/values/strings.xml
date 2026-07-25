@@ -220,6 +220,10 @@
     <string name="settings_traffic_aware_hint">מדויק יותר בזמן אמת, וצורך יותר נתונים.</string>
     <string name="settings_voice">הנחיות קוליות</string>
     <string name="settings_voice_hint">הקול הוא הערוץ הראשי בזמן נהיגה.</string>
+    <string name="settings_avoid_danger_zones">הימנעות מאזורים מסוכנים</string>
+    <string name="settings_avoid_danger_zones_hint">עוקף שטח A ומוקדי סכנה. כיבוי מאפשר להגיע ליעד שנמצא בתוך אזור כזה.</string>
+    <string name="settings_avoid_tolls">הימנעות מכבישי אגרה</string>
+    <string name="settings_avoid_tolls_hint">מעדיף מסלולים ללא תשלום, גם אם הם ארוכים יותר.</string>
     <string name="settings_section_downloads">הורדות</string>
     <string name="settings_download_zones">שכבות האזורים</string>
     <string name="settings_download_voice">חבילת הקול</string>

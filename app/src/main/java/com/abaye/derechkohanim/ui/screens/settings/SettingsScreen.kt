@@ -55,6 +55,8 @@ fun SettingsRoute(
         onStringency = viewModel::setStringency,
         onTrafficAware = viewModel::setTrafficAware,
         onVoiceEnabled = viewModel::setVoiceEnabled,
+        onAvoidDangerZones = viewModel::setAvoidDangerZones,
+        onAvoidTolls = viewModel::setAvoidTolls,
         onSignOut = viewModel::signOut,
     )
 }
@@ -69,6 +71,8 @@ fun SettingsScreen(
     onStringency: (Stringency) -> Unit,
     onTrafficAware: (Boolean) -> Unit,
     onVoiceEnabled: (Boolean) -> Unit,
+    onAvoidDangerZones: (Boolean) -> Unit,
+    onAvoidTolls: (Boolean) -> Unit,
     onSignOut: () -> Unit,
 ) {
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
@@ -146,6 +150,18 @@ fun SettingsScreen(
                     supportingText = stringResource(R.string.settings_voice_hint),
                     checked = state.voiceEnabled,
                     onCheckedChange = onVoiceEnabled,
+                )
+                DkSwitchRow(
+                    label = stringResource(R.string.settings_avoid_danger_zones),
+                    supportingText = stringResource(R.string.settings_avoid_danger_zones_hint),
+                    checked = state.avoidDangerZones,
+                    onCheckedChange = onAvoidDangerZones,
+                )
+                DkSwitchRow(
+                    label = stringResource(R.string.settings_avoid_tolls),
+                    supportingText = stringResource(R.string.settings_avoid_tolls_hint),
+                    checked = state.avoidTolls,
+                    onCheckedChange = onAvoidTolls,
                 )
             }
 
@@ -250,6 +266,8 @@ private fun SettingsPreview() {
             onStringency = {},
             onTrafficAware = {},
             onVoiceEnabled = {},
+            onAvoidDangerZones = {},
+            onAvoidTolls = {},
             onSignOut = {},
         )
     }
