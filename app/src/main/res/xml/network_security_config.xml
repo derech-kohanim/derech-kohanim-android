@@ -72,4 +72,65 @@
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">10.0.2.2</domain>
     </domain-config>
+
+    <!--
+        Map tiles for the MapLibre / OpenFreeMap renderer. Tiles come from a THIRD-PARTY host
+        that NetFree MITMs with its own CA, so the tile domain must trust the NetFree roots the
+        same way the API host already does. A <domain-config>'s trust-anchors REPLACE (do not
+        extend) the inherited base-config set, so the full list is repeated here rather than
+        added - this keeps the extra `user` anchor SCOPED to the tile domain and never weakens
+        the API host (which stays on base-config: bundled NetFree roots + system only).
+
+        Anchors, in order of preference:
+          - the bundled NetFree roots: zero user action, works out of the box on NetFree;
+          - `system`: normal public CAs on a non-NetFree network;
+          - `user`: covers a NetFree deployment whose root is not in the bundle but the user
+            installed it themselves. Embedding that CA as an @raw resource here would restore
+            zero-user-action support for it too.
+        No certificate pinning is applied, so a NetFree-issued tile cert is accepted.
+
+        A future self-hosted tile/style domain (see BuildConfig.MAPLIBRE_STYLE_URL) should be
+        added as another <domain> below.
+    -->
+    <domain-config>
+        <domain includeSubdomains="true">tiles.openfreemap.org</domain>
+        <trust-anchors>
+            <!-- Current unified NetFree roots (X2) -->
+            <certificates src="@raw/netfree_root_ca_x2_rsa" />
+            <certificates src="@raw/netfree_root_ca_x2_rsa_2037" />
+            <certificates src="@raw/netfree_root_ca_x2_prime256v1" />
+            <certificates src="@raw/netfree_root_ca_x2_secp384r1" />
+            <certificates src="@raw/netfree_root_ca_x2_ed25519" />
+
+            <!-- Legacy unified NetFree roots -->
+            <certificates src="@raw/netfree_root_ca_rsa" />
+            <certificates src="@raw/netfree_root_ca_rsa_2037" />
+            <certificates src="@raw/netfree_root_ca_prime256v1" />
+            <certificates src="@raw/netfree_root_ca_secp384r1" />
+            <certificates src="@raw/netfree_root_ca_ed25519" />
+
+            <!-- Per ISP signing certificates from the previous generation -->
+            <certificates src="@raw/netfree_bezeq" />
+            <certificates src="@raw/netfree_018" />
+            <certificates src="@raw/netfree_099" />
+            <certificates src="@raw/netfree_amitnet" />
+            <certificates src="@raw/netfree_hadran_vpn" />
+            <certificates src="@raw/netfree_hot" />
+            <certificates src="@raw/netfree_ib_itc" />
+            <certificates src="@raw/netfree_ib_partner" />
+            <certificates src="@raw/netfree_ib_spotnet" />
+            <certificates src="@raw/netfree_itc" />
+            <certificates src="@raw/netfree_simkasher_cellcom" />
+            <certificates src="@raw/netfree_simkasher_itc" />
+            <certificates src="@raw/netfree_simkasher_patner" />
+            <certificates src="@raw/netfree_simkasher_pelephone" />
+            <certificates src="@raw/netfree_simkasher_triplec" />
+            <certificates src="@raw/netfree_yossitikshoret" />
+
+            <!-- Public CAs on a normal network. -->
+            <certificates src="system" />
+            <!-- A NetFree root the user installed themselves but that is not bundled above. -->
+            <certificates src="user" />
+        </trust-anchors>
+    </domain-config>
 </network-security-config>

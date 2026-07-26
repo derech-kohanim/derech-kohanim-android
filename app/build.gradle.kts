@@ -57,11 +57,20 @@ android {
     // Android OAuth client registered in the same project (package + signing SHA-1).
     val googleServerClientId = setting("GOOGLE_SERVER_CLIENT_ID", "")
 
+    // The MapLibre (OpenFreeMap) style/source URL, used by the fallback renderer that works on
+    // NetFree. Defaults to OpenFreeMap's key-less "liberty" style. Overridable exactly like
+    // API_BASE_URL, so a future self-hosted style JSON - or a `pmtiles://` source (MapLibre
+    // >= 11.7 supports PMTiles natively, all of Israel from one static file) - needs only a
+    // config change, no code change:
+    //     ./gradlew installDebug -PMAPLIBRE_STYLE_URL=https://maps.example.org/styles/dk
+    val mapLibreStyleUrl = setting("MAPLIBRE_STYLE_URL", "https://tiles.openfreemap.org/styles/liberty")
+
     buildTypes {
         debug {
             isMinifyEnabled = false
             buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
             buildConfigField("String", "GOOGLE_SERVER_CLIENT_ID", "\"$googleServerClientId\"")
+            buildConfigField("String", "MAPLIBRE_STYLE_URL", "\"$mapLibreStyleUrl\"")
             buildConfigField("boolean", "USE_MOCK_DATA", setting("USE_MOCK_DATA", "false"))
         }
         release {
@@ -69,6 +78,7 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
             buildConfigField("String", "GOOGLE_SERVER_CLIENT_ID", "\"$googleServerClientId\"")
+            buildConfigField("String", "MAPLIBRE_STYLE_URL", "\"$mapLibreStyleUrl\"")
             buildConfigField("boolean", "USE_MOCK_DATA", setting("USE_MOCK_DATA", "false"))
         }
     }
@@ -128,6 +138,11 @@ dependencies {
     implementation(libs.maps.compose)
     implementation(libs.play.services.maps)
     implementation(libs.play.services.location)
+
+    // MapLibre GL Android - the second (OpenFreeMap) renderer, used as a NetFree fallback. It
+    // draws through the app's own OkHttp/TLS stack, so it honours network_security_config.xml
+    // and works on NetFree where Google Maps (Play Services, own pinned trust) fails.
+    implementation(libs.maplibre.android)
 
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
