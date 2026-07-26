@@ -57,13 +57,14 @@ android {
     // Android OAuth client registered in the same project (package + signing SHA-1).
     val googleServerClientId = setting("GOOGLE_SERVER_CLIENT_ID", "")
 
-    // The MapLibre (OpenFreeMap) style/source URL, used by the fallback renderer that works on
-    // NetFree. Defaults to OpenFreeMap's key-less "liberty" style. Overridable exactly like
-    // API_BASE_URL, so a future self-hosted style JSON - or a `pmtiles://` source (MapLibre
-    // >= 11.7 supports PMTiles natively, all of Israel from one static file) - needs only a
-    // config change, no code change:
+    // The MapLibre style/source URL for the fallback renderer that works on NetFree. EMPTY by
+    // default, which makes DkMapLibre load the bundled "Waze Day" style (res/raw/waze_day_style.json)
+    // - a custom MapLibre GL style tuned to the Waze-day palette over OpenFreeMap's OpenMapTiles
+    // vector tiles, with Hebrew glyphs. Set this to a non-empty URL to override with a remote style
+    // instead (e.g. a future self-hosted style JSON - or a `pmtiles://` source; MapLibre >= 11.7
+    // supports PMTiles natively, all of Israel from one static file) - a config-only change:
     //     ./gradlew installDebug -PMAPLIBRE_STYLE_URL=https://maps.example.org/styles/dk
-    val mapLibreStyleUrl = setting("MAPLIBRE_STYLE_URL", "https://tiles.openfreemap.org/styles/liberty")
+    val mapLibreStyleUrl = setting("MAPLIBRE_STYLE_URL", "")
 
     buildTypes {
         debug {

@@ -17,6 +17,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.abaye.derechkohanim.BuildConfig
+import com.abaye.derechkohanim.R
 import com.abaye.derechkohanim.data.model.DangerZoneFeature
 import com.abaye.derechkohanim.data.model.LatLng
 import com.abaye.derechkohanim.data.model.RouteEvent
@@ -85,8 +86,9 @@ private class MapLibreCameraBackend(val map: MapLibreMap) : MapCameraBackend {
 
 /**
  * The MapLibre / OpenFreeMap renderer - the NetFree fallback. It wraps a MapLibre [MapView] in an
- * [AndroidView] with correct Compose lifecycle handling, loads the style from
- * [BuildConfig.MAPLIBRE_STYLE_URL], forces Hebrew labels, and re-implements every overlay the
+ * [AndroidView] with correct Compose lifecycle handling, loads the bundled Waze-day style (or the
+ * [BuildConfig.MAPLIBRE_STYLE_URL] override if set; see [styleBuilder]), forces Hebrew labels, and
+ * re-implements every overlay the
  * Google renderer draws with GeoJSON sources + fill/line/circle layers. It draws through the
  * app's own OkHttp/TLS stack, so it honours network_security_config.xml and works on NetFree.
  *
@@ -162,7 +164,7 @@ internal fun MapLibreDkMap(
                 isZoomGesturesEnabled = interactive
                 isTiltGesturesEnabled = interactive
             }
-            ready.setStyle(Style.Builder().fromUri(BuildConfig.MAPLIBRE_STYLE_URL)) { loaded ->
+            ready.setStyle(styleBuilder(context)) { loaded ->
                 forceHebrewLabels(loaded)
                 addOverlayLayers(loaded)
                 map = ready
@@ -208,8 +210,29 @@ internal fun MapLibreDkMap(
 }
 
 /**
+ * Chooses the map style. By default the app loads the bundled "Waze Day" style
+ * ([R.raw.waze_day_style]) - a MapLibre GL style tuned to the Waze-day palette over OpenFreeMap's
+ * OpenMapTiles vector tiles, with Hebrew glyphs. Setting [BuildConfig.MAPLIBRE_STYLE_URL] to a
+ * non-empty URL overrides it with a remote style (e.g. a future self-hosted style JSON), so
+ * self-hosting later is a config-only change.
+ */
+private fun styleBuilder(context: android.content.Context): Style.Builder {
+    val overrideUrl = BuildConfig.MAPLIBRE_STYLE_URL
+    return if (overrideUrl.isNotBlank()) {
+        Style.Builder().fromUri(overrideUrl)
+    } else {
+        val json = context.resources.openRawResource(R.raw.waze_day_style)
+            .bufferedReader().use { it.readText() }
+        Style.Builder().fromJson(json)
+    }
+}
+
+/**
  * OpenMapTiles-based styles default their label text-field to `name` / `name:latin`, which shows
  * Latin names. Force every symbol layer to prefer the Hebrew name, falling back to the default.
+ * The bundled Waze-day style already sets this on its own layers; this also covers a remote
+ * override style ([BuildConfig.MAPLIBRE_STYLE_URL]) that does not, and re-applying the same
+ * expression to the bundled layers is a harmless no-op.
  * Requires the style's glyph endpoint to serve Hebrew (OpenFreeMap's Noto glyphs do); if boxes
  * appear, bundle Noto Sans Hebrew glyph PBFs and point the style's `glyphs` URL at them.
  */
