@@ -32,6 +32,8 @@ import com.abaye.derechkohanim.data.model.Language
 import com.abaye.derechkohanim.data.model.MapProvider
 import com.abaye.derechkohanim.data.model.Stringency
 import com.abaye.derechkohanim.data.model.ThemePreference
+import com.abaye.derechkohanim.data.repository.ZoneLayerState
+import com.abaye.derechkohanim.data.repository.ZoneLayerStatus
 import com.abaye.derechkohanim.ui.components.DkButton
 import com.abaye.derechkohanim.ui.components.DkButtonVariant
 import com.abaye.derechkohanim.ui.components.DkCard
@@ -63,6 +65,7 @@ fun SettingsRoute(
         onAvoidTolls = viewModel::setAvoidTolls,
         onMapProvider = viewModel::setMapProvider,
         onDownloadVoice = viewModel::downloadVoicePack,
+        onDownloadZones = viewModel::downloadZoneLayers,
         onSignOut = viewModel::signOut,
     )
 }
@@ -81,6 +84,7 @@ fun SettingsScreen(
     onAvoidTolls: (Boolean) -> Unit,
     onMapProvider: (MapProvider) -> Unit = {},
     onDownloadVoice: () -> Unit = {},
+    onDownloadZones: () -> Unit = {},
     onSignOut: () -> Unit,
 ) {
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
@@ -202,12 +206,11 @@ fun SettingsScreen(
                     actionEnabled = state.voicePack.state != VoicePackState.DOWNLOADING,
                     onAction = onDownloadVoice,
                 )
-                // Zone-layer caching is not built yet; the row is a placeholder for it.
                 DownloadRow(
                     label = stringResource(R.string.settings_download_zones),
-                    status = stringResource(R.string.settings_download_zones_status_stub),
-                    actionEnabled = false,
-                    onAction = {},
+                    status = zoneLayerStatusText(state.zoneLayer),
+                    actionEnabled = state.zoneLayer.state != ZoneLayerState.UPDATING,
+                    onAction = onDownloadZones,
                 )
             }
 
@@ -257,6 +260,18 @@ private fun voicePackStatusText(status: VoicePackStatus): String = when (status.
     )
     VoicePackState.ERROR -> stringResource(R.string.settings_download_voice_status_error)
     VoicePackState.UNKNOWN -> stringResource(R.string.settings_download_voice_status_none)
+}
+
+@Composable
+private fun zoneLayerStatusText(status: ZoneLayerStatus): String = when (status.state) {
+    ZoneLayerState.UPDATING -> stringResource(R.string.settings_download_zones_status_downloading)
+    ZoneLayerState.READY -> stringResource(
+        R.string.settings_download_zones_status_ready,
+        status.zoneCount,
+        status.dangerCount,
+    )
+    ZoneLayerState.ERROR -> stringResource(R.string.settings_download_zones_status_error)
+    ZoneLayerState.UNKNOWN -> stringResource(R.string.settings_download_zones_status_none)
 }
 
 @Composable

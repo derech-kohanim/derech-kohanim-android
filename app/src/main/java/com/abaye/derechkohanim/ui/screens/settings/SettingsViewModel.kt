@@ -15,6 +15,8 @@ import com.abaye.derechkohanim.data.model.MapProvider
 import com.abaye.derechkohanim.data.model.Stringency
 import com.abaye.derechkohanim.data.model.ThemePreference
 import com.abaye.derechkohanim.data.repository.AuthRepository
+import com.abaye.derechkohanim.data.repository.ZoneLayerStatus
+import com.abaye.derechkohanim.data.repository.ZoneLayerStore
 import com.abaye.derechkohanim.voice.VoicePackManager
 import com.abaye.derechkohanim.voice.VoicePackStatus
 import javax.inject.Inject
@@ -30,6 +32,7 @@ data class SettingsState(
     val mapProvider: MapProvider = MapProvider.AUTOMATIC,
     val signedIn: Boolean = false,
     val voicePack: VoicePackStatus = VoicePackStatus(),
+    val zoneLayer: ZoneLayerStatus = ZoneLayerStatus(),
 )
 
 @HiltViewModel
@@ -37,10 +40,15 @@ class SettingsViewModel @Inject constructor(
     private val sessionStore: SessionStore,
     private val authRepository: AuthRepository,
     private val voicePackManager: VoicePackManager,
+    private val zoneLayerStore: ZoneLayerStore,
 ) : ViewModel() {
 
     val state: StateFlow<SettingsState> =
-        combine(sessionStore.snapshots, voicePackManager.status) { snapshot, voicePack ->
+        combine(
+            sessionStore.snapshots,
+            voicePackManager.status,
+            zoneLayerStore.status,
+        ) { snapshot, voicePack, zoneLayer ->
             SettingsState(
                 language = snapshot.language,
                 theme = snapshot.theme,
@@ -52,6 +60,7 @@ class SettingsViewModel @Inject constructor(
                 mapProvider = snapshot.mapProvider,
                 signedIn = snapshot.isSignedIn,
                 voicePack = voicePack,
+                zoneLayer = zoneLayer,
             )
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsState())
@@ -92,6 +101,10 @@ class SettingsViewModel @Inject constructor(
 
     fun downloadVoicePack() {
         voicePackManager.refreshNow()
+    }
+
+    fun downloadZoneLayers() {
+        zoneLayerStore.refreshNow()
     }
 
     fun signOut() {
