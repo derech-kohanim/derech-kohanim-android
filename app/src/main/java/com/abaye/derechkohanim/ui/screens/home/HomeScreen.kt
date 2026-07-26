@@ -47,6 +47,8 @@ import com.abaye.derechkohanim.ui.components.DkFloatingIconButton
 import com.abaye.derechkohanim.ui.components.DkMap
 import com.abaye.derechkohanim.ui.components.MapControls
 import com.abaye.derechkohanim.ui.components.StatusBanner
+import com.abaye.derechkohanim.ui.components.ZoneInfoCard
+import com.abaye.derechkohanim.ui.components.ZoneTapInfo
 import com.abaye.derechkohanim.ui.components.rememberDkMapController
 import com.abaye.derechkohanim.ui.icons.categoryIcon
 import com.abaye.derechkohanim.ui.screens.onboarding.stringencyTitleRes
@@ -93,6 +95,9 @@ fun HomeScreen(
     // The permission launcher needs an activity, which a @Preview does not have.
     val permissions = if (LocalInspectionMode.current) null else rememberLocationPermissionState(context)
 
+    // A tapped zone/danger polygon, shown as a detail card until dismissed.
+    var tappedZone by remember { mutableStateOf<ZoneTapInfo?>(null) }
+
     // A brief, unobtrusive banner when a launch sync altered the map layers. Cleared after a moment.
     var layerUpdate by remember { mutableStateOf<com.abaye.derechkohanim.data.repository.ZoneLayerChange?>(null) }
     LaunchedEffect(mapUpdates) {
@@ -110,6 +115,7 @@ fun HomeScreen(
             currentLocation = state.origin,
             zones = state.zones,
             dangerZones = state.dangerZones,
+            onZoneClick = { tappedZone = it },
             modifier = Modifier.fillMaxSize(),
         )
 
@@ -176,6 +182,18 @@ fun HomeScreen(
                 .align(Alignment.CenterEnd)
                 .padding(DkTheme.spacing.s4),
         )
+
+        // Tapping a zone/danger polygon shows its full detail, above the other overlays.
+        tappedZone?.let { info ->
+            ZoneInfoCard(
+                info = info,
+                onClose = { tappedZone = null },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(DkTheme.spacing.s4),
+            )
+        }
 
         if (state.savedPlaces.isNotEmpty()) {
             Column(
