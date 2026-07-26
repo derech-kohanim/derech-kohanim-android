@@ -8,8 +8,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Adds the bearer token and the interface language. Token refresh is not implemented yet -
- * a 401 simply surfaces and the session is cleared by the repository.
+ * Adds the bearer token and the interface language. Expiry is handled by [TokenAuthenticator],
+ * which refreshes the access token and retries when a call comes back 401.
  */
 @Singleton
 class AuthInterceptor @Inject constructor(

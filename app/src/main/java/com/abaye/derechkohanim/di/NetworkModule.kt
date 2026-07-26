@@ -12,6 +12,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import com.abaye.derechkohanim.BuildConfig
 import com.abaye.derechkohanim.data.remote.AuthInterceptor
 import com.abaye.derechkohanim.data.remote.DerechKohanimApi
+import com.abaye.derechkohanim.data.remote.TokenAuthenticator
 import retrofit2.Retrofit
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
@@ -30,8 +31,13 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun okHttpClient(authInterceptor: AuthInterceptor): OkHttpClient = OkHttpClient.Builder()
+    fun okHttpClient(
+        authInterceptor: AuthInterceptor,
+        tokenAuthenticator: TokenAuthenticator,
+    ): OkHttpClient = OkHttpClient.Builder()
         .addInterceptor(authInterceptor)
+        // Refreshes the access token and retries when a call comes back 401.
+        .authenticator(tokenAuthenticator)
         .apply {
             if (BuildConfig.DEBUG) {
                 addInterceptor(
