@@ -33,15 +33,36 @@
     <string name="stringency_machmirim_description">כולל את הקודמים, ובנוסף אזורים שיש בהם ספק בלבד.</string>
 
     <!-- Onboarding -->
+    <string name="onboarding_progress">שלב %1$d מתוך %2$d</string>
     <string name="onboarding_welcome_title">ברוכים הבאים לדרך כהנים</string>
     <string name="onboarding_welcome_body">ניווט מלא מנקודה לנקודה, שמתכנן את הדרך כך שלא תעבור באזורים אסורים.</string>
-    <string name="onboarding_promise_title">מה המערכת מבטיחה</string>
-    <string name="onboarding_promise_body">כל מסלול נבדק מול שכבות האזורים לפי רמת החומרה שבחרת. כשהמסלול מאומת נקי, זה נאמר במפורש ומוצג לאורך כל הנסיעה.</string>
-    <string name="onboarding_limits_title">ומה לא</string>
-    <string name="onboarding_limits_body">הנתונים נשענים על שכבות שמסופקות על ידי העמותה ואינם תחליף להכרעה הלכתית. כשלא נמצא מסלול נקי, נאמר לך זאת לפני היציאה ולא בדרך.</string>
+
+    <!-- Onboarding, how it works -->
+    <string name="onboarding_how_title">איך זה עובד</string>
+    <string name="onboarding_how_step1_title">בוחרים יעד</string>
+    <string name="onboarding_how_step1_body">מזינים כתובת או בוחרים נקודה על המפה.</string>
+    <string name="onboarding_how_step2_title">מחשבים מסלול נקי</string>
+    <string name="onboarding_how_step2_body">המערכת מתכננת דרך שעוקפת את האזורים האסורים לפי רמת החומרה שבחרת.</string>
+    <string name="onboarding_how_step3_title">יודעים מראש</string>
+    <string name="onboarding_how_step3_body">אם אין מסלול נקי, נאמר לך לפני היציאה - לא באמצע הנסיעה.</string>
+    <string name="onboarding_how_step4_title">הכוונה קולית</string>
+    <string name="onboarding_how_step4_body">הכוונה מדוברת לכל אורך הדרך, כדי שהעיניים יישארו על הכביש.</string>
+
+    <!-- Onboarding, data source and limits -->
+    <string name="onboarding_data_title">הנתונים והמגבלות</string>
+    <string name="onboarding_data_source_title">מקור הנתונים</string>
+    <string name="onboarding_data_source_body">הנתונים על המקומות הבעייתיים התקבלו מהתאחדות טהרת הכהנים.</string>
+    <string name="onboarding_limits_title">אינה תחליף להוראת הלכה</string>
+    <string name="onboarding_limits_body">המערכת מסייעת בתכנון הדרך אך אינה תחליף להכרעה הלכתית. כשלא נמצא מסלול נקי, נאמר לך זאת לפני היציאה ולא בדרך.</string>
+
+    <!-- Onboarding, stringency -->
     <string name="onboarding_stringency_title">בחר רמת חומרה</string>
     <string name="onboarding_stringency_hint">כל השאר נגזר מהבחירה הזו. אפשר לשנות אותה בהגדרות בכל רגע.</string>
+
+    <!-- Onboarding, terms -->
     <string name="onboarding_terms_title">תנאי השימוש</string>
+    <string name="onboarding_terms_intro">יש לקרוא ולאשר את תנאי השימוש כדי להמשיך.</string>
+    <string name="onboarding_terms_placeholder">תנאי השימוש המלאים יסופקו בהמשך. אישורך יירשם עם גרסת התנאים הנוכחית.</string>
     <string name="onboarding_terms_accept">קראתי ואני מסכים לתנאי השימוש</string>
     <string name="onboarding_terms_open">קריאת התנאים</string>
     <string name="onboarding_permission_title">הרשאת מיקום</string>
