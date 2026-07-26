@@ -1,5 +1,6 @@
 package com.abaye.derechkohanim.ui.screens.search
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -71,7 +72,17 @@ class DestinationSearchViewModel @Inject constructor(
     private val sessionStore: SessionStore,
     private val deviceLocation: com.abaye.derechkohanim.service.DeviceLocation,
     private val tripStore: com.abaye.derechkohanim.nav.TripStore,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+
+    /**
+     * When true, a picked place becomes the manual ORIGIN (the no-GPS start point) instead of the
+     * destination, and the screen returns to Home rather than proceeding to route review. Selected
+     * by the `mode=origin` nav argument, read here straight from the back stack entry's arguments.
+     */
+    private val originMode: Boolean =
+        savedStateHandle.get<String>(com.abaye.derechkohanim.nav.Routes.SEARCH_ARG_MODE) ==
+            com.abaye.derechkohanim.nav.Routes.SEARCH_MODE_ORIGIN
 
     private val queryFlow = MutableStateFlow("")
 
@@ -230,10 +241,18 @@ class DestinationSearchViewModel @Inject constructor(
 
     private fun publish(suggestion: PlaceSuggestion) {
         sessionToken = UUID.randomUUID().toString()
-        // Persist the chosen destination (now carrying a resolved location) before signalling
-        // the screen to navigate. The route review reads it from here; without this the trip
-        // has no destination and every route fails with "no clean route". Mirrors HomeViewModel.
-        tripStore.setDestination(suggestion)
+        if (originMode) {
+            // Origin mode: the picked place is the manual start point (no-GPS case), so its
+            // resolved location becomes the manual origin - exactly what the map-tap path stores.
+            // The route review will prefer it over the (missing) device location. The screen then
+            // returns to Home rather than proceeding to route review.
+            suggestion.location?.let { tripStore.setManualOrigin(it) }
+        } else {
+            // Persist the chosen destination (now carrying a resolved location) before signalling
+            // the screen to navigate. The route review reads it from here; without this the trip
+            // has no destination and every route fails with "no clean route". Mirrors HomeViewModel.
+            tripStore.setDestination(suggestion)
+        }
         _selection.value = suggestion
     }
 

@@ -7,10 +7,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.abaye.derechkohanim.R
 import com.abaye.derechkohanim.ui.screens.auth.LoginRoute
 import com.abaye.derechkohanim.ui.screens.auth.RegisterRoute
@@ -61,20 +64,48 @@ fun DkNavGraph(
             )
         }
 
-        composable(Routes.HOME) {
+        composable(Routes.HOME) { backStackEntry ->
+            // A place picked in origin-mode search pops back here and leaves this flag as a result,
+            // so Home can show the "start location set" confirmation just like the map-tap path.
+            val originJustSet by backStackEntry.savedStateHandle
+                .getStateFlow(Routes.RESULT_ORIGIN_SET, false)
+                .collectAsStateWithLifecycle()
             HomeRoute(
-                onOpenSearch = { navController.navigate(Routes.SEARCH) },
+                onOpenSearch = { navController.navigate(Routes.search()) },
+                onOpenSearchForOrigin = { navController.navigate(Routes.search(originMode = true)) },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                 onDestinationChosen = { navController.navigate(Routes.ROUTE_REVIEW) },
+                originJustSet = originJustSet,
+                onOriginConfirmConsumed = {
+                    backStackEntry.savedStateHandle[Routes.RESULT_ORIGIN_SET] = false
+                },
             )
         }
 
-        composable(Routes.SEARCH) {
+        composable(
+            route = Routes.SEARCH_PATTERN,
+            arguments = listOf(
+                navArgument(Routes.SEARCH_ARG_MODE) {
+                    type = NavType.StringType
+                    defaultValue = Routes.SEARCH_MODE_DESTINATION
+                },
+            ),
+        ) { backStackEntry ->
+            val originMode = backStackEntry.arguments
+                ?.getString(Routes.SEARCH_ARG_MODE) == Routes.SEARCH_MODE_ORIGIN
             DestinationSearchRoute(
                 onBack = { navController.popBackStack() },
                 onDestinationChosen = {
-                    navController.navigate(Routes.ROUTE_REVIEW) {
-                        popUpTo(Routes.SEARCH) { inclusive = true }
+                    if (originMode) {
+                        // The manual origin was stored by the search view model. Signal Home to
+                        // confirm it, then return there instead of proceeding to route review.
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle?.set(Routes.RESULT_ORIGIN_SET, true)
+                        navController.popBackStack()
+                    } else {
+                        navController.navigate(Routes.ROUTE_REVIEW) {
+                            popUpTo(Routes.SEARCH_PATTERN) { inclusive = true }
+                        }
                     }
                 },
                 // Guests are routed to login for account-only actions; login pops back to search,
