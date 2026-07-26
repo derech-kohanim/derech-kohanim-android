@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import com.abaye.derechkohanim.R
 import com.abaye.derechkohanim.core.DkResult
@@ -35,8 +36,10 @@ import com.abaye.derechkohanim.data.model.RouteResult
 import com.abaye.derechkohanim.data.model.TrafficSegment
 import com.abaye.derechkohanim.data.model.TravelMode
 import com.abaye.derechkohanim.data.model.points
+import com.abaye.derechkohanim.core.ZoneFilter
 import com.abaye.derechkohanim.data.repository.RouteEventsRepository
 import com.abaye.derechkohanim.data.repository.RoutingRepository
+import com.abaye.derechkohanim.data.repository.ZoneLayerStore
 import com.abaye.derechkohanim.service.Connectivity
 import com.abaye.derechkohanim.service.DeviceLocation
 import com.abaye.derechkohanim.service.LocationPermissions
@@ -75,6 +78,7 @@ class NavigationEngine @Inject constructor(
     private val routingRepository: RoutingRepository,
     private val voicePlayer: VoicePlayer,
     private val voicePackManager: VoicePackManager,
+    private val zoneLayerStore: ZoneLayerStore,
     private val deviceLocation: DeviceLocation,
     private val connectivity: Connectivity,
 ) {
@@ -112,6 +116,7 @@ class NavigationEngine @Inject constructor(
     private var gpsWatchdog: Job? = null
     private var persistJob: Job? = null
     private var connectivityJob: Job? = null
+    private var zonesJob: Job? = null
 
     private val announcedManeuverRungs = mutableSetOf<String>()
     private val announcedEvents = mutableSetOf<String>()
@@ -190,6 +195,7 @@ class NavigationEngine @Inject constructor(
             }
 
             prefetchRouteClips(route)
+            observeZoneLayers()
 
             if (simulated) {
                 startLoop()
@@ -260,6 +266,28 @@ class NavigationEngine @Inject constructor(
                 _state.value = _state.value.copy(offline = !online)
             }
         }
+    }
+
+    /**
+     * Draws only the zone/danger polygons near the route, from the local layer store, and keeps them
+     * current as the store's cache loads or a background sync lands. The filter is recomputed on each
+     * store emission (and re-run from [replaceRoute] when a reroute changes the geometry).
+     */
+    private fun observeZoneLayers() {
+        zonesJob?.cancel()
+        zonesJob = scope.launch {
+            combine(zoneLayerStore.zones, zoneLayerStore.danger) { _, _ -> }.collect {
+                applyZoneFilter()
+            }
+        }
+    }
+
+    private fun applyZoneFilter() {
+        val bounds = ZoneFilter.boundsAround(geometry, ZoneFilter.ROUTE_PAD_DEG) ?: return
+        _state.value = _state.value.copy(
+            zones = ZoneFilter.zonesIn(zoneLayerStore.zones.value, bounds),
+            dangerZones = ZoneFilter.dangerIn(zoneLayerStore.danger.value, bounds),
+        )
     }
 
     private fun prefetchRouteClips(route: RouteResult) {
@@ -391,6 +419,9 @@ class NavigationEngine @Inject constructor(
         // The route geometry changed: rewrite the durable record so a kill mid-reroute resumes
         // onto the new route, not the abandoned one.
         persistNow()
+        // Re-filter the layers to the new corridor (the store collector keys off its own emissions,
+        // not the geometry, so a reroute must ask for a fresh filter explicitly).
+        applyZoneFilter()
     }
 
     private fun nearestIndex(location: LatLng, from: Int): Int {
@@ -670,6 +701,7 @@ class NavigationEngine @Inject constructor(
         gpsWatchdog?.cancel()
         rerouteJob?.cancel()
         persistJob?.cancel()
+        zonesJob?.cancel()
     }
 
     private fun cumulativeDistances(geometry: List<LatLng>): List<Double> {

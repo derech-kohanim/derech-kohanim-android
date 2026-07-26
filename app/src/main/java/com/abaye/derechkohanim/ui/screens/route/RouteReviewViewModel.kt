@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 import com.abaye.derechkohanim.BuildConfig
 import com.abaye.derechkohanim.core.DkResult
 import com.abaye.derechkohanim.core.ErrorCode
+import com.abaye.derechkohanim.core.ZoneFilter
 import com.abaye.derechkohanim.data.local.SessionStore
 import com.abaye.derechkohanim.data.mock.MockData
 import com.abaye.derechkohanim.data.model.LatLng
@@ -21,6 +22,7 @@ import com.abaye.derechkohanim.data.model.Stringency
 import com.abaye.derechkohanim.data.model.TravelMode
 import com.abaye.derechkohanim.data.repository.PlacesRepository
 import com.abaye.derechkohanim.data.repository.RoutingRepository
+import com.abaye.derechkohanim.data.repository.ZoneLayerStore
 import com.abaye.derechkohanim.data.repository.toCreateSavedRequest
 import com.abaye.derechkohanim.nav.TripStore
 import com.abaye.derechkohanim.service.DeviceLocation
@@ -77,6 +79,7 @@ class RouteReviewViewModel @Inject constructor(
     private val sessionStore: SessionStore,
     private val deviceLocation: DeviceLocation,
     private val tripStore: TripStore,
+    private val zoneLayerStore: ZoneLayerStore,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(RouteReviewState())
@@ -121,11 +124,24 @@ class RouteReviewViewModel @Inject constructor(
             }
 
             // Zones for the chosen layer, coloured per feature by their own stringency, plus
-            // the separate danger-zone (Area A) layer.
-            val zones = (routingRepository.zones(snapshot.stringency, null) as? DkResult.Success)
-                ?.value?.features.orEmpty()
-            val dangerZones = (routingRepository.dangerZones(null) as? DkResult.Success)
-                ?.value?.features.orEmpty()
+            // the separate danger-zone (Area A) layer. Prefer the local store (cache + offline,
+            // and consistent with Home/Navigation), filtered to the origin-destination corridor;
+            // fall back to a direct fetch only when the store has not populated yet.
+            val bounds = ZoneFilter.boundsAround(listOf(origin, target), ZoneFilter.ROUTE_PAD_DEG)
+            val storeZones = zoneLayerStore.zones.value
+            val storeDanger = zoneLayerStore.danger.value
+            val zones = if (storeZones.isNotEmpty()) {
+                bounds?.let { ZoneFilter.zonesIn(storeZones, it) } ?: storeZones
+            } else {
+                (routingRepository.zones(snapshot.stringency, null) as? DkResult.Success)
+                    ?.value?.features.orEmpty()
+            }
+            val dangerZones = if (storeDanger.isNotEmpty()) {
+                bounds?.let { ZoneFilter.dangerIn(storeDanger, it) } ?: storeDanger
+            } else {
+                (routingRepository.dangerZones(null) as? DkResult.Success)
+                    ?.value?.features.orEmpty()
+            }
 
             // No engine is set: the server picks its default (hybrid), which prices travel
             // time - with or without traffic - and returns it as durationSeconds. We always

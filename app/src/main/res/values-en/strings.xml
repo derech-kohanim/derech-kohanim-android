@@ -264,6 +264,10 @@
     <string name="settings_download_voice_status_ready">Up to date · version %1$d · %2$d clips</string>
     <string name="settings_download_voice_status_error">Download failed</string>
     <string name="settings_download_zones_status_stub">Coming soon</string>
+    <string name="settings_download_zones_status_none">Not downloaded</string>
+    <string name="settings_download_zones_status_downloading">Downloading…</string>
+    <string name="settings_download_zones_status_ready">Up to date · %1$d zones · %2$d danger</string>
+    <string name="settings_download_zones_status_error">Download failed</string>
     <string name="settings_section_account">Account</string>
     <string name="settings_sign_in">Sign in</string>
     <string name="settings_sign_out">Sign out</string>
@@ -296,6 +300,8 @@
     <string name="report_road_closure">Road closed</string>
     <string name="report_traffic">Traffic</string>
     <string name="report_added">Report sent, thank you</string>
+    <string name="map_layer_updated">%1$d map points updated</string>
+    <string name="map_layer_removed">%1$d map points removed</string>
     <string name="event_zone">Forbidden zone</string>
     <string name="event_ahead_announcement">%1$s in %2$s</string>
     <string name="traffic_light">Light traffic</string>

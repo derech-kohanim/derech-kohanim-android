@@ -264,6 +264,10 @@
     <string name="settings_download_voice_status_ready">מעודכן · גרסה %1$d · %2$d קטעים</string>
     <string name="settings_download_voice_status_error">ההורדה נכשלה</string>
     <string name="settings_download_zones_status_stub">בקרוב</string>
+    <string name="settings_download_zones_status_none">לא הורדו</string>
+    <string name="settings_download_zones_status_downloading">מוריד…</string>
+    <string name="settings_download_zones_status_ready">מעודכן · %1$d אזורים · %2$d סכנה</string>
+    <string name="settings_download_zones_status_error">ההורדה נכשלה</string>
     <string name="settings_section_account">חשבון</string>
     <string name="settings_sign_in">התחברות</string>
     <string name="settings_sign_out">התנתקות</string>
@@ -296,6 +300,8 @@
     <string name="report_road_closure">כביש חסום</string>
     <string name="report_traffic">עומס תנועה</string>
     <string name="report_added">הדיווח נשלח, תודה</string>
+    <string name="map_layer_updated">עודכנו/נוספו %1$d נקודות</string>
+    <string name="map_layer_removed">הוסרו %1$d נקודות</string>
     <string name="event_zone">אזור אסור</string>
     <string name="event_ahead_announcement">%1$s בעוד %2$s</string>
     <string name="traffic_light">עומס קל</string>

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -19,8 +20,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -65,6 +70,7 @@ fun HomeRoute(
             viewModel.chooseDestination(place.toSuggestion())
             onDestinationChosen()
         },
+        mapUpdates = viewModel.mapUpdates,
     )
 }
 
@@ -79,17 +85,31 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onSavedPlaceChosen: (SavedPlace) -> Unit,
     onLocateMe: suspend () -> LatLng? = { null },
+    mapUpdates: kotlinx.coroutines.flow.SharedFlow<com.abaye.derechkohanim.data.repository.ZoneLayerChange>? = null,
 ) {
     val controller = rememberDkMapController()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     // The permission launcher needs an activity, which a @Preview does not have.
     val permissions = if (LocalInspectionMode.current) null else rememberLocationPermissionState(context)
+
+    // A brief, unobtrusive banner when a launch sync altered the map layers. Cleared after a moment.
+    var layerUpdate by remember { mutableStateOf<com.abaye.derechkohanim.data.repository.ZoneLayerChange?>(null) }
+    LaunchedEffect(mapUpdates) {
+        mapUpdates?.collect { change ->
+            layerUpdate = change
+            kotlinx.coroutines.delay(4000)
+            layerUpdate = null
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         DkMap(
             center = state.origin ?: FALLBACK_CENTER,
             controller = controller,
             currentLocation = state.origin,
+            zones = state.zones,
+            dangerZones = state.dangerZones,
             modifier = Modifier.fillMaxSize(),
         )
 
@@ -122,6 +142,23 @@ fun HomeScreen(
 
             // Waze-style connectivity banner at the top of the home view.
             StatusBanner(offline = state.offline, noGps = false)
+
+            // Brief "map points updated" banner after a background layer sync applied changes.
+            androidx.compose.animation.AnimatedVisibility(visible = layerUpdate != null) {
+                val change = layerUpdate
+                if (change != null) {
+                    val text = if (change.upserted > 0) {
+                        stringResource(R.string.map_layer_updated, change.upserted)
+                    } else {
+                        stringResource(R.string.map_layer_removed, change.removed)
+                    }
+                    DkBadge(
+                        text = text,
+                        tone = com.abaye.derechkohanim.ui.components.DkBadgeTone.Info,
+                        icon = Icons.Filled.Place,
+                    )
+                }
+            }
         }
 
         MapControls(

@@ -60,6 +60,10 @@ data class NavigationState(
     val remainingRoutePoints: List<LatLng> = emptyList(),
     /** Traffic segments re-based onto [remainingRoutePoints] indices; passed ones are dropped. */
     val remainingTraffic: List<com.abaye.derechkohanim.data.model.TrafficSegment> = emptyList(),
+    /** Zone polygons near the route, from the local layer store (filtered for performance). */
+    val zones: List<com.abaye.derechkohanim.data.model.ZoneFeature> = emptyList(),
+    /** Danger-zone (Area A) polygons near the route, from the local layer store. */
+    val dangerZones: List<com.abaye.derechkohanim.data.model.DangerZoneFeature> = emptyList(),
     val headingDegrees: Float = 0f,
     val speedMps: Double = 0.0,
     val stringency: Stringency = Stringency.BASIC,

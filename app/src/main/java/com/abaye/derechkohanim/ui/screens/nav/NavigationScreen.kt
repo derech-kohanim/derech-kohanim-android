@@ -229,6 +229,8 @@ fun NavigationScreen(
             routePoints = routePoints,
             trafficSegments = state.remainingTraffic,
             eventMarkers = state.events.events,
+            zones = state.zones,
+            dangerZones = state.dangerZones,
             currentLocation = state.currentLocation,
             routeIsClean = state.verifiedClean,
             interactive = false,
