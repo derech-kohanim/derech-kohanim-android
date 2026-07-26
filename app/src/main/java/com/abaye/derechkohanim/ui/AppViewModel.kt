@@ -11,6 +11,7 @@ import com.abaye.derechkohanim.data.local.NavStateStore
 import com.abaye.derechkohanim.data.local.PersistedNavState
 import com.abaye.derechkohanim.data.local.SessionStore
 import com.abaye.derechkohanim.data.model.ThemePreference
+import com.abaye.derechkohanim.data.repository.ZoneLayerStore
 import com.abaye.derechkohanim.nav.NavigationEngine
 import com.abaye.derechkohanim.nav.Routes
 import com.abaye.derechkohanim.voice.VoicePackManager
@@ -34,6 +35,7 @@ class AppViewModel @Inject constructor(
     private val navStateStore: NavStateStore,
     private val engine: NavigationEngine,
     voicePackManager: VoicePackManager,
+    zoneLayerStore: ZoneLayerStore,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AppUiState())
@@ -44,6 +46,10 @@ class AppViewModel @Inject constructor(
         // endpoint has no auth, so this runs at app start whether signed in or a guest. Never
         // blocks the UI; a failure quietly leaves the previous cache (or TTS) in place.
         voicePackManager.start()
+
+        // Same shape for the map layers: load the cached zone/danger polygons into their flows and
+        // delta-sync them in the background, so Home and Navigation draw them at once and offline.
+        zoneLayerStore.start()
 
         viewModelScope.launch {
             val snapshot = sessionStore.snapshot()

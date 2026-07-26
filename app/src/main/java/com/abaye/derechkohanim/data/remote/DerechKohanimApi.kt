@@ -132,6 +132,21 @@ interface DerechKohanimApi {
         @Query("sinceVersion") sinceVersion: Int? = null,
     ): DangerZoneCollection
 
+    // Response-returning variants for the local layer store's delta sync: the server answers a
+    // request whose sinceVersion is already current with HTTP 304 and no body. Returning a raw
+    // Response lets the store read response.code() == 304 as "unchanged" instead of treating the
+    // non-2xx as an error (a body-returning call would surface it as HttpException(304)).
+    @GET("zones")
+    suspend fun zonesResponse(
+        @Query("stringency") stringency: String,
+        @Query("sinceVersion") sinceVersion: Int? = null,
+    ): retrofit2.Response<ZoneCollection>
+
+    @GET("danger-zones")
+    suspend fun dangerZonesResponse(
+        @Query("sinceVersion") sinceVersion: Int? = null,
+    ): retrofit2.Response<DangerZoneCollection>
+
     // Returns a RoutePlan; decoded as JsonElement so the repository can also accept the old
     // single RouteResult shape during the server rollout.
     @POST("routes/compute")

@@ -34,6 +34,7 @@ import com.abaye.derechkohanim.data.model.VoiceResolveResponse
 import com.abaye.derechkohanim.data.model.DangerZoneCollection
 import com.abaye.derechkohanim.data.model.ZoneCollection
 import com.abaye.derechkohanim.data.repository.AuthRepository
+import com.abaye.derechkohanim.data.repository.LayerFetch
 import com.abaye.derechkohanim.data.repository.PlacesRepository
 import com.abaye.derechkohanim.data.repository.RouteEventsRepository
 import com.abaye.derechkohanim.data.repository.RoutingRepository
@@ -139,6 +140,27 @@ class MockRoutingRepository @Inject constructor() : RoutingRepository {
 
     override suspend fun dangerZones(sinceVersion: Int?): DkResult<DangerZoneCollection> =
         DkResult.Success(DangerZoneCollection(features = MockData.dangerZoneFeatures, version = 1))
+
+    // Mock layers are at version 1: a request already at (or past) it is "unchanged", mirroring the
+    // server's 304; a first fetch (sinceVersion null or older) returns the full collection.
+    override suspend fun zonesSince(
+        stringency: Stringency,
+        sinceVersion: Int?,
+    ): LayerFetch<ZoneCollection> =
+        if (sinceVersion != null && sinceVersion >= 1) {
+            LayerFetch.Unchanged
+        } else {
+            LayerFetch.Changed(ZoneCollection(features = MockData.zonesFor(stringency), version = 1))
+        }
+
+    override suspend fun dangerZonesSince(sinceVersion: Int?): LayerFetch<DangerZoneCollection> =
+        if (sinceVersion != null && sinceVersion >= 1) {
+            LayerFetch.Unchanged
+        } else {
+            LayerFetch.Changed(
+                DangerZoneCollection(features = MockData.dangerZoneFeatures, version = 1),
+            )
+        }
 
     override suspend fun createSession(routeId: String, simulated: Boolean): DkResult<NavigationSession> =
         DkResult.Success(MockData.session(routeId, simulated))

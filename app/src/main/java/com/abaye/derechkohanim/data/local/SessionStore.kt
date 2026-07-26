@@ -45,6 +45,12 @@ data class SessionSnapshot(
     val voicePackVersion: Int = 0,
     /** The language tag the cached voice pack was downloaded for. */
     val voicePackLanguage: String? = null,
+    /** The zone-layer version already downloaded and cached, for [zoneLayerStringency]. */
+    val zoneLayerVersion: Int = 0,
+    /** The stringency the cached zone layer was downloaded for (wire form). */
+    val zoneLayerStringency: String? = null,
+    /** The danger-zone (Area A) layer version already downloaded and cached. */
+    val dangerLayerVersion: Int = 0,
 ) {
     val isSignedIn: Boolean get() = accessToken != null
 }
@@ -69,6 +75,9 @@ class SessionStore @Inject constructor(
         val onboardingComplete = booleanPreferencesKey("onboarding_complete")
         val voicePackVersion = intPreferencesKey("voice_pack_version")
         val voicePackLanguage = stringPreferencesKey("voice_pack_language")
+        val zoneLayerVersion = intPreferencesKey("zone_layer_version")
+        val zoneLayerStringency = stringPreferencesKey("zone_layer_stringency")
+        val dangerLayerVersion = intPreferencesKey("danger_layer_version")
     }
 
     val snapshots: Flow<SessionSnapshot> = context.dataStore.data.map { prefs ->
@@ -88,6 +97,9 @@ class SessionStore @Inject constructor(
             onboardingComplete = prefs[Keys.onboardingComplete] ?: false,
             voicePackVersion = prefs[Keys.voicePackVersion] ?: 0,
             voicePackLanguage = prefs[Keys.voicePackLanguage],
+            zoneLayerVersion = prefs[Keys.zoneLayerVersion] ?: 0,
+            zoneLayerStringency = prefs[Keys.zoneLayerStringency],
+            dangerLayerVersion = prefs[Keys.dangerLayerVersion] ?: 0,
         )
     }
 
@@ -142,6 +154,17 @@ class SessionStore @Inject constructor(
     suspend fun setVoicePack(language: Language, version: Int) = context.dataStore.edit {
         it[Keys.voicePackVersion] = version
         it[Keys.voicePackLanguage] = language.tag
+    }
+
+    /** Records the zone-layer version and stringency now held in the on-disk cache. */
+    suspend fun setZoneLayer(stringency: Stringency, version: Int) = context.dataStore.edit {
+        it[Keys.zoneLayerVersion] = version
+        it[Keys.zoneLayerStringency] = stringency.wire
+    }
+
+    /** Records the danger-zone (Area A) layer version now held in the on-disk cache. */
+    suspend fun setDangerLayer(version: Int) = context.dataStore.edit {
+        it[Keys.dangerLayerVersion] = version
     }
 
     suspend fun clearSession() = context.dataStore.edit {
