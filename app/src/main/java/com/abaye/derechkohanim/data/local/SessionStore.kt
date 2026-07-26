@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import com.abaye.derechkohanim.data.model.Language
+import com.abaye.derechkohanim.data.model.MapProvider
 import com.abaye.derechkohanim.data.model.Stringency
 import com.abaye.derechkohanim.data.model.ThemePreference
 import javax.inject.Inject
@@ -36,6 +37,8 @@ data class SessionSnapshot(
     val avoidDangerZones: Boolean = true,
     val voiceEnabled: Boolean = true,
     val voiceId: String = "he-default",
+    /** Which map renderer to use. AUTOMATIC falls back to OpenFreeMap on NetFree. */
+    val mapProvider: MapProvider = MapProvider.AUTOMATIC,
     val acceptedTermsVersion: String? = null,
     val onboardingComplete: Boolean = false,
     /** The voice-pack version already downloaded and cached, per [voicePackLanguage]. */
@@ -61,6 +64,7 @@ class SessionStore @Inject constructor(
         val avoidDangerZones = booleanPreferencesKey("avoid_danger_zones")
         val voiceEnabled = booleanPreferencesKey("voice_enabled")
         val voiceId = stringPreferencesKey("voice_id")
+        val mapProvider = stringPreferencesKey("map_provider")
         val acceptedTermsVersion = stringPreferencesKey("accepted_terms_version")
         val onboardingComplete = booleanPreferencesKey("onboarding_complete")
         val voicePackVersion = intPreferencesKey("voice_pack_version")
@@ -79,6 +83,7 @@ class SessionStore @Inject constructor(
             avoidDangerZones = prefs[Keys.avoidDangerZones] ?: true,
             voiceEnabled = prefs[Keys.voiceEnabled] ?: true,
             voiceId = prefs[Keys.voiceId] ?: "he-default",
+            mapProvider = prefs[Keys.mapProvider]?.let { enumOrNull<MapProvider>(it) } ?: MapProvider.AUTOMATIC,
             acceptedTermsVersion = prefs[Keys.acceptedTermsVersion],
             onboardingComplete = prefs[Keys.onboardingComplete] ?: false,
             voicePackVersion = prefs[Keys.voicePackVersion] ?: 0,
@@ -119,6 +124,10 @@ class SessionStore @Inject constructor(
 
     suspend fun setVoiceEnabled(enabled: Boolean) = context.dataStore.edit {
         it[Keys.voiceEnabled] = enabled
+    }
+
+    suspend fun setMapProvider(provider: MapProvider) = context.dataStore.edit {
+        it[Keys.mapProvider] = provider.name
     }
 
     suspend fun setAcceptedTermsVersion(version: String) = context.dataStore.edit {
