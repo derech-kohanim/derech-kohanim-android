@@ -102,6 +102,8 @@
     <string name="home_settings">הגדרות</string>
     <string name="home_location_unknown">המיקום עדיין לא ידוע</string>
     <string name="home_manual_origin">בחר מיקום התחלה ידנית</string>
+    <string name="home_manual_origin_search">חפש כתובת</string>
+    <string name="home_manual_origin_map">הקש על המפה</string>
     <string name="home_manual_origin_hint">הקש על המפה כדי לבחור את נקודת ההתחלה</string>
     <string name="home_manual_origin_set">נקודת ההתחלה נבחרה</string>
 

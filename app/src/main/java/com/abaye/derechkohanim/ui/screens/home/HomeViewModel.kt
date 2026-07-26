@@ -80,6 +80,18 @@ class HomeViewModel @Inject constructor(
                 savedPlaces = (saved as? DkResult.Success)?.value.orEmpty(),
             )
         }
+        // Keep Home's shown origin in step with a hand-picked start point. The map-tap path sets it
+        // directly, but the address-search path stores it only in the TripStore (from the search
+        // screen), so observing the store lets that origin recentre the map here too. Only non-null
+        // values apply; clearing (a real GPS fix) is handled by the watchdog, which sets the fix.
+        viewModelScope.launch {
+            tripStore.manualOrigin.collect { manual ->
+                if (manual != null) {
+                    originFlow.value = manual
+                    _state.value = _state.value.copy(origin = manual)
+                }
+            }
+        }
         // Draw only the zone/danger polygons near the origin, recomputed whenever the origin moves
         // or the store's layers change (initial cache load or a background sync).
         viewModelScope.launch {

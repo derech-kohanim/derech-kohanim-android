@@ -63,6 +63,9 @@ fun HomeRoute(
     onOpenSearch: () -> Unit,
     onOpenSettings: () -> Unit,
     onDestinationChosen: () -> Unit,
+    onOpenSearchForOrigin: () -> Unit = {},
+    originJustSet: Boolean = false,
+    onOriginConfirmConsumed: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -80,6 +83,9 @@ fun HomeRoute(
         onOpenSettings = onOpenSettings,
         onLocateMe = { viewModel.locateMe() },
         onSetManualOrigin = { viewModel.setManualOrigin(it) },
+        onSearchOriginAddress = onOpenSearchForOrigin,
+        originJustSet = originJustSet,
+        onOriginConfirmConsumed = onOriginConfirmConsumed,
         onSavedPlaceChosen = { place ->
             viewModel.chooseDestination(place.toSuggestion())
             onDestinationChosen()
@@ -100,6 +106,9 @@ fun HomeScreen(
     onSavedPlaceChosen: (SavedPlace) -> Unit,
     onLocateMe: suspend () -> LatLng? = { null },
     onSetManualOrigin: (LatLng) -> Unit = {},
+    onSearchOriginAddress: () -> Unit = {},
+    originJustSet: Boolean = false,
+    onOriginConfirmConsumed: () -> Unit = {},
     mapUpdates: kotlinx.coroutines.flow.SharedFlow<com.abaye.derechkohanim.data.repository.ZoneLayerChange>? = null,
 ) {
     val controller = rememberDkMapController()
@@ -124,6 +133,15 @@ fun HomeScreen(
     // Once a fix returns there is no reason to keep offering manual entry; drop the mode.
     LaunchedEffect(state.noGps) {
         if (!state.noGps) pickStart = false
+    }
+    // An origin picked via address search (returning from the search screen) confirms the same way
+    // as a map-tapped one: show the brief "start location set" badge and drop the pick-start hint.
+    LaunchedEffect(originJustSet) {
+        if (originJustSet) {
+            pickStart = false
+            manualConfirm = true
+            onOriginConfirmConsumed()
+        }
     }
 
     // A brief, unobtrusive banner when a launch sync altered the map layers. Cleared after a moment.
@@ -185,8 +203,9 @@ fun HomeScreen(
             // Waze-style connectivity banner at the top of the home view.
             StatusBanner(offline = state.offline, noGps = state.noGps)
 
-            // With no GPS, let the user set the start point by hand so planning still works. The
-            // button arms pick-start mode; the hint then tells them to tap the map.
+            // With no GPS, let the user set the start point by hand so planning still works. Two
+            // ways are offered: search an address (needs connectivity) or tap the map (fully
+            // offline). Arming map-tap swaps the buttons for a hint to tap the map.
             androidx.compose.animation.AnimatedVisibility(visible = state.noGps) {
                 if (pickStart) {
                     DkBadge(
@@ -195,12 +214,29 @@ fun HomeScreen(
                         icon = Icons.Filled.Place,
                     )
                 } else {
-                    com.abaye.derechkohanim.ui.components.DkButton(
-                        text = stringResource(R.string.home_manual_origin),
-                        onClick = { pickStart = true },
-                        variant = com.abaye.derechkohanim.ui.components.DkButtonVariant.Secondary,
-                        leadingIcon = Icons.Filled.Place,
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2)) {
+                        Text(
+                            text = stringResource(R.string.home_manual_origin),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = DkTheme.colors.text,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2)) {
+                            com.abaye.derechkohanim.ui.components.DkButton(
+                                text = stringResource(R.string.home_manual_origin_search),
+                                onClick = onSearchOriginAddress,
+                                variant = com.abaye.derechkohanim.ui.components.DkButtonVariant.Secondary,
+                                leadingIcon = Icons.Filled.Search,
+                                modifier = Modifier.weight(1f),
+                            )
+                            com.abaye.derechkohanim.ui.components.DkButton(
+                                text = stringResource(R.string.home_manual_origin_map),
+                                onClick = { pickStart = true },
+                                variant = com.abaye.derechkohanim.ui.components.DkButtonVariant.Secondary,
+                                leadingIcon = Icons.Filled.Place,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
                 }
             }
 
