@@ -2,44 +2,40 @@ package com.abaye.derechkohanim.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalInspectionMode
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.Dash
-import com.google.android.gms.maps.model.Gap
-import com.google.android.gms.maps.model.LatLngBounds
-import com.google.maps.android.compose.CameraPositionState
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.MapProperties
-import com.google.maps.android.compose.MapUiSettings
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.Polygon
-import com.google.maps.android.compose.Polyline
-import com.google.maps.android.compose.rememberCameraPositionState
-import com.google.maps.android.compose.rememberMarkerState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.abaye.derechkohanim.data.model.DangerZoneFeature
 import com.abaye.derechkohanim.data.model.DangerZoneProperties
 import com.abaye.derechkohanim.data.model.LatLng
+import com.abaye.derechkohanim.data.model.MapProvider
 import com.abaye.derechkohanim.data.model.RouteEvent
 import com.abaye.derechkohanim.data.model.Stringency
 import com.abaye.derechkohanim.data.model.TrafficLevel
 import com.abaye.derechkohanim.data.model.TrafficSegment
 import com.abaye.derechkohanim.data.model.ZoneFeature
 import com.abaye.derechkohanim.data.model.ZoneProperties
+import com.abaye.derechkohanim.service.MapProviderState
+import com.abaye.derechkohanim.ui.theme.DkColors
 import com.abaye.derechkohanim.ui.theme.DkTheme
-import com.google.android.gms.maps.model.LatLng as GmsLatLng
+
+/**
+ * Supplies the effective map provider to [DkMap], set once at the app root (MainActivity) from
+ * the Hilt [MapProviderState]. Null in a @Preview or any tree that did not provide it, in which
+ * case [DkMap] falls back to Google.
+ */
+val LocalMapProviderState = staticCompositionLocalOf<MapProviderState?> { null }
 
 /**
  * The detail a tapped zone or danger polygon reports, so the surrounding screen can show a
@@ -72,12 +68,40 @@ fun DangerZoneProperties.toTapInfo() = ZoneTapInfo(
     danger = true,
 )
 
+/** An immutable camera pose, provider-agnostic, so the same intent drives either backend. */
+data class CameraSnapshot(
+    val target: LatLng,
+    val zoom: Float,
+    val bearing: Float,
+    val tilt: Float,
+)
+
+/**
+ * The actual map's camera, implemented once per provider (Google maps-compose, MapLibre). The
+ * [DkMapController] talks only to this, so it never depends on which renderer is live and a
+ * provider switch is transparent.
+ */
+interface MapCameraBackend {
+    /** The camera right now, or null before the map has a valid position. */
+    fun snapshot(): CameraSnapshot?
+
+    /** Jump the camera to this pose (instant move, no animation), guarded against early calls. */
+    fun move(target: LatLng, zoom: Float, bearing: Float, tilt: Float)
+
+    /** Frame the whole set of points with padding, Waze's route overview. */
+    fun overview(points: List<LatLng>, paddingPx: Int)
+}
+
 /**
  * Owns the map camera so the surrounding screen can drive it: follow the driver, toggle
- * heading-up, zoom, or pull back to an overview. Camera moves are instant `move` calls
- * wrapped defensively, since a move before the map has a size would otherwise throw.
+ * heading-up, zoom, or pull back to an overview - exactly the same API regardless of provider.
+ *
+ * The controller is provider-agnostic: it holds the shared UI state (heading-up, auto-zoom) and
+ * the last camera intent, and forwards moves to whichever [MapCameraBackend] is currently
+ * attached. When the effective provider switches, the new backend attaches and the last intent
+ * is replayed, so the map stays put across the swap.
  */
-class DkMapController(val cameraPositionState: CameraPositionState) {
+class DkMapController {
 
     /** Heading-up rotates the map with the drive; north-up keeps north at the top. */
     var headingUp by mutableStateOf(true)
@@ -90,19 +114,33 @@ class DkMapController(val cameraPositionState: CameraPositionState) {
     var autoZoom by mutableStateOf(true)
         private set
 
+    private var backend: MapCameraBackend? = null
+
+    /** The last requested pose, replayed when a backend attaches (first bind or provider swap). */
+    private var lastCamera: CameraSnapshot? = null
+
+    /** Called by the active renderer when its map is ready. */
+    internal fun attach(backend: MapCameraBackend) {
+        this.backend = backend
+        lastCamera?.let { backend.move(it.target, it.zoom, it.bearing, it.tilt) }
+    }
+
+    /** Called by a renderer as it leaves composition, so a stale backend is never driven. */
+    internal fun detach(backend: MapCameraBackend) {
+        if (this.backend === backend) this.backend = null
+    }
+
+    /** Seeds the opening camera once, so the map opens zoomed in on `center` like Waze. */
+    internal fun seedIfUnset(location: LatLng, zoom: Float) {
+        if (lastCamera == null) moveTo(location, zoom, 0f, 0f)
+    }
+
     fun follow(location: LatLng, bearingDegrees: Float, speedMps: Double = 0.0) {
         val bearing = if (headingUp) bearingDegrees else 0f
         // Auto zoom drives itself off the speed; otherwise keep whatever zoom the driver set.
         val zoom = if (autoZoom) drivingZoom(speedMps) else currentZoom()
-        move(
-            CameraPosition.Builder()
-                .target(GmsLatLng(location.lat, location.lng))
-                .zoom(zoom)
-                .bearing(bearing)
-                // Always a 3D perspective while driving, regardless of the heading-up toggle.
-                .tilt(FOLLOW_TILT)
-                .build()
-        )
+        // Always a 3D perspective while driving, regardless of the heading-up toggle.
+        moveTo(location, zoom, bearing, FOLLOW_TILT)
     }
 
     /** Hands the zoom back to the speed-driven camera, e.g. when the driver recentres. */
@@ -111,37 +149,28 @@ class DkMapController(val cameraPositionState: CameraPositionState) {
     }
 
     fun center(location: LatLng, zoom: Float = FOLLOW_ZOOM) {
-        move(CameraPosition.fromLatLngZoom(GmsLatLng(location.lat, location.lng), zoom))
+        moveTo(location, zoom, 0f, 0f)
     }
 
     fun zoomBy(delta: Float) {
         // A deliberate zoom wins over the automatic one until the driver recentres.
         autoZoom = false
-        val current = cameraPositionState.position
-        move(
-            CameraPosition.Builder(current)
-                .zoom((current.zoom + delta).coerceIn(MIN_ZOOM, MAX_ZOOM))
-                .build()
-        )
+        val base = backend?.snapshot() ?: lastCamera ?: return
+        moveTo(base.target, (base.zoom + delta).coerceIn(MIN_ZOOM, MAX_ZOOM), base.bearing, base.tilt)
     }
 
     /** Pulls the camera back to frame the whole set of points, Waze's route overview. */
     fun overview(points: List<LatLng>) {
         if (points.isEmpty()) return
-        val builder = LatLngBounds.builder()
-        points.forEach { builder.include(GmsLatLng(it.lat, it.lng)) }
-        runCatching {
-            cameraPositionState.move(
-                CameraUpdateFactory.newLatLngBounds(builder.build(), OVERVIEW_PADDING_PX)
-            )
-        }
+        backend?.overview(points, OVERVIEW_PADDING_PX)
     }
 
     private fun currentZoom(): Float =
-        cameraPositionState.position.zoom.takeIf { it > 2f } ?: FOLLOW_ZOOM
+        (backend?.snapshot()?.zoom ?: lastCamera?.zoom)?.takeIf { it > 2f } ?: FOLLOW_ZOOM
 
-    private fun move(position: CameraPosition) {
-        runCatching { cameraPositionState.position = position }
+    private fun moveTo(location: LatLng, zoom: Float, bearing: Float, tilt: Float) {
+        lastCamera = CameraSnapshot(location, zoom, bearing, tilt)
+        backend?.move(location, zoom, bearing, tilt)
     }
 
     companion object {
@@ -149,7 +178,7 @@ class DkMapController(val cameraPositionState: CameraPositionState) {
         const val FOLLOW_TILT = 45f
         private const val MIN_ZOOM = 5f
         private const val MAX_ZOOM = 20f
-        private const val OVERVIEW_PADDING_PX = 160
+        const val OVERVIEW_PADDING_PX = 160
 
         /**
          * The zoom the driving camera holds at a given speed: close in when crawling through
@@ -173,11 +202,14 @@ class DkMapController(val cameraPositionState: CameraPositionState) {
 }
 
 @Composable
-fun rememberDkMapController(): DkMapController {
-    val cameraPositionState = rememberCameraPositionState()
-    return remember { DkMapController(cameraPositionState) }
-}
+fun rememberDkMapController(): DkMapController = remember { DkMapController() }
 
+/**
+ * The one map composable the screens use. It renders with the EFFECTIVE provider - the existing
+ * Google (maps-compose) renderer, or the MapLibre / OpenFreeMap renderer used as a NetFree
+ * fallback - behind an unchanged public signature and an unchanged [DkMapController] API. The
+ * effective provider comes from [LocalMapProviderState]; call sites need no changes.
+ */
 @Composable
 fun DkMap(
     center: LatLng,
@@ -203,7 +235,8 @@ fun DkMap(
     val colors = DkTheme.colors
 
     if (LocalInspectionMode.current) {
-        // Play services do not run inside a @Preview, so a token-coloured stand-in is drawn.
+        // Neither Play services nor GL run inside a @Preview, so a token-coloured stand-in is
+        // drawn for both providers.
         Box(
             modifier = modifier.background(colors.surfaceMuted),
             contentAlignment = Alignment.Center,
@@ -217,205 +250,86 @@ fun DkMap(
         return
     }
 
-    val cameraPositionState = controller?.cameraPositionState ?: rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(GmsLatLng(center.lat, center.lng), zoom)
-    }
+    val actualController = controller ?: rememberDkMapController()
+    val providerState = LocalMapProviderState.current
+    val provider = providerState?.effective?.collectAsStateWithLifecycle()?.value ?: MapProvider.GOOGLE
 
-    // An external controller starts at the map default (lat/lng 0, zoom 0) - the whole world.
-    // Focus it on `center` once, so the map opens zoomed in like Waze instead of showing the
-    // globe; the screen's own follow()/center() calls take over from there. The zoom guard
-    // means this never stomps a camera the driver has already moved.
-    androidx.compose.runtime.LaunchedEffect(controller) {
-        if (controller != null && cameraPositionState.position.zoom < 2f) {
-            cameraPositionState.position =
-                CameraPosition.fromLatLngZoom(GmsLatLng(center.lat, center.lng), zoom)
-        }
-    }
+    // Open zoomed in on `center` like Waze; the screen's own follow()/center() take over.
+    LaunchedEffect(actualController) { actualController.seedIfUnset(center, zoom) }
 
-    GoogleMap(
-        modifier = modifier.fillMaxSize(),
-        cameraPositionState = cameraPositionState,
-        properties = MapProperties(isMyLocationEnabled = false),
-        uiSettings = MapUiSettings(
-            zoomControlsEnabled = false,
-            myLocationButtonEnabled = false,
-            mapToolbarEnabled = false,
-            compassEnabled = false,
-            scrollGesturesEnabled = interactive,
-            rotationGesturesEnabled = interactive,
-            zoomGesturesEnabled = interactive,
-            tiltGesturesEnabled = interactive,
-        ),
-    ) {
-        // Zones sit beneath the route. Each feature is coloured by its own stringency layer
-        // (pink basic, brown taharat, orange machmirim), translucent fill, opaque line, and is
-        // tappable to show its full detail.
-        zones.forEach { feature ->
-            val outer = feature.geometry.coordinates.firstOrNull().orEmpty().map {
-                GmsLatLng(it[1], it[0])
-            }
-            if (outer.size >= 3) {
-                val layerColor = zoneColor(feature.properties.stringency, colors)
-                val info = feature.properties.toTapInfo()
-                Polygon(
-                    points = outer,
-                    fillColor = layerColor.copy(alpha = ZONE_FILL_ALPHA),
-                    strokeColor = layerColor,
-                    strokeWidth = ZONE_STROKE_WIDTH,
-                    clickable = onZoneClick != null,
-                    onClick = { onZoneClick?.invoke(info) },
-                )
-            }
-        }
-        // Danger zones (Area A) are a separate layer, drawn in the distinct danger colour with
-        // a heavy dashed outline so they never read as one of the halachic stringency layers.
-        dangerZones.forEach { feature ->
-            val outer = feature.geometry.coordinates.firstOrNull().orEmpty().map {
-                GmsLatLng(it[1], it[0])
-            }
-            if (outer.size >= 3) {
-                val info = feature.properties.toTapInfo()
-                Polygon(
-                    points = outer,
-                    fillColor = colors.zoneDanger.copy(alpha = ZONE_FILL_ALPHA),
-                    strokeColor = colors.zoneDanger,
-                    strokeWidth = ZONE_STROKE_WIDTH + 1f,
-                    strokePattern = listOf(Dash(24f), Gap(14f)),
-                    clickable = onZoneClick != null,
-                    onClick = { onZoneClick?.invoke(info) },
-                )
-            }
-        }
-        if (naiveRoutePoints.isNotEmpty()) {
-            Polyline(
-                points = naiveRoutePoints.map { GmsLatLng(it.lat, it.lng) },
-                color = colors.routeNaive,
-                width = ROUTE_WIDTH * 0.7f,
-                zIndex = ROUTE_Z_ALT,
-            )
-        }
-        // The unavoided route (no zone avoidance) is drawn in a warning style, dashed, so it
-        // reads clearly as "for comparison, crosses zones, not navigable".
-        if (unavoidedRoutePoints.isNotEmpty()) {
-            Polyline(
-                points = unavoidedRoutePoints.map { GmsLatLng(it.lat, it.lng) },
-                color = colors.warning,
-                width = ROUTE_WIDTH * 0.8f,
-                pattern = listOf(Dash(28f), Gap(18f)),
-                zIndex = ROUTE_Z_ALT,
-            )
-        }
-        // Alternatives sit under the selected route, faded and grey, so the choice stands out.
-        alternativeRoutes.forEach { alt ->
-            if (alt.isNotEmpty()) {
-                Polyline(
-                    points = alt.map { GmsLatLng(it.lat, it.lng) },
-                    color = ROUTE_ALT_COLOR.copy(alpha = ALT_ROUTE_ALPHA),
-                    width = ROUTE_WIDTH,
-                    zIndex = ROUTE_Z_ALT,
-                )
-            }
-        }
-        // The selected route is drawn as two stacked lines - a darker, wider casing beneath a
-        // brighter, narrower active line - so it reads with depth, Waze style. zIndex keeps the
-        // casing below the active line and both above the alternatives. An unverified route keeps
-        // its warning treatment: a danger active over a darker danger casing.
-        if (routePoints.isNotEmpty()) {
-            val pts = routePoints.map { GmsLatLng(it.lat, it.lng) }
-            val casingColor = if (routeIsClean) ROUTE_CASING_COLOR else ROUTE_CASING_DANGER
-            val activeColor = if (routeIsClean) ROUTE_ACTIVE_COLOR else colors.danger
-            Polyline(
-                points = pts,
-                color = casingColor,
-                width = ROUTE_CASING_WIDTH,
-                zIndex = ROUTE_Z_CASING,
-            )
-            Polyline(
-                points = pts,
-                color = activeColor,
-                width = ROUTE_WIDTH,
-                zIndex = ROUTE_Z_ACTIVE,
-            )
-        }
-        // Traffic is drawn over the active route so a loaded stretch stands out, Waze style.
-        trafficSegments.forEach { segment ->
-            val last = routePoints.lastIndex.coerceAtLeast(0)
-            val from = segment.fromIndex.coerceIn(0, last)
-            val to = segment.toIndex.coerceIn(from, last)
-            val slice = routePoints.slice(from..to)
-            if (slice.size >= 2) {
-                Polyline(
-                    points = slice.map { GmsLatLng(it.lat, it.lng) },
-                    color = trafficColor(segment.level, colors),
-                    width = ROUTE_WIDTH,
-                    zIndex = ROUTE_Z_TRAFFIC,
-                )
-            }
-        }
-        eventMarkers.forEach { event ->
-            Marker(
-                state = rememberMarkerState(
-                    key = event.id,
-                    position = GmsLatLng(event.location.lat, event.location.lng),
-                ),
-                icon = BitmapDescriptorFactory.defaultMarker(markerHue(event)),
-                title = event.labelHe ?: event.label,
-            )
-        }
-        currentLocation?.let {
-            Marker(
-                state = rememberMarkerState(
-                    key = "me",
-                    position = GmsLatLng(it.lat, it.lng),
-                ),
-                icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE),
-            )
-        }
+    when (provider) {
+        MapProvider.OPENFREEMAP -> MapLibreDkMap(
+            controller = actualController,
+            modifier = modifier,
+            routePoints = routePoints,
+            naiveRoutePoints = naiveRoutePoints,
+            alternativeRoutes = alternativeRoutes,
+            unavoidedRoutePoints = unavoidedRoutePoints,
+            trafficSegments = trafficSegments,
+            eventMarkers = eventMarkers,
+            zones = zones,
+            dangerZones = dangerZones,
+            onZoneClick = onZoneClick,
+            currentLocation = currentLocation,
+            routeIsClean = routeIsClean,
+            interactive = interactive,
+            colors = colors,
+        )
+        // AUTOMATIC never reaches DkMap (MapProviderState resolves it); GOOGLE is the default.
+        else -> GoogleDkMap(
+            controller = actualController,
+            modifier = modifier,
+            routePoints = routePoints,
+            naiveRoutePoints = naiveRoutePoints,
+            alternativeRoutes = alternativeRoutes,
+            unavoidedRoutePoints = unavoidedRoutePoints,
+            trafficSegments = trafficSegments,
+            eventMarkers = eventMarkers,
+            zones = zones,
+            dangerZones = dangerZones,
+            onZoneClick = onZoneClick,
+            currentLocation = currentLocation,
+            routeIsClean = routeIsClean,
+            interactive = interactive,
+            providerState = providerState,
+            colors = colors,
+        )
     }
 }
 
 /** Per-layer zone colour, so the three stringency layers are visually distinct. */
-fun zoneColor(stringency: Stringency, colors: com.abaye.derechkohanim.ui.theme.DkColors): Color =
+fun zoneColor(stringency: Stringency, colors: DkColors): Color =
     when (stringency) {
         Stringency.BASIC -> colors.zoneBasic
         Stringency.TAHARAT -> colors.zoneTaharat
         Stringency.MACHMIRIM -> colors.zoneMachmirim
     }
 
-private fun trafficColor(level: TrafficLevel, colors: com.abaye.derechkohanim.ui.theme.DkColors): Color =
+internal fun trafficColor(level: TrafficLevel, colors: DkColors): Color =
     when (level) {
         TrafficLevel.FREE -> colors.success
         TrafficLevel.MODERATE -> colors.warning
         TrafficLevel.HEAVY -> colors.danger
     }
 
-private fun markerHue(event: RouteEvent): Float = when (event.type) {
-    com.abaye.derechkohanim.data.model.RouteEventType.ZONE -> BitmapDescriptorFactory.HUE_RED
-    com.abaye.derechkohanim.data.model.RouteEventType.TRAFFIC -> BitmapDescriptorFactory.HUE_ORANGE
-    com.abaye.derechkohanim.data.model.RouteEventType.POLICE -> BitmapDescriptorFactory.HUE_BLUE
-    com.abaye.derechkohanim.data.model.RouteEventType.ACCIDENT -> BitmapDescriptorFactory.HUE_ORANGE
-    com.abaye.derechkohanim.data.model.RouteEventType.HAZARD -> BitmapDescriptorFactory.HUE_YELLOW
-    com.abaye.derechkohanim.data.model.RouteEventType.CLOSURE -> BitmapDescriptorFactory.HUE_VIOLET
-}
-
-private const val DEFAULT_ZOOM = 14f
+internal const val DEFAULT_ZOOM = 14f
 /** The bright active route line (Waze "weight 8"). */
-private const val ROUTE_WIDTH = 16f
+internal const val ROUTE_WIDTH = 16f
 /** The darker casing drawn under the active line (Waze "weight 12", i.e. ~1.5x). */
-private const val ROUTE_CASING_WIDTH = 24f
-private const val ZONE_FILL_ALPHA = 0.28f
-private const val ZONE_STROKE_WIDTH = 4f
-private const val ALT_ROUTE_ALPHA = 0.9f
+internal const val ROUTE_CASING_WIDTH = 24f
+internal const val ZONE_FILL_ALPHA = 0.28f
+internal const val ZONE_STROKE_WIDTH = 4f
+internal const val ALT_ROUTE_ALPHA = 0.9f
 
 // Route layering, low to high: alternatives < casing < active < traffic.
-private const val ROUTE_Z_ALT = 0f
-private const val ROUTE_Z_CASING = 1f
-private const val ROUTE_Z_ACTIVE = 2f
-private const val ROUTE_Z_TRAFFIC = 3f
+internal const val ROUTE_Z_ALT = 0f
+internal const val ROUTE_Z_CASING = 1f
+internal const val ROUTE_Z_ACTIVE = 2f
+internal const val ROUTE_Z_TRAFFIC = 3f
 
 // Waze-style dimensional route colours (explicit values from the design).
-private val ROUTE_CASING_COLOR = Color(0xFF1565C0)
-private val ROUTE_ACTIVE_COLOR = Color(0xFF2D8CFF)
-private val ROUTE_ALT_COLOR = Color(0xFF9AA5B1)
+internal val ROUTE_CASING_COLOR = Color(0xFF1565C0)
+internal val ROUTE_ACTIVE_COLOR = Color(0xFF2D8CFF)
+internal val ROUTE_ALT_COLOR = Color(0xFF9AA5B1)
 /** Darker casing under the danger-coloured active line for an unverified route. */
-private val ROUTE_CASING_DANGER = Color(0xFF7F1D1D)
+internal val ROUTE_CASING_DANGER = Color(0xFF7F1D1D)

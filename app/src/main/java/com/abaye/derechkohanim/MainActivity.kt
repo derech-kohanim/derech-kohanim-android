@@ -10,14 +10,18 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import com.abaye.derechkohanim.data.model.ThemePreference
 import com.abaye.derechkohanim.nav.DkNavGraph
+import com.abaye.derechkohanim.service.MapProviderState
 import com.abaye.derechkohanim.ui.AppViewModel
+import com.abaye.derechkohanim.ui.components.LocalMapProviderState
 import com.abaye.derechkohanim.ui.theme.DerechKohanimTheme
+import javax.inject.Inject
 
 /**
  * AppCompatActivity, not ComponentActivity, so per-app language switching works below
@@ -27,6 +31,11 @@ import com.abaye.derechkohanim.ui.theme.DerechKohanimTheme
 class MainActivity : AppCompatActivity() {
 
     private val appViewModel: AppViewModel by viewModels()
+
+    // Resolves the effective map provider (Google vs OpenFreeMap) for the whole app; exposed to
+    // DkMap through a CompositionLocal.
+    @Inject
+    lateinit var mapProviderState: MapProviderState
 
     // POST_NOTIFICATIONS is declared but must be requested at runtime from Android 13+. The
     // ongoing navigation notification depends on it, so we ask once at app start; a denial only
@@ -46,13 +55,15 @@ class MainActivity : AppCompatActivity() {
                 ThemePreference.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
             }
             DerechKohanimTheme(darkTheme = dark) {
-                if (state.ready) {
-                    DkNavGraph(
-                        startDestination = state.startDestination,
-                        pendingResume = state.pendingResume != null,
-                        onConfirmResume = appViewModel::confirmResume,
-                        onDiscardResume = appViewModel::discardResume,
-                    )
+                CompositionLocalProvider(LocalMapProviderState provides mapProviderState) {
+                    if (state.ready) {
+                        DkNavGraph(
+                            startDestination = state.startDestination,
+                            pendingResume = state.pendingResume != null,
+                            onConfirmResume = appViewModel::confirmResume,
+                            onDiscardResume = appViewModel::discardResume,
+                        )
+                    }
                 }
             }
         }
