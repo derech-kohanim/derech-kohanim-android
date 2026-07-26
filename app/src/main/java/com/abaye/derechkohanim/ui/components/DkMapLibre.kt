@@ -7,6 +7,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -111,6 +112,7 @@ internal fun MapLibreDkMap(
     zones: List<ZoneFeature>,
     dangerZones: List<DangerZoneFeature>,
     onZoneClick: ((ZoneTapInfo) -> Unit)?,
+    onMapClick: ((LatLng) -> Unit)?,
     currentLocation: LatLng?,
     routeIsClean: Boolean,
     interactive: Boolean,
@@ -118,6 +120,10 @@ internal fun MapLibreDkMap(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    // The map click listener is installed once at style load; keep it reading the latest callbacks
+    // (pick-start mode toggles the effect of onMapClick) rather than the ones captured back then.
+    val currentOnZoneClick by rememberUpdatedState(onZoneClick)
+    val currentOnMapClick by rememberUpdatedState(onMapClick)
 
     // Initialise MapLibre before the first MapView is created. getInstance is idempotent.
     val mapView = remember {
@@ -171,11 +177,19 @@ internal fun MapLibreDkMap(
                 style = loaded
                 controller.attach(MapLibreCameraBackend(ready))
 
-                if (onZoneClick != null) {
+                if (onZoneClick != null || onMapClick != null) {
                     ready.addOnMapClickListener { point ->
                         val screen: PointF = ready.projection.toScreenLocation(point)
                         val hits = ready.queryRenderedFeatures(screen, LAYER_ZONE_FILL, LAYER_DANGER_FILL)
-                        hits.firstOrNull()?.let { onZoneClick(it.toZoneTapInfo()); true } ?: false
+                        val zone = hits.firstOrNull()
+                        val zoneCb = currentOnZoneClick
+                        val mapCb = currentOnMapClick
+                        when {
+                            zone != null && zoneCb != null -> { zoneCb(zone.toZoneTapInfo()); true }
+                            // Not a zone hit: report the raw point (e.g. to pick a start location).
+                            mapCb != null -> { mapCb(LatLng(point.latitude, point.longitude)); true }
+                            else -> false
+                        }
                     }
                 }
             }

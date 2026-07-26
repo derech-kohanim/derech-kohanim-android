@@ -117,11 +117,16 @@ class HomeViewModel @Inject constructor(
         while (true) {
             val fix = deviceLocation.quickFix()
             if (fix != null) {
+                // A real fix wins over a manually picked start.
+                tripStore.clearManualOrigin()
                 originFlow.value = fix
                 _state.value = _state.value.copy(origin = fix, noGps = false)
                 delay(WATCH_INTERVAL_OK_MS)
             } else {
-                if (BuildConfig.USE_MOCK_DATA && originFlow.value == null) {
+                if (BuildConfig.USE_MOCK_DATA &&
+                    originFlow.value == null &&
+                    tripStore.manualOrigin.value == null
+                ) {
                     originFlow.value = MockData.currentLocation
                     _state.value = _state.value.copy(origin = MockData.currentLocation)
                 }
@@ -129,6 +134,16 @@ class HomeViewModel @Inject constructor(
                 delay(WATCH_INTERVAL_NO_GPS_MS)
             }
         }
+    }
+
+    /**
+     * Sets a start point the user picked by hand on the map because there is no GPS fix. Planning
+     * reads it from [TripStore]; Home also shows it as the current origin so the map recentres on it.
+     */
+    fun setManualOrigin(latLng: LatLng) {
+        tripStore.setManualOrigin(latLng)
+        originFlow.value = latLng
+        _state.value = _state.value.copy(origin = latLng)
     }
 
     /**
@@ -140,6 +155,8 @@ class HomeViewModel @Inject constructor(
         val located = deviceLocation.lastKnown()
             ?: if (BuildConfig.USE_MOCK_DATA) MockData.currentLocation else null
         if (located != null) {
+            // A forced fresh fix wins over any hand-picked start: real GPS is authoritative.
+            tripStore.clearManualOrigin()
             originFlow.value = located
             _state.value = _state.value.copy(origin = located, noGps = false)
         }

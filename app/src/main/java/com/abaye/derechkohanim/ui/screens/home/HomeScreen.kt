@@ -79,6 +79,7 @@ fun HomeRoute(
         onOpenSearch = onOpenSearch,
         onOpenSettings = onOpenSettings,
         onLocateMe = { viewModel.locateMe() },
+        onSetManualOrigin = { viewModel.setManualOrigin(it) },
         onSavedPlaceChosen = { place ->
             viewModel.chooseDestination(place.toSuggestion())
             onDestinationChosen()
@@ -98,6 +99,7 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onSavedPlaceChosen: (SavedPlace) -> Unit,
     onLocateMe: suspend () -> LatLng? = { null },
+    onSetManualOrigin: (LatLng) -> Unit = {},
     mapUpdates: kotlinx.coroutines.flow.SharedFlow<com.abaye.derechkohanim.data.repository.ZoneLayerChange>? = null,
 ) {
     val controller = rememberDkMapController()
@@ -108,6 +110,21 @@ fun HomeScreen(
 
     // A tapped zone/danger polygon, shown as a detail card until dismissed.
     var tappedZone by remember { mutableStateOf<ZoneTapInfo?>(null) }
+
+    // Manual start-point entry, for when there is no GPS (NetFree indoors). While pick-start mode is
+    // on, the next map tap sets the origin. A brief confirmation shows once a point is picked.
+    var pickStart by remember { mutableStateOf(false) }
+    var manualConfirm by remember { mutableStateOf(false) }
+    LaunchedEffect(manualConfirm) {
+        if (manualConfirm) {
+            kotlinx.coroutines.delay(3000)
+            manualConfirm = false
+        }
+    }
+    // Once a fix returns there is no reason to keep offering manual entry; drop the mode.
+    LaunchedEffect(state.noGps) {
+        if (!state.noGps) pickStart = false
+    }
 
     // A brief, unobtrusive banner when a launch sync altered the map layers. Cleared after a moment.
     var layerUpdate by remember { mutableStateOf<com.abaye.derechkohanim.data.repository.ZoneLayerChange?>(null) }
@@ -127,6 +144,14 @@ fun HomeScreen(
             zones = state.zones,
             dangerZones = state.dangerZones,
             onZoneClick = { tappedZone = it },
+            onMapClick = { latLng ->
+                // Only a tap while in pick-start mode sets the origin; otherwise the map is inert.
+                if (pickStart) {
+                    onSetManualOrigin(latLng)
+                    pickStart = false
+                    manualConfirm = true
+                }
+            },
             modifier = Modifier.fillMaxSize(),
         )
 
@@ -159,6 +184,34 @@ fun HomeScreen(
 
             // Waze-style connectivity banner at the top of the home view.
             StatusBanner(offline = state.offline, noGps = state.noGps)
+
+            // With no GPS, let the user set the start point by hand so planning still works. The
+            // button arms pick-start mode; the hint then tells them to tap the map.
+            androidx.compose.animation.AnimatedVisibility(visible = state.noGps) {
+                if (pickStart) {
+                    DkBadge(
+                        text = stringResource(R.string.home_manual_origin_hint),
+                        tone = com.abaye.derechkohanim.ui.components.DkBadgeTone.Info,
+                        icon = Icons.Filled.Place,
+                    )
+                } else {
+                    com.abaye.derechkohanim.ui.components.DkButton(
+                        text = stringResource(R.string.home_manual_origin),
+                        onClick = { pickStart = true },
+                        variant = com.abaye.derechkohanim.ui.components.DkButtonVariant.Secondary,
+                        leadingIcon = Icons.Filled.Place,
+                    )
+                }
+            }
+
+            // Brief confirmation once a manual start point has been set.
+            androidx.compose.animation.AnimatedVisibility(visible = manualConfirm) {
+                DkBadge(
+                    text = stringResource(R.string.home_manual_origin_set),
+                    tone = com.abaye.derechkohanim.ui.components.DkBadgeTone.Success,
+                    icon = Icons.Filled.Place,
+                )
+            }
 
             // Brief "map points updated" banner after a background layer sync applied changes.
             androidx.compose.animation.AnimatedVisibility(visible = layerUpdate != null) {

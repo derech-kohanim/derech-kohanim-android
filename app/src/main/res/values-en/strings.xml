@@ -101,6 +101,9 @@
     <string name="home_recenter">Centre on my location</string>
     <string name="home_settings">Settings</string>
     <string name="home_location_unknown">Location not known yet</string>
+    <string name="home_manual_origin">Set start location manually</string>
+    <string name="home_manual_origin_hint">Tap the map to set your start</string>
+    <string name="home_manual_origin_set">Start location set</string>
 
     <!-- Search -->
     <string name="search_hint">Address, city or place name</string>

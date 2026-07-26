@@ -87,6 +87,7 @@ internal fun GoogleDkMap(
     zones: List<ZoneFeature>,
     dangerZones: List<DangerZoneFeature>,
     onZoneClick: ((ZoneTapInfo) -> Unit)?,
+    onMapClick: ((LatLng) -> Unit)?,
     currentLocation: LatLng?,
     routeIsClean: Boolean,
     interactive: Boolean,
@@ -119,6 +120,9 @@ internal fun GoogleDkMap(
             mapLoaded = true
             providerState?.reportGoogleMapLoaded()
         },
+        // A tap on open map (a Polygon click is consumed by the polygon, so this fires only off a
+        // zone) reports the point, driving the pick-start flow.
+        onMapClick = onMapClick?.let { cb -> { latLng -> cb(LatLng(latLng.latitude, latLng.longitude)) } },
         uiSettings = MapUiSettings(
             zoomControlsEnabled = false,
             myLocationButtonEnabled = false,

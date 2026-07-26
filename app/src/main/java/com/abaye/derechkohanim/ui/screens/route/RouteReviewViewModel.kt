@@ -116,7 +116,10 @@ class RouteReviewViewModel @Inject constructor(
             )
 
             val target = destination?.location
-            val origin = deviceLocation.lastKnown()
+            // A hand-picked start (map tap when there was no GPS) wins over the device location, so
+            // planning works with no fix (NetFree indoors). Falls back to the real fix, then mock.
+            val origin = tripStore.manualOrigin.value
+                ?: deviceLocation.lastKnown()
                 ?: if (BuildConfig.USE_MOCK_DATA) MockData.currentLocation else null
             // Distinguish "couldn't locate the device" from "no clean route": a null origin means
             // we never even sent a compute request (common on a filtered network where Google's

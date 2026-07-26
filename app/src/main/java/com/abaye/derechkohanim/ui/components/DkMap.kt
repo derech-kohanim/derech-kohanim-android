@@ -228,6 +228,8 @@ fun DkMap(
     dangerZones: List<DangerZoneFeature> = emptyList(),
     /** When set, tapping a zone or danger polygon reports its detail for a tap card. */
     onZoneClick: ((ZoneTapInfo) -> Unit)? = null,
+    /** When set, tapping the map anywhere that is not a zone reports the point (e.g. pick-start). */
+    onMapClick: ((LatLng) -> Unit)? = null,
     currentLocation: LatLng? = null,
     routeIsClean: Boolean = true,
     interactive: Boolean = true,
@@ -270,6 +272,7 @@ fun DkMap(
             zones = zones,
             dangerZones = dangerZones,
             onZoneClick = onZoneClick,
+            onMapClick = onMapClick,
             currentLocation = currentLocation,
             routeIsClean = routeIsClean,
             interactive = interactive,
@@ -288,6 +291,7 @@ fun DkMap(
             zones = zones,
             dangerZones = dangerZones,
             onZoneClick = onZoneClick,
+            onMapClick = onMapClick,
             currentLocation = currentLocation,
             routeIsClean = routeIsClean,
             interactive = interactive,
