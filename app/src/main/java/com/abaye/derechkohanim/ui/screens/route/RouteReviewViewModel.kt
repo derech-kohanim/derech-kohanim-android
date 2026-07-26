@@ -118,7 +118,15 @@ class RouteReviewViewModel @Inject constructor(
             val target = destination?.location
             val origin = deviceLocation.lastKnown()
                 ?: if (BuildConfig.USE_MOCK_DATA) MockData.currentLocation else null
-            if (target == null || origin == null) {
+            // Distinguish "couldn't locate the device" from "no clean route": a null origin means
+            // we never even sent a compute request (common on a filtered network where Google's
+            // network-location service is blocked and there is no GPS fix yet), so the user needs
+            // to enable/await GPS, not think every route crosses a zone.
+            if (origin == null) {
+                _state.value = _state.value.copy(loading = false, errorCode = ErrorCode.NO_LOCATION)
+                return@launch
+            }
+            if (target == null) {
                 _state.value = _state.value.copy(loading = false, errorCode = ErrorCode.NO_ROUTE)
                 return@launch
             }

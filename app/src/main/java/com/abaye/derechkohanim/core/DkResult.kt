@@ -14,6 +14,8 @@ object ErrorCode {
     const val UNAUTHORIZED = "unauthorized"
     const val AVOIDANCE_FAILED = "avoidance_failed"
     const val NO_ROUTE = "no_route"
+    /** The device could not obtain a current location, so no route could even be requested. */
+    const val NO_LOCATION = "no_location"
     const val UNKNOWN = "unknown"
 }
 

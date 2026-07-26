@@ -155,6 +155,9 @@
     <string name="route_failure_change_destination">שינוי יעד</string>
     <string name="route_failure_change_stringency">שינוי רמת חומרה</string>
     <string name="route_failure_proceed">לנסוע בכל זאת, באחריותי</string>
+    <string name="route_location_failure_title">לא הצלחנו לאתר את המיקום הנוכחי</string>
+    <string name="route_location_failure_body">כדי לחשב מסלול צריך את המיקום הנוכחי. ודא שה-GPS פעיל ושאישרת הרשאת מיקום, ועדיף לנסות תחת שמים פתוחים, ואז נסה שוב.</string>
+    <string name="route_location_failure_retry">נסה שוב</string>
     <string name="route_attribution">מקור הנתונים: %1$s</string>
 
     <!-- Navigation -->

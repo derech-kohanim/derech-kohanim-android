@@ -13,7 +13,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import com.abaye.derechkohanim.data.model.LatLng
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -95,15 +98,37 @@ class DeviceLocation @Inject constructor(
                 .addOnFailureListener { continuation.resume(null) }
         }
 
+    /**
+     * An active fix. The normal path is BALANCED accuracy, which is fast and network-assisted (wifi
+     * cell) and works indoors for most users - unchanged behaviour. ONLY if that yields nothing do
+     * we escalate: a null BALANCED fix is the symptom of a filtered network (e.g. NetFree) where
+     * Google's network-location service is blocked, so we retry with HIGH_ACCURACY (GPS/GNSS, fully
+     * on-device, no Google servers) and finally warm the GNSS via the continuous feed. This keeps
+     * the extra GPS cost off the common path and only pays it when the standard method is blocked.
+     * Can still be null with no sky view; the caller must handle it.
+     */
     @SuppressLint("MissingPermission")
     private suspend fun currentLocation(): LatLng? =
+        activeFix(Priority.PRIORITY_BALANCED_POWER_ACCURACY)
+            ?: activeFix(Priority.PRIORITY_HIGH_ACCURACY)
+            ?: withTimeoutOrNull(FEED_FIX_TIMEOUT_MS) {
+                updates().map { it.location }.firstOrNull()
+            }
+
+    @SuppressLint("MissingPermission")
+    private suspend fun activeFix(priority: Int): LatLng? =
         suspendCancellableCoroutine { continuation ->
             val cancellation = CancellationTokenSource()
-            client.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, cancellation.token)
+            client.getCurrentLocation(priority, cancellation.token)
                 .addOnSuccessListener { location ->
                     continuation.resume(location?.let { LatLng(it.latitude, it.longitude) })
                 }
                 .addOnFailureListener { continuation.resume(null) }
             continuation.invokeOnCancellation { cancellation.cancel() }
         }
+
+    private companion object {
+        /** How long to wait on the live GNSS feed for a first fix before giving up. */
+        const val FEED_FIX_TIMEOUT_MS = 12_000L
+    }
 }

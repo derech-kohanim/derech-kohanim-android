@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.abaye.derechkohanim.R
+import com.abaye.derechkohanim.core.ErrorCode
 import com.abaye.derechkohanim.core.Formatters
 import com.abaye.derechkohanim.data.mock.MockData
 import com.abaye.derechkohanim.data.model.LatLng
@@ -173,6 +174,16 @@ fun RouteReviewScreen(
         when {
             // Nothing behind the modal while computing; the panels appear on the result.
             state.loading -> Unit
+            // A missing current location is not a routing failure: we never sent a request. Say so,
+            // and offer a retry (which re-attempts the fix) rather than "no clean route".
+            state.errorCode == ErrorCode.NO_LOCATION ->
+                LocationFailurePanel(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding(),
+                    onRetry = onRetry,
+                    onChangeDestination = onChangeDestination,
+                )
             state.certainty == Certainty.Unverified || route == null ->
                 RouteFailurePanel(
                     modifier = Modifier
@@ -533,6 +544,47 @@ private fun RouteFailurePanel(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+    }
+}
+
+@Composable
+private fun LocationFailurePanel(
+    onRetry: () -> Unit,
+    onChangeDestination: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    DkCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(DkTheme.spacing.s4),
+        color = DkTheme.colors.surfaceOverlay,
+        borderColor = DkTheme.colors.warning,
+    ) {
+        Text(
+            text = stringResource(R.string.route_location_failure_title),
+            style = MaterialTheme.typography.titleLarge,
+            color = DkTheme.colors.text,
+        )
+        Text(
+            text = stringResource(R.string.route_location_failure_body),
+            style = MaterialTheme.typography.bodyMedium,
+            color = DkTheme.colors.textMuted,
+            modifier = Modifier.padding(top = DkTheme.spacing.s2),
+        )
+        DkButton(
+            text = stringResource(R.string.route_location_failure_retry),
+            onClick = onRetry,
+            large = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = DkTheme.spacing.s4),
+        )
+        DkButton(
+            text = stringResource(R.string.route_failure_change_destination),
+            onClick = onChangeDestination,
+            variant = DkButtonVariant.Secondary,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 

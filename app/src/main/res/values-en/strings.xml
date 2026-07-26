@@ -155,6 +155,9 @@
     <string name="route_failure_change_destination">Change destination</string>
     <string name="route_failure_change_stringency">Change stringency</string>
     <string name="route_failure_proceed">Drive anyway, on my responsibility</string>
+    <string name="route_location_failure_title">Couldn\'t find your current location</string>
+    <string name="route_location_failure_body">A route needs your current location. Make sure GPS is on and location permission is granted, preferably try under open sky, then retry.</string>
+    <string name="route_location_failure_retry">Try again</string>
     <string name="route_attribution">Data source: %1$s</string>
 
     <!-- Navigation -->
