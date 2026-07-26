@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.abaye.derechkohanim.BuildConfig
+import com.abaye.derechkohanim.analytics.Analytics
 import com.abaye.derechkohanim.core.DkResult
 import com.abaye.derechkohanim.core.ZoneFilter
 import com.abaye.derechkohanim.data.local.SessionStore
@@ -51,6 +52,7 @@ class HomeViewModel @Inject constructor(
     private val tripStore: TripStore,
     private val connectivity: Connectivity,
     private val zoneLayerStore: ZoneLayerStore,
+    private val analytics: Analytics,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
@@ -156,6 +158,8 @@ class HomeViewModel @Inject constructor(
         tripStore.setManualOrigin(latLng)
         originFlow.value = latLng
         _state.value = _state.value.copy(origin = latLng)
+        // No coordinates in the event - just that the user set a start point by hand (no-GPS path).
+        analytics.track("manual_origin_set")
     }
 
     /**

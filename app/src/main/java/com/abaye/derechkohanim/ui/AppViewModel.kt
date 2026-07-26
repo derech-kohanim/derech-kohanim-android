@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.abaye.derechkohanim.analytics.Analytics
 import com.abaye.derechkohanim.data.local.NavStateStore
 import com.abaye.derechkohanim.data.local.PersistedNavState
 import com.abaye.derechkohanim.data.local.SessionStore
@@ -34,6 +35,7 @@ class AppViewModel @Inject constructor(
     private val sessionStore: SessionStore,
     private val navStateStore: NavStateStore,
     private val engine: NavigationEngine,
+    private val analytics: Analytics,
     voicePackManager: VoicePackManager,
     zoneLayerStore: ZoneLayerStore,
 ) : ViewModel() {
@@ -42,6 +44,9 @@ class AppViewModel @Inject constructor(
     val state: StateFlow<AppUiState> = _state.asStateFlow()
 
     init {
+        // One per cold start; a no-op unless GA4 ids are configured at build time.
+        analytics.track("app_open")
+
         // Loads the cached voice pack into the player and refreshes it in the background. The
         // endpoint has no auth, so this runs at app start whether signed in or a guest. Never
         // blocks the UI; a failure quietly leaves the previous cache (or TTS) in place.

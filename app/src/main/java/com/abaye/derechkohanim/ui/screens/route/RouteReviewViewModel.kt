@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import com.abaye.derechkohanim.BuildConfig
+import com.abaye.derechkohanim.analytics.Analytics
 import com.abaye.derechkohanim.core.DkResult
 import com.abaye.derechkohanim.core.ErrorCode
 import com.abaye.derechkohanim.core.ZoneFilter
@@ -80,6 +81,7 @@ class RouteReviewViewModel @Inject constructor(
     private val deviceLocation: DeviceLocation,
     private val tripStore: TripStore,
     private val zoneLayerStore: ZoneLayerStore,
+    private val analytics: Analytics,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(RouteReviewState())
@@ -127,6 +129,7 @@ class RouteReviewViewModel @Inject constructor(
             // to enable/await GPS, not think every route crosses a zone.
             if (origin == null) {
                 _state.value = _state.value.copy(loading = false, errorCode = ErrorCode.NO_LOCATION)
+                analytics.track("no_location")
                 return@launch
             }
             if (target == null) {
@@ -170,6 +173,26 @@ class RouteReviewViewModel @Inject constructor(
                     includeUnavoided = true,
                 )
             )
+            when (result) {
+                is DkResult.Success -> analytics.track(
+                    "route_computed",
+                    mapOf(
+                        "stringency" to snapshot.stringency.wire,
+                        "verified_clean" to (result.value.routes.firstOrNull()?.verifiedClean == true),
+                        "alternatives" to result.value.routes.size,
+                        "success" to result.value.routes.isNotEmpty(),
+                    ),
+                )
+                is DkResult.Failure -> analytics.track(
+                    "route_computed",
+                    mapOf(
+                        "stringency" to snapshot.stringency.wire,
+                        "verified_clean" to false,
+                        "alternatives" to 0,
+                        "success" to false,
+                    ),
+                )
+            }
             _state.value = when (result) {
                 is DkResult.Success -> {
                     val plan = result.value

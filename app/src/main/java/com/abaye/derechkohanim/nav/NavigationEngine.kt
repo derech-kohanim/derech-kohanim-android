@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import com.abaye.derechkohanim.R
+import com.abaye.derechkohanim.analytics.Analytics
 import com.abaye.derechkohanim.core.DkResult
 import com.abaye.derechkohanim.core.Geo
 import com.abaye.derechkohanim.data.local.NavStateStore
@@ -81,6 +82,7 @@ class NavigationEngine @Inject constructor(
     private val zoneLayerStore: ZoneLayerStore,
     private val deviceLocation: DeviceLocation,
     private val connectivity: Connectivity,
+    private val analytics: Analytics,
 ) {
     // A scope that outlives any single screen. Main.immediate because MediaPlayer/TextToSpeech and
     // the fused-location callback expect a Looper thread, exactly as the old viewModelScope gave.
@@ -153,6 +155,7 @@ class NavigationEngine @Inject constructor(
 
     private fun beginDrive(route: RouteResult, simulated: Boolean, startIndex: Int, persistImmediately: Boolean) {
         isActive = true
+        analytics.track("navigation_started", mapOf("simulated" to simulated))
         cancelLoops()
         announcedManeuverRungs.clear()
         announcedEvents.clear()
@@ -661,6 +664,7 @@ class NavigationEngine @Inject constructor(
 
     fun submitFeedback(rating: NavFeedbackRating, text: String? = null) {
         val routeId = _state.value.route?.id ?: tripStore.route.value?.id ?: return
+        analytics.track("feedback_submitted", mapOf("rating" to rating.name.lowercase()))
         scope.launch {
             routingRepository.submitFeedback(
                 NavFeedbackRequest(
@@ -678,6 +682,7 @@ class NavigationEngine @Inject constructor(
     private fun onArrived() {
         if (_state.value.status == NavigationStatus.ARRIVED) return
         _state.value = _state.value.copy(status = NavigationStatus.ARRIVED)
+        analytics.track("navigation_arrived")
         cancelLoops()
         stopForegroundService()
         clearPersisted()
@@ -686,6 +691,7 @@ class NavigationEngine @Inject constructor(
     /** Full teardown on an explicit stop/cancel/finish: everything is released and the engine is
      *  free for the next drive. */
     fun stop() {
+        if (isActive) analytics.track("navigation_stopped")
         cancelLoops()
         connectivityJob?.cancel()
         _state.value = _state.value.copy(status = NavigationStatus.CANCELLED)

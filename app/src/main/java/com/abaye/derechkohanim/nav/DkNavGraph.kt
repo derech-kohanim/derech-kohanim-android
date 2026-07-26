@@ -4,10 +4,12 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -34,8 +36,24 @@ fun DkNavGraph(
     pendingResume: Boolean = false,
     onConfirmResume: () -> Unit = {},
     onDiscardResume: () -> Unit = {},
+    onScreen: (String) -> Unit = {},
     navController: NavHostController = rememberNavController(),
 ) {
+    // Emit a GA4 screen_view for the main screens as the back stack changes. Analytics is injected
+    // in MainActivity and handed in as [onScreen]; other destinations are intentionally not tracked.
+    DisposableEffect(navController) {
+        val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
+            when (destination.route) {
+                Routes.HOME -> onScreen("home")
+                Routes.ROUTE_REVIEW -> onScreen("route_review")
+                Routes.NAVIGATION -> onScreen("navigation")
+                else -> {}
+            }
+        }
+        navController.addOnDestinationChangedListener(listener)
+        onDispose { navController.removeOnDestinationChangedListener(listener) }
+    }
+
     NavHost(navController = navController, startDestination = startDestination) {
 
         composable(Routes.ONBOARDING) {

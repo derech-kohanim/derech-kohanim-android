@@ -1,5 +1,6 @@
 package com.abaye.derechkohanim.service
 
+import com.abaye.derechkohanim.analytics.Analytics
 import com.abaye.derechkohanim.data.local.SessionStore
 import com.abaye.derechkohanim.data.model.MapProvider
 import kotlinx.coroutines.CoroutineScope
@@ -38,6 +39,7 @@ class MapProviderState @Inject constructor(
     sessionStore: SessionStore,
     netFreeDetector: NetFreeDetector,
     connectivity: Connectivity,
+    private val analytics: Analytics,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -67,6 +69,16 @@ class MapProviderState @Inject constructor(
         scope.launch {
             connectivity.online().collect {
                 netFree.value = netFreeDetector.isNetFree()
+            }
+        }
+        // Report a real AUTOMATIC-mode fallback to OpenFreeMap once per transition (not when the
+        // user has forced OPENFREEMAP outright). No PII: just that the fallback engaged.
+        scope.launch {
+            var wasFallback = false
+            effective.collect { eff ->
+                val fallback = eff == MapProvider.OPENFREEMAP && netFree.value && googleFailed.value
+                if (fallback && !wasFallback) analytics.track("map_provider_fallback")
+                wasFallback = fallback
             }
         }
     }

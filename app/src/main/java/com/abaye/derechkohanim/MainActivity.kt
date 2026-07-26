@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
+import com.abaye.derechkohanim.analytics.Analytics
 import com.abaye.derechkohanim.data.model.ThemePreference
 import com.abaye.derechkohanim.nav.DkNavGraph
 import com.abaye.derechkohanim.service.MapProviderState
@@ -36,6 +37,11 @@ class MainActivity : AppCompatActivity() {
     // DkMap through a CompositionLocal.
     @Inject
     lateinit var mapProviderState: MapProviderState
+
+    // GA4 (Measurement Protocol) client, used here to record screen_view for the main screens as the
+    // nav back stack changes. A complete no-op unless the GA ids are configured at build time.
+    @Inject
+    lateinit var analytics: Analytics
 
     // POST_NOTIFICATIONS is declared but must be requested at runtime from Android 13+. The
     // ongoing navigation notification depends on it, so we ask once at app start; a denial only
@@ -62,6 +68,7 @@ class MainActivity : AppCompatActivity() {
                             pendingResume = state.pendingResume != null,
                             onConfirmResume = appViewModel::confirmResume,
                             onDiscardResume = appViewModel::discardResume,
+                            onScreen = analytics::screen,
                         )
                     }
                 }
