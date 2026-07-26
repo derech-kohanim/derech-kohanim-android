@@ -66,12 +66,25 @@ android {
     //     ./gradlew installDebug -PMAPLIBRE_STYLE_URL=https://maps.example.org/styles/dk
     val mapLibreStyleUrl = setting("MAPLIBRE_STYLE_URL", "")
 
+    // Google Analytics 4 via the Measurement Protocol - events are POSTed over the app's own
+    // OkHttp/TLS stack (which already trusts the NetFree roots), NOT Firebase, so it works on
+    // filtered networks. Both belong to the deployment, not the source tree, so they are supplied
+    // at build time (local.properties or -P). BOTH must be non-empty for analytics to do anything:
+    // when either is blank the analytics client is a complete no-op and makes no network calls.
+    //     ./gradlew installRelease -PGA_MEASUREMENT_ID=G-XXXXXXXXXX -PGA_API_SECRET=xxxxxxxx
+    // GA_MEASUREMENT_ID is the GA4 "G-..." measurement id; GA_API_SECRET is the Measurement
+    // Protocol api_secret created under Admin > Data Streams > Measurement Protocol API secrets.
+    val gaMeasurementId = setting("GA_MEASUREMENT_ID", "")
+    val gaApiSecret = setting("GA_API_SECRET", "")
+
     buildTypes {
         debug {
             isMinifyEnabled = false
             buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
             buildConfigField("String", "GOOGLE_SERVER_CLIENT_ID", "\"$googleServerClientId\"")
             buildConfigField("String", "MAPLIBRE_STYLE_URL", "\"$mapLibreStyleUrl\"")
+            buildConfigField("String", "GA_MEASUREMENT_ID", "\"$gaMeasurementId\"")
+            buildConfigField("String", "GA_API_SECRET", "\"$gaApiSecret\"")
             buildConfigField("boolean", "USE_MOCK_DATA", setting("USE_MOCK_DATA", "false"))
         }
         release {
@@ -80,6 +93,8 @@ android {
             buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
             buildConfigField("String", "GOOGLE_SERVER_CLIENT_ID", "\"$googleServerClientId\"")
             buildConfigField("String", "MAPLIBRE_STYLE_URL", "\"$mapLibreStyleUrl\"")
+            buildConfigField("String", "GA_MEASUREMENT_ID", "\"$gaMeasurementId\"")
+            buildConfigField("String", "GA_API_SECRET", "\"$gaApiSecret\"")
             buildConfigField("boolean", "USE_MOCK_DATA", setting("USE_MOCK_DATA", "false"))
         }
     }

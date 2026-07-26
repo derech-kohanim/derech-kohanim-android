@@ -78,6 +78,7 @@ class SessionStore @Inject constructor(
         val zoneLayerVersion = intPreferencesKey("zone_layer_version")
         val zoneLayerStringency = stringPreferencesKey("zone_layer_stringency")
         val dangerLayerVersion = intPreferencesKey("danger_layer_version")
+        val analyticsClientId = stringPreferencesKey("analytics_client_id")
     }
 
     val snapshots: Flow<SessionSnapshot> = context.dataStore.data.map { prefs ->
@@ -170,6 +171,18 @@ class SessionStore @Inject constructor(
     suspend fun clearSession() = context.dataStore.edit {
         it.remove(Keys.accessToken)
         it.remove(Keys.refreshToken)
+    }
+
+    /**
+     * A stable, anonymous analytics client id (a random UUID) for the GA4 Measurement Protocol.
+     * Generated once and reused for the life of the install. It is NOT the user id and carries no
+     * PII; it only lets GA4 count distinct devices. Survives sign-out (not cleared with the session).
+     */
+    suspend fun analyticsClientId(): String {
+        context.dataStore.data.first()[Keys.analyticsClientId]?.let { return it }
+        val generated = java.util.UUID.randomUUID().toString()
+        context.dataStore.edit { it[Keys.analyticsClientId] = generated }
+        return generated
     }
 }
 
