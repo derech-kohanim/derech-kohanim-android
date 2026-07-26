@@ -51,6 +51,7 @@ import com.abaye.derechkohanim.service.rememberLocationPermissionState
 import com.abaye.derechkohanim.ui.components.DkButton
 import com.abaye.derechkohanim.ui.components.DkButtonVariant
 import com.abaye.derechkohanim.ui.components.DkCard
+import com.abaye.derechkohanim.ui.components.MarkdownText
 import com.abaye.derechkohanim.ui.theme.DerechKohanimTheme
 import com.abaye.derechkohanim.ui.theme.DkTheme
 
@@ -346,22 +347,27 @@ private fun TermsStep(
     )
     DkCard(modifier = Modifier.fillMaxWidth()) {
         // The document itself is scrollable inside a bounded box, so long terms never push the
-        // accept control off the screen. The body is rendered verbatim from the server; no legal
+        // accept control off the screen. The body comes from the server as Markdown; no legal
         // text is authored here.
-        val bodyText = when {
+        val placeholder = when {
             loading -> stringResource(R.string.state_loading)
             body.isBlank() -> stringResource(R.string.onboarding_terms_placeholder)
-            else -> body
+            else -> null
         }
-        Text(
-            text = bodyText,
-            style = MaterialTheme.typography.bodyMedium,
-            color = DkTheme.colors.text,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 320.dp)
-                .verticalScroll(rememberScrollState()),
-        )
+        val bodyModifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = 320.dp)
+            .verticalScroll(rememberScrollState())
+        if (placeholder != null) {
+            Text(
+                text = placeholder,
+                style = MaterialTheme.typography.bodyMedium,
+                color = DkTheme.colors.text,
+                modifier = bodyModifier,
+            )
+        } else {
+            MarkdownText(markdown = body, modifier = bodyModifier)
+        }
     }
     Row(
         verticalAlignment = Alignment.CenterVertically,
