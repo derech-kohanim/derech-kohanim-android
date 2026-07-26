@@ -31,6 +31,9 @@ import javax.inject.Singleton
  * network request is ever made. Events are fire-and-forget on [Dispatchers.IO] and every failure is
  * swallowed - analytics must never slow down, block or crash the app.
  *
+ * Every event carries `app_platform=android`, because the configured measurement id belongs to a
+ * web data stream: without it the app's events are indistinguishable from the website's.
+ *
  * Privacy: the only identifier sent is [SessionStore.analyticsClientId], an anonymous random UUID.
  * No user id, address, coordinate or other PII is ever attached to an event.
  */
@@ -77,7 +80,14 @@ class Analytics @Inject constructor(
                     putJsonArray("events") {
                         addJsonObject {
                             put("name", event)
-                            putJsonObject("params") { putParams(params) }
+                            putJsonObject("params") {
+                                // The measurement id belongs to a web data stream, so GA's own
+                                // platform dimension reports these events as web. This parameter
+                                // is what separates app traffic from the website; it is written
+                                // first so an event may still override it deliberately.
+                                put(APP_PLATFORM_PARAM, APP_PLATFORM)
+                                putParams(params)
+                            }
                         }
                     }
                 }
@@ -107,5 +117,13 @@ class Analytics @Inject constructor(
 
     private companion object {
         val JSON_MEDIA_TYPE = "application/json".toMediaType()
+
+        /**
+         * Not plain "platform": GA4 already has a built-in dimension by that name (set from the
+         * data stream type), and a custom parameter would collide with it in the reports.
+         * Register this one under Admin > Custom definitions to use it as a report dimension.
+         */
+        const val APP_PLATFORM_PARAM = "app_platform"
+        const val APP_PLATFORM = "android"
     }
 }

@@ -39,16 +39,24 @@ fun DkNavGraph(
     onScreen: (String) -> Unit = {},
     navController: NavHostController = rememberNavController(),
 ) {
-    // Emit a GA4 screen_view for the main screens as the back stack changes. Analytics is injected
-    // in MainActivity and handed in as [onScreen]; other destinations are intentionally not tracked.
+    // Emit a GA4 screen_view as the back stack changes. Analytics is injected in MainActivity and
+    // handed in as [onScreen]. Every destination reports a stable logical name of its own, so the
+    // funnel from onboarding to a driven route is readable in GA; the search route reports one
+    // name for both its modes, since the argument is a detail of how it was opened.
     DisposableEffect(navController) {
         val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
-            when (destination.route) {
-                Routes.HOME -> onScreen("home")
-                Routes.ROUTE_REVIEW -> onScreen("route_review")
-                Routes.NAVIGATION -> onScreen("navigation")
-                else -> {}
+            val screen = when (destination.route) {
+                Routes.ONBOARDING -> "onboarding"
+                Routes.LOGIN -> "login"
+                Routes.REGISTER -> "register"
+                Routes.HOME -> "home"
+                Routes.SEARCH_PATTERN -> "search"
+                Routes.ROUTE_REVIEW -> "route_review"
+                Routes.NAVIGATION -> "navigation"
+                Routes.SETTINGS -> "settings"
+                else -> null
             }
+            if (screen != null) onScreen(screen)
         }
         navController.addOnDestinationChangedListener(listener)
         onDispose { navController.removeOnDestinationChangedListener(listener) }
