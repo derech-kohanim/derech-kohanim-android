@@ -33,7 +33,10 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.abaye.derechkohanim.R
 import com.abaye.derechkohanim.data.mock.MockData
 import com.abaye.derechkohanim.data.model.LatLng
@@ -63,6 +66,14 @@ fun HomeRoute(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // The foreground GPS watchdog: only ticks while Home is RESUMED, and is cancelled the moment
+    // Home is backgrounded or left, restarting on return. The 10s/5s cadence lives in the VM loop.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.watchLocation()
+        }
+    }
     HomeScreen(
         state = state,
         onOpenSearch = onOpenSearch,
@@ -147,7 +158,7 @@ fun HomeScreen(
             DkBadge(text = stringResource(stringencyTitleRes(state.stringency)))
 
             // Waze-style connectivity banner at the top of the home view.
-            StatusBanner(offline = state.offline, noGps = false)
+            StatusBanner(offline = state.offline, noGps = state.noGps)
 
             // Brief "map points updated" banner after a background layer sync applied changes.
             androidx.compose.animation.AnimatedVisibility(visible = layerUpdate != null) {

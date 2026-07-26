@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.abaye.derechkohanim.BuildConfig
 import com.abaye.derechkohanim.core.DkResult
@@ -38,6 +39,8 @@ data class HomeState(
     val dangerZones: List<DangerZoneFeature> = emptyList(),
     /** No internet-capable network right now (drives the status banner). */
     val offline: Boolean = false,
+    /** No GPS/location fix right now (drives the Waze-style "no GPS" banner and manual entry). */
+    val noGps: Boolean = false,
 )
 
 @HiltViewModel
@@ -98,6 +101,37 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
+     * The foreground GPS watchdog. Mirrors the old app's resilience: it never dead-ends on a missing
+     * fix but keeps re-checking, and it drives [HomeState.noGps] so the banner (and manual-entry
+     * action) appear the moment location is lost and disappear the moment it returns. It is a plain
+     * suspend loop; the screen runs it under `repeatOnLifecycle(RESUMED)`, so it only ticks while
+     * Home is in the foreground and is cancelled when Home is backgrounded or left.
+     *
+     * Each cycle does a single bounded [DeviceLocation.quickFix] (cached fix, else one capped GPS
+     * request - no heavy feed fallback). With a fix: update the origin, clear noGps, and a real fix
+     * wins over any hand-picked start, so it drops the manual origin; re-check every ~10s. With no
+     * fix: flag noGps and re-check every ~5s so recovery is picked up quickly. In a mock build a
+     * mock location seeds the map once so it is never empty.
+     */
+    suspend fun watchLocation() {
+        while (true) {
+            val fix = deviceLocation.quickFix()
+            if (fix != null) {
+                originFlow.value = fix
+                _state.value = _state.value.copy(origin = fix, noGps = false)
+                delay(WATCH_INTERVAL_OK_MS)
+            } else {
+                if (BuildConfig.USE_MOCK_DATA && originFlow.value == null) {
+                    originFlow.value = MockData.currentLocation
+                    _state.value = _state.value.copy(origin = MockData.currentLocation)
+                }
+                _state.value = _state.value.copy(noGps = true)
+                delay(WATCH_INTERVAL_NO_GPS_MS)
+            }
+        }
+    }
+
+    /**
      * Fetches the freshest known location for the recenter button and remembers it as the
      * origin. Returns null when permission was not granted or no fix is available, so the
      * caller can fail quietly.
@@ -107,7 +141,7 @@ class HomeViewModel @Inject constructor(
             ?: if (BuildConfig.USE_MOCK_DATA) MockData.currentLocation else null
         if (located != null) {
             originFlow.value = located
-            _state.value = _state.value.copy(origin = located)
+            _state.value = _state.value.copy(origin = located, noGps = false)
         }
         return located
     }
@@ -115,5 +149,11 @@ class HomeViewModel @Inject constructor(
     private companion object {
         /** Jerusalem, matching the home screen's own map fallback centre. */
         val FALLBACK_CENTER = LatLng(31.7942, 35.2000)
+
+        /** Re-check cadence with a fix: relaxed, to keep the origin fresh without churn. */
+        const val WATCH_INTERVAL_OK_MS = 10_000L
+
+        /** Re-check cadence with no fix: quicker, so recovery from no-GPS is picked up fast. */
+        const val WATCH_INTERVAL_NO_GPS_MS = 5_000L
     }
 }

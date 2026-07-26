@@ -88,6 +88,20 @@ class DeviceLocation @Inject constructor(
         return cachedLocation() ?: currentLocation()
     }
 
+    /**
+     * A bounded single fix for the foreground GPS watchdog. Instant when a cached fix exists, else
+     * ONE HIGH_ACCURACY (GPS/GNSS, on-device, unblocked on filtered networks) active request capped
+     * by [timeoutMs] - no BALANCED step and no long live-feed fallback, so it stays cheap to poll
+     * every few seconds. Returns null on timeout or with no fix, which the watchdog reads as "no GPS".
+     */
+    @SuppressLint("MissingPermission")
+    suspend fun quickFix(timeoutMs: Long = QUICK_FIX_TIMEOUT_MS): LatLng? {
+        if (!LocationPermissions.hasForeground(context)) return null
+        return cachedLocation() ?: withTimeoutOrNull(timeoutMs) {
+            activeFix(Priority.PRIORITY_HIGH_ACCURACY)
+        }
+    }
+
     @SuppressLint("MissingPermission")
     private suspend fun cachedLocation(): LatLng? =
         suspendCancellableCoroutine { continuation ->
@@ -130,5 +144,8 @@ class DeviceLocation @Inject constructor(
     private companion object {
         /** How long to wait on the live GNSS feed for a first fix before giving up. */
         const val FEED_FIX_TIMEOUT_MS = 12_000L
+
+        /** Default cap for [quickFix]: long enough for a GPS fix, short enough to poll often. */
+        const val QUICK_FIX_TIMEOUT_MS = 4_000L
     }
 }
