@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import com.abaye.derechkohanim.core.AppLocale
 import com.abaye.derechkohanim.data.local.SessionStore
 import com.abaye.derechkohanim.data.model.Language
+import com.abaye.derechkohanim.data.model.MapProvider
 import com.abaye.derechkohanim.data.model.Stringency
 import com.abaye.derechkohanim.data.model.ThemePreference
 import com.abaye.derechkohanim.data.repository.AuthRepository
@@ -26,6 +27,7 @@ data class SettingsState(
     val voiceEnabled: Boolean = true,
     val avoidDangerZones: Boolean = true,
     val avoidTolls: Boolean = false,
+    val mapProvider: MapProvider = MapProvider.AUTOMATIC,
     val signedIn: Boolean = false,
     val voicePack: VoicePackStatus = VoicePackStatus(),
 )
@@ -47,6 +49,7 @@ class SettingsViewModel @Inject constructor(
                 voiceEnabled = snapshot.voiceEnabled,
                 avoidDangerZones = snapshot.avoidDangerZones,
                 avoidTolls = snapshot.avoidTolls,
+                mapProvider = snapshot.mapProvider,
                 signedIn = snapshot.isSignedIn,
                 voicePack = voicePack,
             )
@@ -81,6 +84,10 @@ class SettingsViewModel @Inject constructor(
 
     fun setAvoidTolls(enabled: Boolean) {
         viewModelScope.launch { sessionStore.setAvoidTolls(enabled) }
+    }
+
+    fun setMapProvider(provider: MapProvider) {
+        viewModelScope.launch { sessionStore.setMapProvider(provider) }
     }
 
     fun downloadVoicePack() {

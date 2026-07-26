@@ -249,6 +249,12 @@
     <string name="settings_avoid_danger_zones_hint">Routes around Area A and security hotspots. Turn off to reach a destination inside one.</string>
     <string name="settings_avoid_tolls">Avoid toll roads</string>
     <string name="settings_avoid_tolls_hint">Prefers toll-free routes, even if longer.</string>
+    <string name="settings_section_map">Map</string>
+    <string name="settings_map_provider">Map provider</string>
+    <string name="settings_map_provider_auto">Automatic</string>
+    <string name="settings_map_provider_google">Google</string>
+    <string name="settings_map_provider_openfreemap">OpenFreeMap</string>
+    <string name="settings_map_provider_hint">Automatic (recommended) uses Google, and switches to OpenFreeMap automatically when a NetFree network is detected and the Google map fails to load. OpenFreeMap also works on filtered networks.</string>
     <string name="settings_section_downloads">Downloads</string>
     <string name="settings_download_zones">Zone layers</string>
     <string name="settings_download_voice">Voice pack</string>

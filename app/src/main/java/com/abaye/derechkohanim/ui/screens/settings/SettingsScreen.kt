@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
@@ -28,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.abaye.derechkohanim.BuildConfig
 import com.abaye.derechkohanim.R
 import com.abaye.derechkohanim.data.model.Language
+import com.abaye.derechkohanim.data.model.MapProvider
 import com.abaye.derechkohanim.data.model.Stringency
 import com.abaye.derechkohanim.data.model.ThemePreference
 import com.abaye.derechkohanim.ui.components.DkButton
@@ -59,6 +61,7 @@ fun SettingsRoute(
         onVoiceEnabled = viewModel::setVoiceEnabled,
         onAvoidDangerZones = viewModel::setAvoidDangerZones,
         onAvoidTolls = viewModel::setAvoidTolls,
+        onMapProvider = viewModel::setMapProvider,
         onDownloadVoice = viewModel::downloadVoicePack,
         onSignOut = viewModel::signOut,
     )
@@ -76,6 +79,7 @@ fun SettingsScreen(
     onVoiceEnabled: (Boolean) -> Unit,
     onAvoidDangerZones: (Boolean) -> Unit,
     onAvoidTolls: (Boolean) -> Unit,
+    onMapProvider: (MapProvider) -> Unit = {},
     onDownloadVoice: () -> Unit = {},
     onSignOut: () -> Unit,
 ) {
@@ -166,6 +170,28 @@ fun SettingsScreen(
                     supportingText = stringResource(R.string.settings_avoid_tolls_hint),
                     checked = state.avoidTolls,
                     onCheckedChange = onAvoidTolls,
+                )
+            }
+
+            Section(stringResource(R.string.settings_section_map)) {
+                ChoiceRow(
+                    label = stringResource(R.string.settings_map_provider),
+                    options = listOf(
+                        MapProvider.AUTOMATIC to stringResource(R.string.settings_map_provider_auto),
+                        MapProvider.GOOGLE to stringResource(R.string.settings_map_provider_google),
+                        MapProvider.OPENFREEMAP to stringResource(R.string.settings_map_provider_openfreemap),
+                    ),
+                    selected = state.mapProvider,
+                    onSelect = onMapProvider,
+                )
+                Text(
+                    text = stringResource(R.string.settings_map_provider_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DkTheme.colors.textMuted,
+                    modifier = Modifier.padding(
+                        horizontal = DkTheme.spacing.s4,
+                        vertical = DkTheme.spacing.s1,
+                    ),
                 )
             }
 
@@ -304,7 +330,9 @@ private fun <T> ChoiceRow(
             color = DkTheme.colors.text,
         )
         Row(
-            modifier = Modifier.padding(top = DkTheme.spacing.s2),
+            modifier = Modifier
+                .padding(top = DkTheme.spacing.s2)
+                .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2),
         ) {
             options.forEach { (value, text) ->
@@ -337,6 +365,7 @@ private fun SettingsPreview() {
             onVoiceEnabled = {},
             onAvoidDangerZones = {},
             onAvoidTolls = {},
+            onMapProvider = {},
             onSignOut = {},
         )
     }

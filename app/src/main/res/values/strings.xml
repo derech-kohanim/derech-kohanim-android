@@ -249,6 +249,12 @@
     <string name="settings_avoid_danger_zones_hint">עוקף שטח A ומוקדי סכנה. כיבוי מאפשר להגיע ליעד שנמצא בתוך אזור כזה.</string>
     <string name="settings_avoid_tolls">הימנעות מכבישי אגרה</string>
     <string name="settings_avoid_tolls_hint">מעדיף מסלולים ללא תשלום, גם אם הם ארוכים יותר.</string>
+    <string name="settings_section_map">מפה</string>
+    <string name="settings_map_provider">ספק המפה</string>
+    <string name="settings_map_provider_auto">אוטומטי</string>
+    <string name="settings_map_provider_google">Google</string>
+    <string name="settings_map_provider_openfreemap">OpenFreeMap</string>
+    <string name="settings_map_provider_hint">אוטומטי (מומלץ) משתמש ב-Google, ועובר אוטומטית ל-OpenFreeMap כשמזוהה רשת נטפרי ומפת Google אינה נטענת. OpenFreeMap עובד גם ברשתות מסוננות.</string>
     <string name="settings_section_downloads">הורדות</string>
     <string name="settings_download_zones">שכבות האזורים</string>
     <string name="settings_download_voice">חבילת הקול</string>
