@@ -196,6 +196,20 @@ fun NavigationScreen(
         }
     }
 
+    // In overview, if the vehicle is actually moving, snap back to the driving view after a few
+    // seconds so the driver is never left looking at the whole route mid-drive. While stopped it
+    // stays in overview. Keyed on a stable "moving" flag, not the raw speed, so the timer runs
+    // once rather than restarting on every fix.
+    val overviewMoving = state.speedMps > OVERVIEW_MOVING_MPS
+    LaunchedEffect(following, overviewMoving) {
+        if (!following && overviewMoving) {
+            delay(OVERVIEW_AUTO_RETURN_MS)
+            following = true
+            controller.resumeAutoZoom()
+            state.currentLocation?.let { controller.follow(it, state.headingDegrees, state.speedMps) }
+        }
+    }
+
     LaunchedEffect(reportAdded) {
         reportAdded?.collect {
             reportConfirmation = true
@@ -872,6 +886,10 @@ private fun eventAlertText(context: Context, kind: RouteEventType, distanceMeter
 
 private val FALLBACK_CENTER = MockData.currentLocation
 private val BOTTOM_BAR_CLEARANCE = androidx.compose.ui.unit.Dp(120f)
+/** How long overview stays up while moving before snapping back to the driving view. */
+private const val OVERVIEW_AUTO_RETURN_MS = 10_000L
+/** Above this speed (~7 km/h) the vehicle counts as moving for the overview auto-return. */
+private const val OVERVIEW_MOVING_MPS = 2.0
 
 /**
  * In-drive reporting (the report FAB and its ReportSheet) is temporarily hidden. Flip to true to
