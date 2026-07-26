@@ -54,6 +54,7 @@
     <string name="onboarding_data_source_body">הנתונים על המקומות הבעייתיים התקבלו מהתאחדות טהרת הכהנים.</string>
     <string name="onboarding_limits_title">אינה תחליף להוראת הלכה</string>
     <string name="onboarding_limits_body">המערכת מסייעת בתכנון הדרך אך אינה תחליף להכרעה הלכתית. כשלא נמצא מסלול נקי, נאמר לך זאת לפני היציאה ולא בדרך.</string>
+    <string name="onboarding_privacy">לשיפור השירות נאספים נתוני שימוש אנונימיים, ללא זיהוי אישי.</string>
 
     <!-- Onboarding, stringency -->
     <string name="onboarding_stringency_title">בחר רמת חומרה</string>

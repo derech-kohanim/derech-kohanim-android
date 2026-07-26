@@ -317,6 +317,12 @@ private fun DataSourceStep() {
             color = DkTheme.colors.textMuted,
             modifier = Modifier.padding(top = DkTheme.spacing.s2),
         )
+        Text(
+            text = stringResource(R.string.onboarding_privacy),
+            style = MaterialTheme.typography.bodySmall,
+            color = DkTheme.colors.textMuted,
+            modifier = Modifier.padding(top = DkTheme.spacing.s3),
+        )
     }
 }
 

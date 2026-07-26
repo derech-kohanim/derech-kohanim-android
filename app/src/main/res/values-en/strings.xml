@@ -54,6 +54,7 @@
     <string name="onboarding_data_source_body">The data about the problematic places was received from Hitachdut Taharat HaKohanim.</string>
     <string name="onboarding_limits_title">Not a substitute for a halachic ruling</string>
     <string name="onboarding_limits_body">The app helps plan the drive but is not a substitute for a halachic ruling. When no clean route exists you are told before departure, not on the way.</string>
+    <string name="onboarding_privacy">To improve the service, anonymous usage data is collected, with no personal identification.</string>
 
     <!-- Onboarding, stringency -->
     <string name="onboarding_stringency_title">Choose a stringency level</string>
