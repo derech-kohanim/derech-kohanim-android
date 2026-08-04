@@ -1,5 +1,6 @@
 package com.abaye.derechkohanim.ui.components
 
+import android.os.SystemClock
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
@@ -16,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.abaye.derechkohanim.core.ZoneFilter
 import com.abaye.derechkohanim.data.model.DangerZoneFeature
 import com.abaye.derechkohanim.data.model.DangerZoneProperties
 import com.abaye.derechkohanim.data.model.LatLng
@@ -29,6 +31,9 @@ import com.abaye.derechkohanim.data.model.ZoneProperties
 import com.abaye.derechkohanim.service.MapProviderState
 import com.abaye.derechkohanim.ui.theme.DkColors
 import com.abaye.derechkohanim.ui.theme.DkTheme
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collectLatest
 
 /**
  * Supplies the effective map provider to [DkMap], set once at the app root (MainActivity) from
@@ -230,6 +235,12 @@ fun DkMap(
     onZoneClick: ((ZoneTapInfo) -> Unit)? = null,
     /** When set, tapping the map anywhere that is not a zone reports the point (e.g. pick-start). */
     onMapClick: ((LatLng) -> Unit)? = null,
+    /**
+     * When set, the map reports the (padded) box its camera shows, throttled to at most one report
+     * per [CAMERA_REPORT_MS], so the caller can clip the zone layers to what is actually on screen
+     * instead of to a fixed box around the origin or the route.
+     */
+    onVisibleBoundsChange: ((ZoneFilter.GeoBounds) -> Unit)? = null,
     currentLocation: LatLng? = null,
     routeIsClean: Boolean = true,
     interactive: Boolean = true,
@@ -273,6 +284,7 @@ fun DkMap(
             dangerZones = dangerZones,
             onZoneClick = onZoneClick,
             onMapClick = onMapClick,
+            onVisibleBoundsChange = onVisibleBoundsChange,
             currentLocation = currentLocation,
             routeIsClean = routeIsClean,
             interactive = interactive,
@@ -292,12 +304,37 @@ fun DkMap(
             dangerZones = dangerZones,
             onZoneClick = onZoneClick,
             onMapClick = onMapClick,
+            onVisibleBoundsChange = onVisibleBoundsChange,
             currentLocation = currentLocation,
             routeIsClean = routeIsClean,
             interactive = interactive,
             providerState = providerState,
             colors = colors,
         )
+    }
+}
+
+/**
+ * How often either renderer may report a new camera viewport. Long enough that clipping the
+ * country-wide layers never lands on the per-frame path of a drag or a fling, short enough that the
+ * polygons fill in while the gesture is still going rather than only once it ends.
+ */
+internal const val CAMERA_REPORT_MS = 200L
+
+/**
+ * Runs [action] for the flow's latest value at most once per [windowMs]: the first value fires
+ * straight away, values arriving inside the window collapse into a single trailing run, and the
+ * value the flow settles on is always the last one acted on. Both renderers drive their camera
+ * reports through this, so the debouncing behaviour is identical whichever provider is live.
+ */
+internal suspend fun <T> Flow<T>.collectThrottled(windowMs: Long, action: suspend (T) -> Unit) {
+    var lastRunMs = 0L
+    collectLatest { value ->
+        // collectLatest cancels this body when a newer value arrives, so only the trailing one runs.
+        val elapsed = SystemClock.elapsedRealtime() - lastRunMs
+        if (elapsed < windowMs) delay(windowMs - elapsed)
+        lastRunMs = SystemClock.elapsedRealtime()
+        action(value)
     }
 }
 

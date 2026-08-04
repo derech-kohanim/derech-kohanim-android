@@ -38,6 +38,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.abaye.derechkohanim.R
+import com.abaye.derechkohanim.core.ZoneFilter
 import com.abaye.derechkohanim.data.mock.MockData
 import com.abaye.derechkohanim.data.model.LatLng
 import com.abaye.derechkohanim.data.model.SavedPlace
@@ -83,6 +84,7 @@ fun HomeRoute(
         onOpenSettings = onOpenSettings,
         onLocateMe = { viewModel.locateMe() },
         onSetManualOrigin = { viewModel.setManualOrigin(it) },
+        onViewportChange = { viewModel.setViewport(it) },
         onSearchOriginAddress = onOpenSearchForOrigin,
         originJustSet = originJustSet,
         onOriginConfirmConsumed = onOriginConfirmConsumed,
@@ -106,6 +108,8 @@ fun HomeScreen(
     onSavedPlaceChosen: (SavedPlace) -> Unit,
     onLocateMe: suspend () -> LatLng? = { null },
     onSetManualOrigin: (LatLng) -> Unit = {},
+    /** The box the map camera settled on, so the drawn zones follow the pan/zoom rather than the origin. */
+    onViewportChange: (ZoneFilter.GeoBounds) -> Unit = {},
     onSearchOriginAddress: () -> Unit = {},
     originJustSet: Boolean = false,
     onOriginConfirmConsumed: () -> Unit = {},
@@ -170,6 +174,7 @@ fun HomeScreen(
                     manualConfirm = true
                 }
             },
+            onVisibleBoundsChange = onViewportChange,
             modifier = Modifier.fillMaxSize(),
         )
 

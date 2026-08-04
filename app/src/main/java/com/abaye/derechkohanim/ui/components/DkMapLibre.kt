@@ -19,6 +19,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.abaye.derechkohanim.BuildConfig
 import com.abaye.derechkohanim.R
+import com.abaye.derechkohanim.core.ZoneFilter
 import com.abaye.derechkohanim.data.model.DangerZoneFeature
 import com.abaye.derechkohanim.data.model.LatLng
 import com.abaye.derechkohanim.data.model.RouteEvent
@@ -27,6 +28,7 @@ import com.abaye.derechkohanim.data.model.Stringency
 import com.abaye.derechkohanim.data.model.TrafficSegment
 import com.abaye.derechkohanim.data.model.ZoneFeature
 import com.abaye.derechkohanim.ui.theme.DkColors
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition as MlCameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
@@ -113,6 +115,7 @@ internal fun MapLibreDkMap(
     dangerZones: List<DangerZoneFeature>,
     onZoneClick: ((ZoneTapInfo) -> Unit)?,
     onMapClick: ((LatLng) -> Unit)?,
+    onVisibleBoundsChange: ((ZoneFilter.GeoBounds) -> Unit)?,
     currentLocation: LatLng?,
     routeIsClean: Boolean,
     interactive: Boolean,
@@ -133,6 +136,10 @@ internal fun MapLibreDkMap(
 
     var style by remember { mutableStateOf<Style?>(null) }
     var map by remember { mutableStateOf<MapLibreMap?>(null) }
+
+    // MapLibre reports camera changes through listeners rather than snapshot state, so each one just
+    // bumps this counter and the collector below turns the stream into throttled viewport reports.
+    val cameraTicks = remember { MutableStateFlow(0L) }
 
     // Drive the MapView through the Android lifecycle. Adding the observer while the host is
     // already STARTED/RESUMED replays those events, so onStart/onResume arrive. onDispose covers
@@ -177,6 +184,12 @@ internal fun MapLibreDkMap(
                 style = loaded
                 controller.attach(MapLibreCameraBackend(ready))
 
+                // Both are needed: move fires continuously through a gesture or an animation, idle
+                // only once it settles, and the throttle downstream collapses the two into one
+                // report per window.
+                ready.addOnCameraMoveListener { cameraTicks.value++ }
+                ready.addOnCameraIdleListener { cameraTicks.value++ }
+
                 if (onZoneClick != null || onMapClick != null) {
                     ready.addOnMapClickListener { point ->
                         val screen: PointF = ready.projection.toScreenLocation(point)
@@ -220,7 +233,35 @@ internal fun MapLibreDkMap(
         )
     }
 
+    // Report what the camera actually shows, so the caller can clip the zone layers to it. The
+    // StateFlow's current value is delivered on collection, so the first report lands as soon as the
+    // map is ready, without waiting for the user to move anything. Keyed on the map alone, with the
+    // callback read through rememberUpdatedState, so a recomposition never restarts the collector.
+    val currentOnVisibleBounds by rememberUpdatedState(onVisibleBoundsChange)
+    val readyMap = map
+    LaunchedEffect(readyMap) {
+        val liveMap = readyMap ?: return@LaunchedEffect
+        cameraTicks.collectThrottled(CAMERA_REPORT_MS) {
+            val report = currentOnVisibleBounds ?: return@collectThrottled
+            liveMap.visibleGeoBounds()?.let(report)
+        }
+    }
+
     AndroidView(factory = { mapView }, modifier = modifier)
+}
+
+/**
+ * The padded box the MapLibre camera currently shows, or null before its projection describes a real
+ * region (not laid out yet), in which case the caller simply keeps the bounds it already had.
+ */
+private fun MapLibreMap.visibleGeoBounds(): ZoneFilter.GeoBounds? {
+    val box = runCatching { projection.visibleRegion.latLngBounds }.getOrNull() ?: return null
+    return ZoneFilter.viewport(
+        south = box.latitudeSouth,
+        north = box.latitudeNorth,
+        west = box.longitudeWest,
+        east = box.longitudeEast,
+    )
 }
 
 /**

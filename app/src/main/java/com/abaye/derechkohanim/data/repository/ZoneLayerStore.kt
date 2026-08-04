@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
+import com.abaye.derechkohanim.core.ZoneFilter
 import com.abaye.derechkohanim.data.local.SessionStore
 import com.abaye.derechkohanim.data.model.DangerZoneCollection
 import com.abaye.derechkohanim.data.model.DangerZoneFeature
@@ -86,6 +87,22 @@ class ZoneLayerStore @Inject constructor(
     private val _danger = MutableStateFlow<List<DangerZoneFeature>>(emptyList())
     val danger: StateFlow<List<DangerZoneFeature>> = _danger.asStateFlow()
 
+    private val _zonesIndexed = MutableStateFlow<List<ZoneFilter.Bounded<ZoneFeature>>>(emptyList())
+
+    /**
+     * The same features as [zones], each with its bounding box precomputed. The map clips the layer
+     * to the camera every time it moves, so the boxes are built once here - on the store's IO
+     * scope, as the layer is published - and never re-derived per camera event.
+     */
+    val zonesIndexed: StateFlow<List<ZoneFilter.Bounded<ZoneFeature>>> = _zonesIndexed.asStateFlow()
+
+    private val _dangerIndexed =
+        MutableStateFlow<List<ZoneFilter.Bounded<DangerZoneFeature>>>(emptyList())
+
+    /** [danger] with its bounding boxes precomputed; see [zonesIndexed]. */
+    val dangerIndexed: StateFlow<List<ZoneFilter.Bounded<DangerZoneFeature>>> =
+        _dangerIndexed.asStateFlow()
+
     private val _status = MutableStateFlow(ZoneLayerStatus())
     val status: StateFlow<ZoneLayerStatus> = _status.asStateFlow()
 
@@ -133,9 +150,21 @@ class ZoneLayerStore @Inject constructor(
         } else {
             null
         }
-        _zones.value = cachedZones?.features.orEmpty()
-        _danger.value = readDanger()?.features.orEmpty()
+        publishZones(cachedZones?.features.orEmpty())
+        publishDanger(readDanger()?.features.orEmpty())
         publishStatus()
+    }
+
+    /** Publishes a zone layer together with its bounding-box index, always in that order. */
+    private fun publishZones(features: List<ZoneFeature>) {
+        _zonesIndexed.value = ZoneFilter.indexZones(features)
+        _zones.value = features
+    }
+
+    /** Publishes a danger layer together with its bounding-box index, always in that order. */
+    private fun publishDanger(features: List<DangerZoneFeature>) {
+        _dangerIndexed.value = ZoneFilter.indexDanger(features)
+        _danger.value = features
     }
 
     /**
@@ -179,7 +208,7 @@ class ZoneLayerStore @Inject constructor(
                 val diff = diff(cached, fresh.features) { it.properties.id }
                 writeZones(stringency, fresh)
                 sessionStore.setZoneLayer(stringency, fresh.version)
-                _zones.value = fresh.features
+                publishZones(fresh.features)
                 if (sameStringency) diff else null
             }
         }
@@ -195,7 +224,7 @@ class ZoneLayerStore @Inject constructor(
                 val diff = diff(cached, fresh.features) { it.properties.id }
                 writeDanger(fresh)
                 sessionStore.setDangerLayer(fresh.version)
-                _danger.value = fresh.features
+                publishDanger(fresh.features)
                 diff
             }
         }

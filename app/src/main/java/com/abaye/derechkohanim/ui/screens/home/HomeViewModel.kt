@@ -3,11 +3,13 @@ package com.abaye.derechkohanim.ui.screens.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.abaye.derechkohanim.BuildConfig
@@ -34,9 +36,9 @@ data class HomeState(
     val origin: LatLng? = null,
     val stringency: Stringency = Stringency.BASIC,
     val savedPlaces: List<SavedPlace> = emptyList(),
-    /** Zone polygons near the origin, from the local layer store (filtered for performance). */
+    /** Zone polygons the map can currently show, from the local layer store (clipped for speed). */
     val zones: List<ZoneFeature> = emptyList(),
-    /** Danger-zone (Area A) polygons near the origin, from the local layer store. */
+    /** Danger-zone (Area A) polygons the map can currently show, from the local layer store. */
     val dangerZones: List<DangerZoneFeature> = emptyList(),
     /** No internet-capable network right now (drives the status banner). */
     val offline: Boolean = false,
@@ -60,6 +62,12 @@ class HomeViewModel @Inject constructor(
 
     /** The origin, tracked separately so the zone filter recomputes as it changes. */
     private val originFlow = MutableStateFlow<LatLng?>(null)
+
+    /**
+     * The box the map camera currently shows, reported by [setViewport]. Null until the map has
+     * reported once, which is the only window in which the origin decides what is drawn.
+     */
+    private val viewportFlow = MutableStateFlow<ZoneFilter.GeoBounds?>(null)
 
     /** Re-emits the layer store's change summary so the screen can show a brief banner. */
     val mapUpdates: SharedFlow<ZoneLayerChange> = zoneLayerStore.changes
@@ -94,20 +102,37 @@ class HomeViewModel @Inject constructor(
                 }
             }
         }
-        // Draw only the zone/danger polygons near the origin, recomputed whenever the origin moves
-        // or the store's layers change (initial cache load or a background sync).
+        // Draw only the zone/danger polygons the map is actually looking at, recomputed whenever the
+        // camera reports a new viewport, the origin moves, or the store's layers change (initial
+        // cache load or a background sync). Before the first camera report the padded box around the
+        // origin stands in, so the first paint is never empty; after it, the camera decides, which
+        // is what makes panning or zooming to a distant area fill in that area's zones. The store's
+        // features carry precomputed bounding boxes, so this is a box comparison per feature.
         viewModelScope.launch {
-            combine(originFlow, zoneLayerStore.zones, zoneLayerStore.danger) { origin, zones, danger ->
-                Triple(origin, zones, danger)
-            }.collect { (origin, zones, danger) ->
-                val center = origin ?: FALLBACK_CENTER
-                val bounds = ZoneFilter.boundsAround(center, ZoneFilter.HOME_PAD_DEG)
-                _state.value = _state.value.copy(
-                    zones = ZoneFilter.zonesIn(zones, bounds),
-                    dangerZones = ZoneFilter.dangerIn(danger, bounds),
-                )
+            combine(
+                originFlow,
+                viewportFlow,
+                zoneLayerStore.zonesIndexed,
+                zoneLayerStore.dangerIndexed,
+            ) { origin, viewport, zones, danger ->
+                val bounds = viewport
+                    ?: ZoneFilter.boundsAround(origin ?: FALLBACK_CENTER, ZoneFilter.HOME_PAD_DEG)
+                val fromCamera = viewport != null
+                ZoneFilter.inBounds(zones, bounds, fromCamera) to
+                    ZoneFilter.inBounds(danger, bounds, fromCamera)
+            }.flowOn(Dispatchers.Default).collect { (zones, danger) ->
+                _state.value = _state.value.copy(zones = zones, dangerZones = danger)
             }
         }
+    }
+
+    /**
+     * The map reports the (padded) box its camera shows, throttled by the map component itself. From
+     * the first report on, it - not the origin - decides which polygons are drawn, so the zones
+     * follow the user wherever they pan or zoom instead of clinging to where the map opened.
+     */
+    fun setViewport(bounds: ZoneFilter.GeoBounds) {
+        viewportFlow.value = bounds
     }
 
     fun chooseDestination(suggestion: PlaceSuggestion) {

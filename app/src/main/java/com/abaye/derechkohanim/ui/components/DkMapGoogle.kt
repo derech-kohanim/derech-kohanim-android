@@ -7,8 +7,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import com.abaye.derechkohanim.core.ZoneFilter
 import com.abaye.derechkohanim.data.model.DangerZoneFeature
 import com.abaye.derechkohanim.data.model.LatLng
 import com.abaye.derechkohanim.data.model.RouteEvent
@@ -88,6 +91,7 @@ internal fun GoogleDkMap(
     dangerZones: List<DangerZoneFeature>,
     onZoneClick: ((ZoneTapInfo) -> Unit)?,
     onMapClick: ((LatLng) -> Unit)?,
+    onVisibleBoundsChange: ((ZoneFilter.GeoBounds) -> Unit)?,
     currentLocation: LatLng?,
     routeIsClean: Boolean,
     interactive: Boolean,
@@ -109,6 +113,27 @@ internal fun GoogleDkMap(
         LaunchedEffect(Unit) {
             delay(GOOGLE_LOAD_TIMEOUT_MS)
             if (!mapLoaded) providerState.reportGoogleMapLoadFailed()
+        }
+    }
+
+    // Report what the camera actually shows, so the caller can clip the zone layers to it. The
+    // projection only describes a real region once the map has laid out, hence keying on mapLoaded;
+    // from there every camera change feeds the throttle, which keeps the filtering off the per-frame
+    // path of a drag or a fling without waiting for the whole gesture to end.
+    if (onVisibleBoundsChange != null) {
+        val report by rememberUpdatedState(onVisibleBoundsChange)
+        LaunchedEffect(cameraPositionState, mapLoaded) {
+            if (!mapLoaded) return@LaunchedEffect
+            snapshotFlow { cameraPositionState.position }.collectThrottled(CAMERA_REPORT_MS) {
+                val box = cameraPositionState.projection?.visibleRegion?.latLngBounds
+                    ?: return@collectThrottled
+                ZoneFilter.viewport(
+                    south = box.southwest.latitude,
+                    north = box.northeast.latitude,
+                    west = box.southwest.longitude,
+                    east = box.northeast.longitude,
+                )?.let(report)
+            }
         }
     }
 
