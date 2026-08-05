@@ -11,6 +11,15 @@ object Routes {
     const val SIMULATION = "simulation"
     const val SETTINGS = "settings"
 
+    /**
+     * The policy documents and the deletion form. Reachable before the terms are accepted and
+     * without an account, because that is exactly who needs them: a reader deciding whether to
+     * accept, and someone who has already signed out.
+     */
+    const val TERMS = "legal/terms"
+    const val PRIVACY = "legal/privacy"
+    const val DELETE_ACCOUNT = "account/delete"
+
     /** Nav argument on the search route selecting what a picked place becomes. */
     const val SEARCH_ARG_MODE = "mode"
     const val SEARCH_MODE_DESTINATION = "destination"

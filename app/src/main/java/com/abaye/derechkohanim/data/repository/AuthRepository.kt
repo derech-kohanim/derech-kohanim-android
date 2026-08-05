@@ -7,6 +7,7 @@ import com.abaye.derechkohanim.data.local.SessionSnapshot
 import com.abaye.derechkohanim.data.local.SessionStore
 import com.abaye.derechkohanim.data.model.AcceptTermsRequest
 import com.abaye.derechkohanim.data.model.AuthResponse
+import com.abaye.derechkohanim.data.model.CreateDeletionRequestRequest
 import com.abaye.derechkohanim.data.model.GoogleAuthRequest
 import com.abaye.derechkohanim.data.model.Language
 import com.abaye.derechkohanim.data.model.LoginRequest
@@ -31,6 +32,14 @@ interface AuthRepository {
     suspend fun loginWithGoogle(idToken: String, acceptedTermsVersion: String?): DkResult<User>
     suspend fun terms(language: Language): DkResult<TermsDocument>
     suspend fun acceptTerms(version: String): DkResult<User>
+    /** The signed-in account. Fails for a guest, which callers treat as "no account". */
+    suspend fun currentUser(): DkResult<User>
+    /**
+     * Asks for the account and its data to be deleted. Works for a guest too, since someone who
+     * signed out still has an account to remove. Records a request; the server deletes nothing
+     * until an operator has verified the requester.
+     */
+    suspend fun requestAccountDeletion(email: String, reason: String?): DkResult<Unit>
     /** Persists preferences to the server so settings follow the account across devices. */
     suspend fun updatePreferences(preferences: UserPreferences): DkResult<User>
     suspend fun signOut()
@@ -69,6 +78,15 @@ class RemoteAuthRepository @Inject constructor(
     }.also {
         if (it is DkResult.Success) sessionStore.setAcceptedTermsVersion(version)
     }
+
+    override suspend fun currentUser(): DkResult<User> = apiCall { api.currentUser() }
+
+    override suspend fun requestAccountDeletion(email: String, reason: String?): DkResult<Unit> =
+        apiCall {
+            api.requestAccountDeletion(
+                CreateDeletionRequestRequest(email = email, reason = reason),
+            )
+        }.map { }
 
     override suspend fun updatePreferences(preferences: UserPreferences): DkResult<User> =
         apiCall { api.updatePreferences(preferences) }

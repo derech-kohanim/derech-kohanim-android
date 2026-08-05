@@ -3,9 +3,11 @@ package com.abaye.derechkohanim.data.remote
 import com.abaye.derechkohanim.data.model.AcceptTermsRequest
 import com.abaye.derechkohanim.data.model.AuthResponse
 import com.abaye.derechkohanim.data.model.AuthTokens
+import com.abaye.derechkohanim.data.model.CreateDeletionRequestRequest
 import com.abaye.derechkohanim.data.model.CreateRecentPlaceRequest
 import com.abaye.derechkohanim.data.model.CreateReportRequest
 import com.abaye.derechkohanim.data.model.CreateSavedPlaceRequest
+import com.abaye.derechkohanim.data.model.DeletionRequestReceipt
 import com.abaye.derechkohanim.data.model.GoogleAuthRequest
 import com.abaye.derechkohanim.data.model.LoginRequest
 import com.abaye.derechkohanim.data.model.LogoutRequest
@@ -74,6 +76,13 @@ interface DerechKohanimApi {
 
     @POST("auth/accept-terms")
     suspend fun acceptTerms(@Body body: AcceptTermsRequest): User
+
+    // Account self-service. OptionalAuth: a guest may ask too, since somebody who signed out
+    // still has an account to delete. Records a request, deletes nothing.
+    @POST("account/deletion-requests")
+    suspend fun requestAccountDeletion(
+        @Body body: CreateDeletionRequestRequest,
+    ): DeletionRequestReceipt
 
     // Users (profile and preferences persist here)
     @GET("users/me")

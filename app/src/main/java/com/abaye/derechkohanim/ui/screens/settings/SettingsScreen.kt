@@ -6,12 +6,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -49,6 +52,9 @@ import com.abaye.derechkohanim.voice.VoicePackStatus
 fun SettingsRoute(
     onBack: () -> Unit,
     onSignIn: () -> Unit,
+    onOpenTerms: () -> Unit = {},
+    onOpenPrivacy: () -> Unit = {},
+    onDeleteAccount: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -56,6 +62,9 @@ fun SettingsRoute(
         state = state,
         onBack = onBack,
         onSignIn = onSignIn,
+        onOpenTerms = onOpenTerms,
+        onOpenPrivacy = onOpenPrivacy,
+        onDeleteAccount = onDeleteAccount,
         onLanguage = viewModel::setLanguage,
         onTheme = viewModel::setTheme,
         onStringency = viewModel::setStringency,
@@ -75,6 +84,9 @@ fun SettingsScreen(
     state: SettingsState,
     onBack: () -> Unit,
     onSignIn: () -> Unit,
+    onOpenTerms: () -> Unit = {},
+    onOpenPrivacy: () -> Unit = {},
+    onDeleteAccount: () -> Unit = {},
     onLanguage: (Language) -> Unit,
     onTheme: (ThemePreference) -> Unit,
     onStringency: (Stringency) -> Unit,
@@ -235,6 +247,12 @@ fun SettingsScreen(
                 }
             }
 
+            Section(stringResource(R.string.settings_section_legal)) {
+                LinkRow(stringResource(R.string.legal_terms_title), onOpenTerms)
+                LinkRow(stringResource(R.string.legal_privacy_title), onOpenPrivacy)
+                LinkRow(stringResource(R.string.legal_delete_account_action), onDeleteAccount)
+            }
+
             Section(stringResource(R.string.settings_section_about)) {
                 Text(
                     text = stringResource(R.string.settings_version, BuildConfig.VERSION_NAME),
@@ -307,6 +325,31 @@ private fun DownloadRow(
                     variant = DkButtonVariant.Secondary,
                 )
             }
+        }
+    }
+}
+
+/** A settings row that opens another screen. The chevron is the affordance, so no button chrome. */
+@Composable
+private fun LinkRow(label: String, onClick: () -> Unit) {
+    DkCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = DkTheme.spacing.s4, vertical = DkTheme.spacing.s1)
+            .clickable(onClick = onClick),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+                color = DkTheme.colors.text,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = DkTheme.colors.textMuted,
+            )
         }
     }
 }

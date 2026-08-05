@@ -52,12 +52,15 @@ import com.abaye.derechkohanim.ui.components.DkButton
 import com.abaye.derechkohanim.ui.components.DkButtonVariant
 import com.abaye.derechkohanim.ui.components.DkCard
 import com.abaye.derechkohanim.ui.components.MarkdownText
+import com.abaye.derechkohanim.ui.screens.legal.LegalLinksRow
 import com.abaye.derechkohanim.ui.theme.DerechKohanimTheme
 import com.abaye.derechkohanim.ui.theme.DkTheme
 
 @Composable
 fun OnboardingRoute(
     onFinished: () -> Unit,
+    onOpenTerms: () -> Unit = {},
+    onOpenPrivacy: () -> Unit = {},
     viewModel: OnboardingViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -69,6 +72,8 @@ fun OnboardingRoute(
         onTermsAcceptedChange = viewModel::onTermsAcceptedChange,
         onNext = viewModel::next,
         onBack = viewModel::back,
+        onOpenTerms = onOpenTerms,
+        onOpenPrivacy = onOpenPrivacy,
     )
 }
 
@@ -79,6 +84,8 @@ fun OnboardingScreen(
     onTermsAcceptedChange: (Boolean) -> Unit,
     onNext: () -> Unit,
     onBack: () -> Unit,
+    onOpenTerms: () -> Unit = {},
+    onOpenPrivacy: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val permissions = rememberLocationPermissionState(context)
@@ -113,6 +120,8 @@ fun OnboardingScreen(
                         loading = state.termsLoading,
                         accepted = state.termsAccepted,
                         onAcceptedChange = onTermsAcceptedChange,
+                        onOpenTerms = onOpenTerms,
+                        onOpenPrivacy = onOpenPrivacy,
                     )
                     OnboardingStep.Stringency -> StringencyStep(state.stringency, onStringencySelected)
                     OnboardingStep.Permissions -> PermissionsStep(
@@ -334,6 +343,8 @@ private fun TermsStep(
     loading: Boolean,
     accepted: Boolean,
     onAcceptedChange: (Boolean) -> Unit,
+    onOpenTerms: () -> Unit,
+    onOpenPrivacy: () -> Unit,
 ) {
     Text(
         text = title.ifBlank { stringResource(R.string.onboarding_terms_title) },
@@ -384,6 +395,8 @@ private fun TermsStep(
             modifier = Modifier.padding(start = DkTheme.spacing.s3),
         )
     }
+    // The full documents are their own destinations, so the wizard keeps its place behind them.
+    LegalLinksRow(onOpenTerms = onOpenTerms, onOpenPrivacy = onOpenPrivacy)
 }
 
 @Composable

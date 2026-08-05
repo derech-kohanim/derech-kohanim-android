@@ -20,6 +20,9 @@ import com.abaye.derechkohanim.R
 import com.abaye.derechkohanim.ui.screens.auth.LoginRoute
 import com.abaye.derechkohanim.ui.screens.auth.RegisterRoute
 import com.abaye.derechkohanim.ui.screens.home.HomeRoute
+import com.abaye.derechkohanim.ui.screens.legal.DeleteAccountRoute
+import com.abaye.derechkohanim.ui.screens.legal.PrivacyRoute
+import com.abaye.derechkohanim.ui.screens.legal.TermsRoute
 import com.abaye.derechkohanim.ui.screens.nav.NavigationRoute
 import com.abaye.derechkohanim.ui.screens.onboarding.OnboardingRoute
 import com.abaye.derechkohanim.ui.screens.route.RouteReviewRoute
@@ -54,6 +57,9 @@ fun DkNavGraph(
                 Routes.ROUTE_REVIEW -> "route_review"
                 Routes.NAVIGATION -> "navigation"
                 Routes.SETTINGS -> "settings"
+                Routes.TERMS -> "terms"
+                Routes.PRIVACY -> "privacy"
+                Routes.DELETE_ACCOUNT -> "delete_account"
                 else -> null
             }
             if (screen != null) onScreen(screen)
@@ -71,6 +77,8 @@ fun DkNavGraph(
                         popUpTo(Routes.ONBOARDING) { inclusive = true }
                     }
                 },
+                onOpenTerms = { navController.navigate(Routes.TERMS) },
+                onOpenPrivacy = { navController.navigate(Routes.PRIVACY) },
             )
         }
 
@@ -87,6 +95,8 @@ fun DkNavGraph(
                 onSignedIn = { navController.popBackStack(Routes.HOME, inclusive = false) },
                 onGoToLogin = { navController.popBackStack() },
                 onContinueAsGuest = { navController.popBackStack(Routes.HOME, inclusive = false) },
+                onOpenTerms = { navController.navigate(Routes.TERMS) },
+                onOpenPrivacy = { navController.navigate(Routes.PRIVACY) },
             )
         }
 
@@ -173,7 +183,25 @@ fun DkNavGraph(
             SettingsRoute(
                 onBack = { navController.popBackStack() },
                 onSignIn = { navController.navigate(Routes.LOGIN) },
+                onOpenTerms = { navController.navigate(Routes.TERMS) },
+                onOpenPrivacy = { navController.navigate(Routes.PRIVACY) },
+                onDeleteAccount = { navController.navigate(Routes.DELETE_ACCOUNT) },
             )
+        }
+
+        composable(Routes.TERMS) {
+            TermsRoute(onBack = { navController.popBackStack() })
+        }
+
+        composable(Routes.PRIVACY) {
+            PrivacyRoute(
+                onBack = { navController.popBackStack() },
+                onDeleteAccount = { navController.navigate(Routes.DELETE_ACCOUNT) },
+            )
+        }
+
+        composable(Routes.DELETE_ACCOUNT) {
+            DeleteAccountRoute(onBack = { navController.popBackStack() })
         }
     }
 

@@ -35,6 +35,7 @@ import com.abaye.derechkohanim.core.ErrorCode
 import com.abaye.derechkohanim.ui.components.DkButton
 import com.abaye.derechkohanim.ui.components.DkButtonVariant
 import com.abaye.derechkohanim.ui.components.DkTextField
+import com.abaye.derechkohanim.ui.screens.legal.LegalLinksRow
 import com.abaye.derechkohanim.ui.theme.DerechKohanimTheme
 import com.abaye.derechkohanim.ui.theme.DkTheme
 
@@ -77,6 +78,8 @@ fun RegisterRoute(
     onSignedIn: () -> Unit,
     onGoToLogin: () -> Unit,
     onContinueAsGuest: () -> Unit,
+    onOpenTerms: () -> Unit = {},
+    onOpenPrivacy: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -103,6 +106,8 @@ fun RegisterRoute(
         },
         onSwitchMode = onGoToLogin,
         onContinueAsGuest = onContinueAsGuest,
+        onOpenTerms = onOpenTerms,
+        onOpenPrivacy = onOpenPrivacy,
     )
 }
 
@@ -118,6 +123,8 @@ fun AuthScreen(
     onGoogle: () -> Unit,
     onSwitchMode: () -> Unit,
     onContinueAsGuest: () -> Unit,
+    onOpenTerms: () -> Unit = {},
+    onOpenPrivacy: () -> Unit = {},
 ) {
     Scaffold(containerColor = DkTheme.colors.background) { padding ->
         Column(
@@ -179,6 +186,7 @@ fun AuthScreen(
                         modifier = Modifier.padding(start = DkTheme.spacing.s3),
                     )
                 }
+                LegalLinksRow(onOpenTerms = onOpenTerms, onOpenPrivacy = onOpenPrivacy)
             }
 
             state.errorCode?.let { code ->

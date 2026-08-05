@@ -3,6 +3,7 @@ package com.abaye.derechkohanim.data.mock
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import com.abaye.derechkohanim.core.DkResult
+import com.abaye.derechkohanim.core.ErrorCode
 import com.abaye.derechkohanim.data.local.SessionSnapshot
 import com.abaye.derechkohanim.data.local.SessionStore
 import com.abaye.derechkohanim.data.model.CreateRecentPlaceRequest
@@ -219,6 +220,19 @@ class MockAuthRepository @Inject constructor(
     override suspend fun acceptTerms(version: String): DkResult<User> {
         sessionStore.setAcceptedTermsVersion(version)
         return DkResult.Success(MockData.user)
+    }
+
+    override suspend fun currentUser(): DkResult<User> =
+        if (sessionStore.snapshot().isSignedIn) {
+            DkResult.Success(MockData.user)
+        } else {
+            DkResult.Failure(ErrorCode.UNAUTHORIZED)
+        }
+
+    override suspend fun requestAccountDeletion(email: String, reason: String?): DkResult<Unit> {
+        delay(FAKE_LATENCY_MS)
+        // Nothing is stored: the mock has no operator queue to put a request into.
+        return DkResult.Success(Unit)
     }
 
     override suspend fun updatePreferences(preferences: UserPreferences): DkResult<User> =
