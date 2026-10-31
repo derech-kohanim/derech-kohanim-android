@@ -48,7 +48,10 @@ import com.abaye.derechkohanim.service.NavigationForegroundService
 import com.abaye.derechkohanim.ui.screens.nav.Announcement
 import com.abaye.derechkohanim.ui.screens.nav.NavigationState
 import com.abaye.derechkohanim.ui.screens.nav.RouteAlert
+import com.abaye.derechkohanim.data.model.VoiceIds
 import com.abaye.derechkohanim.voice.SpokenInstruction
+import com.abaye.derechkohanim.voice.VoiceCue
+import com.abaye.derechkohanim.voice.VoiceInstruction
 import com.abaye.derechkohanim.voice.VoicePackManager
 import com.abaye.derechkohanim.voice.VoicePhrase
 import com.abaye.derechkohanim.voice.VoicePlayer
@@ -181,6 +184,7 @@ class NavigationEngine @Inject constructor(
                 simulated = simulated,
                 stringency = snapshot.stringency,
                 muted = !snapshot.voiceEnabled,
+                voiceFemale = VoiceIds.isFemale(snapshot.voiceId),
                 status = NavigationStatus.NAVIGATING,
                 currentLocation = geometry.getOrNull(progressIndex) ?: geometry.firstOrNull(),
                 remainingRoutePoints = geometry,
@@ -295,7 +299,11 @@ class NavigationEngine @Inject constructor(
 
     private fun prefetchRouteClips(route: RouteResult) {
         scope.launch {
-            voicePackManager.ensureRouteClips(route.requiredVoiceKeys)
+            // The route's own clips plus every fixed cue (zone, camera, GPS, return-to-route), so
+            // the alerts that matter most when the network drops are already on the device.
+            voicePackManager.ensureRouteClips(
+                (route.requiredVoiceKeys + VoiceCue.ALL_CLIP_KEYS + exitClipKeys(route)).distinct(),
+            )
             _state.value = _state.value.copy(offlineReady = true)
         }
     }
@@ -533,6 +541,7 @@ class NavigationEngine @Inject constructor(
                 bucketMeters = bucket,
                 maneuverAction = maneuver.action,
                 street = maneuver.street,
+                exitNumber = maneuver.exitNumber,
             )
         )
     }
@@ -709,6 +718,9 @@ class NavigationEngine @Inject constructor(
         persistJob?.cancel()
         zonesJob?.cancel()
     }
+
+    private fun exitClipKeys(route: RouteResult): List<String> =
+        route.maneuvers.mapNotNull { VoiceInstruction.exitKey(it.action, it.exitNumber) }
 
     private fun cumulativeDistances(geometry: List<LatLng>): List<Double> {
         if (geometry.isEmpty()) return emptyList()

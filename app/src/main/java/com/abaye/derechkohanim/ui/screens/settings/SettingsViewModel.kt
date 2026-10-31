@@ -14,6 +14,7 @@ import com.abaye.derechkohanim.data.model.Language
 import com.abaye.derechkohanim.data.model.MapProvider
 import com.abaye.derechkohanim.data.model.Stringency
 import com.abaye.derechkohanim.data.model.ThemePreference
+import com.abaye.derechkohanim.data.model.VoiceIds
 import com.abaye.derechkohanim.data.repository.AuthRepository
 import com.abaye.derechkohanim.data.repository.ZoneLayerStatus
 import com.abaye.derechkohanim.data.repository.ZoneLayerStore
@@ -27,6 +28,8 @@ data class SettingsState(
     val stringency: Stringency = Stringency.BASIC,
     val trafficAware: Boolean = true,
     val voiceEnabled: Boolean = true,
+    /** True when the feminine Hebrew voice is chosen. */
+    val voiceFemale: Boolean = false,
     val avoidDangerZones: Boolean = true,
     val avoidTolls: Boolean = false,
     val mapProvider: MapProvider = MapProvider.AUTOMATIC,
@@ -55,6 +58,7 @@ class SettingsViewModel @Inject constructor(
                 stringency = snapshot.stringency,
                 trafficAware = snapshot.trafficAware,
                 voiceEnabled = snapshot.voiceEnabled,
+                voiceFemale = VoiceIds.isFemale(snapshot.voiceId),
                 avoidDangerZones = snapshot.avoidDangerZones,
                 avoidTolls = snapshot.avoidTolls,
                 mapProvider = snapshot.mapProvider,
@@ -85,6 +89,17 @@ class SettingsViewModel @Inject constructor(
 
     fun setVoiceEnabled(enabled: Boolean) {
         viewModelScope.launch { sessionStore.setVoiceEnabled(enabled) }
+    }
+
+    /**
+     * Switches between the masculine and feminine Hebrew voice. The texts differ by gender, so the
+     * pack for the new voice is fetched right away rather than at the next periodic refresh.
+     */
+    fun setVoiceFemale(female: Boolean) {
+        viewModelScope.launch {
+            sessionStore.setVoiceId(if (female) VoiceIds.HE_FEMALE else VoiceIds.HE_MALE)
+            voicePackManager.refreshNow()
+        }
     }
 
     fun setAvoidDangerZones(enabled: Boolean) {

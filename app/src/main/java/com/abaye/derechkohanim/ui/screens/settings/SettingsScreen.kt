@@ -70,6 +70,7 @@ fun SettingsRoute(
         onStringency = viewModel::setStringency,
         onTrafficAware = viewModel::setTrafficAware,
         onVoiceEnabled = viewModel::setVoiceEnabled,
+        onVoiceFemale = viewModel::setVoiceFemale,
         onAvoidDangerZones = viewModel::setAvoidDangerZones,
         onAvoidTolls = viewModel::setAvoidTolls,
         onMapProvider = viewModel::setMapProvider,
@@ -92,6 +93,7 @@ fun SettingsScreen(
     onStringency: (Stringency) -> Unit,
     onTrafficAware: (Boolean) -> Unit,
     onVoiceEnabled: (Boolean) -> Unit,
+    onVoiceFemale: (Boolean) -> Unit = {},
     onAvoidDangerZones: (Boolean) -> Unit,
     onAvoidTolls: (Boolean) -> Unit,
     onMapProvider: (MapProvider) -> Unit = {},
@@ -175,6 +177,19 @@ fun SettingsScreen(
                     checked = state.voiceEnabled,
                     onCheckedChange = onVoiceEnabled,
                 )
+                // Only Hebrew is gendered; English has a single voice.
+                if (state.language == Language.HE) {
+                    ChoiceRow(
+                        label = stringResource(R.string.settings_voice_gender),
+                        supportingText = stringResource(R.string.settings_voice_gender_hint),
+                        options = listOf(
+                            false to stringResource(R.string.settings_voice_male),
+                            true to stringResource(R.string.settings_voice_female),
+                        ),
+                        selected = state.voiceFemale,
+                        onSelect = onVoiceFemale,
+                    )
+                }
                 DkSwitchRow(
                     label = stringResource(R.string.settings_avoid_danger_zones),
                     supportingText = stringResource(R.string.settings_avoid_danger_zones_hint),
@@ -373,6 +388,7 @@ private fun Section(title: String, content: @Composable () -> Unit) {
 @Composable
 private fun <T> ChoiceRow(
     label: String,
+    supportingText: String? = null,
     options: List<Pair<T, String>>,
     selected: T,
     onSelect: (T) -> Unit,
@@ -387,6 +403,13 @@ private fun <T> ChoiceRow(
             style = MaterialTheme.typography.bodyLarge,
             color = DkTheme.colors.text,
         )
+        supportingText?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodySmall,
+                color = DkTheme.colors.textMuted,
+            )
+        }
         Row(
             modifier = Modifier
                 .padding(top = DkTheme.spacing.s2)
@@ -413,7 +436,28 @@ private fun <T> ChoiceRow(
 private fun SettingsPreview() {
     DerechKohanimTheme {
         SettingsScreen(
-            state = SettingsState(stringency = Stringency.TAHARAT, signedIn = true),
+            state = SettingsState(stringency = Stringency.TAHARAT, signedIn = true, voiceFemale = true),
+            onBack = {},
+            onSignIn = {},
+            onLanguage = {},
+            onTheme = {},
+            onStringency = {},
+            onTrafficAware = {},
+            onVoiceEnabled = {},
+            onAvoidDangerZones = {},
+            onAvoidTolls = {},
+            onMapProvider = {},
+            onSignOut = {},
+        )
+    }
+}
+
+@Preview(name = "Settings, English", showBackground = true, locale = "en")
+@Composable
+private fun SettingsPreviewEnglish() {
+    DerechKohanimTheme {
+        SettingsScreen(
+            state = SettingsState(language = Language.EN, stringency = Stringency.BASIC, signedIn = false),
             onBack = {},
             onSignIn = {},
             onLanguage = {},

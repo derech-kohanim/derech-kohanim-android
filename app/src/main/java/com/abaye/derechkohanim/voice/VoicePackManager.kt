@@ -18,6 +18,7 @@ import com.abaye.derechkohanim.core.DkResult
 import com.abaye.derechkohanim.data.local.SessionStore
 import com.abaye.derechkohanim.data.model.Language
 import com.abaye.derechkohanim.data.model.VoiceClip
+import com.abaye.derechkohanim.data.model.VoiceIds
 import com.abaye.derechkohanim.data.model.VoicePackManifest
 import com.abaye.derechkohanim.data.repository.VoiceRepository
 import okhttp3.OkHttpClient
@@ -92,8 +93,10 @@ class VoicePackManager @Inject constructor(
 
     /** Reads the on-disk manifest for the current language and points the player at it. */
     private suspend fun loadCachedIntoPlayer() = mutex.withLock {
-        val language = sessionStore.snapshot().language
-        val cached = readManifest(language) ?: run {
+        val snapshot = sessionStore.snapshot()
+        val language = snapshot.language
+        val voiceId = VoiceIds.normalize(snapshot.voiceId, language)
+        val cached = readManifest(language, voiceId) ?: run {
             _status.value = VoicePackStatus(state = VoicePackState.UNKNOWN)
             return@withLock
         }
@@ -109,13 +112,15 @@ class VoicePackManager @Inject constructor(
 
     /**
      * Fetches the pack manifest with `sinceVersion`, downloads any new or changed clip audio, merges
-     * it into the cache and re-points the player. A language change forces a full re-download.
+     * it into the cache and re-points the player. A language or voice change forces a full
+     * re-download: each voice (masculine, feminine, English) is its own pack with its own texts.
      */
     suspend fun refresh(): DkResult<Unit> = mutex.withLock {
         val snapshot = sessionStore.snapshot()
         val language = snapshot.language
-        val voiceId = snapshot.voiceId
-        val sameLanguage = snapshot.voicePackLanguage == language.tag
+        val voiceId = VoiceIds.normalize(snapshot.voiceId, language)
+        val sameLanguage = snapshot.voicePackLanguage == language.tag &&
+            snapshot.voicePackVoiceId == voiceId
         val since = if (sameLanguage) snapshot.voicePackVersion.takeIf { it > 0 } else null
 
         _status.value = _status.value.copy(state = VoicePackState.DOWNLOADING)
@@ -131,7 +136,7 @@ class VoicePackManager @Inject constructor(
 
         val manifest = (result as DkResult.Success).value
         val existing: MutableMap<String, VoiceClip> = if (sameLanguage) {
-            (readManifest(language)?.clips ?: emptyList())
+            (readManifest(language, voiceId)?.clips ?: emptyList())
                 .filter { File(it.url).exists() }
                 .associateBy { it.key }
                 .toMutableMap()
@@ -139,15 +144,15 @@ class VoicePackManager @Inject constructor(
             mutableMapOf()
         }
 
-        val dir = voiceDir(language)
+        val dir = voiceDir(language, voiceId)
         for (clip in manifest.clips) {
             val local = downloadClip(clip, dir)
             if (local != null) existing[clip.key] = clip.copy(url = local.absolutePath)
         }
 
         val merged = existing.values.toList()
-        writeManifest(manifest.copy(clips = merged), language)
-        sessionStore.setVoicePack(language, manifest.version)
+        writeManifest(manifest.copy(clips = merged), language, voiceId)
+        sessionStore.setVoicePack(language, voiceId, manifest.version)
 
         packClips = merged.associateBy { it.key }.toMutableMap()
         voicePlayer.setPack(merged)
@@ -171,10 +176,11 @@ class VoicePackManager @Inject constructor(
 
         val snapshot = sessionStore.snapshot()
         val language = snapshot.language
-        val resolved = voiceRepository.resolve(language, snapshot.voiceId, missing)
+        val voiceId = VoiceIds.normalize(snapshot.voiceId, language)
+        val resolved = voiceRepository.resolve(language, voiceId, missing)
         if (resolved is DkResult.Failure) return@withLock DkResult.Failure(resolved.code, resolved.cause)
 
-        val dir = voiceDir(language)
+        val dir = voiceDir(language, voiceId)
         (resolved as DkResult.Success).value.clips.forEach { clip ->
             val local = downloadClip(clip, dir)
             if (local != null) packClips[clip.key] = clip.copy(url = local.absolutePath)
@@ -201,23 +207,24 @@ class VoicePackManager @Inject constructor(
         }.getOrNull()
     }
 
-    private fun voiceDir(language: Language): File =
-        File(context.filesDir, "voice/${language.tag}")
+    /** One directory per voice, e.g. voice/he-he-female, so switching voices never mixes clips. */
+    private fun voiceDir(language: Language, voiceId: String): File =
+        File(context.filesDir, "voice/${language.tag}-$voiceId")
 
-    private fun manifestFile(language: Language): File =
-        File(voiceDir(language), "manifest.json")
+    private fun manifestFile(language: Language, voiceId: String): File =
+        File(voiceDir(language, voiceId), "manifest.json")
 
-    private fun readManifest(language: Language): VoicePackManifest? {
-        val file = manifestFile(language)
+    private fun readManifest(language: Language, voiceId: String): VoicePackManifest? {
+        val file = manifestFile(language, voiceId)
         if (!file.exists()) return null
         return runCatching {
             json.decodeFromString(VoicePackManifest.serializer(), file.readText())
         }.getOrNull()
     }
 
-    private fun writeManifest(manifest: VoicePackManifest, language: Language) {
+    private fun writeManifest(manifest: VoicePackManifest, language: Language, voiceId: String) {
         runCatching {
-            val file = manifestFile(language)
+            val file = manifestFile(language, voiceId)
             file.parentFile?.mkdirs()
             file.writeText(json.encodeToString(VoicePackManifest.serializer(), manifest))
         }

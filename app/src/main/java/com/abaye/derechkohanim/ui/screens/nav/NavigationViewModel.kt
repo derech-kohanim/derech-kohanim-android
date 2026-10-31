@@ -14,6 +14,7 @@ import com.abaye.derechkohanim.data.model.RouteResult
 import com.abaye.derechkohanim.data.model.Stringency
 import com.abaye.derechkohanim.nav.NavigationEngine
 import com.abaye.derechkohanim.voice.SpokenInstruction
+import com.abaye.derechkohanim.voice.VoiceCue
 import javax.inject.Inject
 
 /** The banner state for an approaching event, distinct from the on-screen maneuver panel. */
@@ -40,6 +41,10 @@ data class Announcement(
     val street: String? = null,
     val eventType: RouteEventType? = null,
     val eventTitle: String? = null,
+    /** Roundabout exit for a roundabout manoeuvre, spoken as "ביציאה השנייה". */
+    val exitNumber: Int? = null,
+    /** A fixed alert or status message; takes precedence over the manoeuvre and event fields. */
+    val cue: VoiceCue? = null,
 )
 
 data class NavigationState(
@@ -69,6 +74,8 @@ data class NavigationState(
     val stringency: Stringency = Stringency.BASIC,
     val simulated: Boolean = false,
     val muted: Boolean = false,
+    /** True when the feminine Hebrew voice is chosen; the spoken texts follow it. */
+    val voiceFemale: Boolean = false,
     val activeAlert: RouteAlert? = null,
     /**
      * True while the driver has left the route and a new one is being computed (online only).

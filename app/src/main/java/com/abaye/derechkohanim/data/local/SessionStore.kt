@@ -16,6 +16,7 @@ import com.abaye.derechkohanim.data.model.Language
 import com.abaye.derechkohanim.data.model.MapProvider
 import com.abaye.derechkohanim.data.model.Stringency
 import com.abaye.derechkohanim.data.model.ThemePreference
+import com.abaye.derechkohanim.data.model.VoiceIds
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -36,7 +37,8 @@ data class SessionSnapshot(
     /** Avoid danger zones (Area A). On by default. */
     val avoidDangerZones: Boolean = true,
     val voiceEnabled: Boolean = true,
-    val voiceId: String = "he-default",
+    /** Which voice speaks the guidance; see [com.abaye.derechkohanim.data.model.VoiceIds]. */
+    val voiceId: String = VoiceIds.HE_MALE,
     /** Which map renderer to use. AUTOMATIC falls back to OpenFreeMap on NetFree. */
     val mapProvider: MapProvider = MapProvider.AUTOMATIC,
     val acceptedTermsVersion: String? = null,
@@ -45,6 +47,8 @@ data class SessionSnapshot(
     val voicePackVersion: Int = 0,
     /** The language tag the cached voice pack was downloaded for. */
     val voicePackLanguage: String? = null,
+    /** The voice id the cached voice pack was downloaded for. */
+    val voicePackVoiceId: String? = null,
     /** The zone-layer version already downloaded and cached, for [zoneLayerStringency]. */
     val zoneLayerVersion: Int = 0,
     /** The stringency the cached zone layer was downloaded for (wire form). */
@@ -75,6 +79,7 @@ class SessionStore @Inject constructor(
         val onboardingComplete = booleanPreferencesKey("onboarding_complete")
         val voicePackVersion = intPreferencesKey("voice_pack_version")
         val voicePackLanguage = stringPreferencesKey("voice_pack_language")
+        val voicePackVoiceId = stringPreferencesKey("voice_pack_voice_id")
         val zoneLayerVersion = intPreferencesKey("zone_layer_version")
         val zoneLayerStringency = stringPreferencesKey("zone_layer_stringency")
         val dangerLayerVersion = intPreferencesKey("danger_layer_version")
@@ -92,12 +97,16 @@ class SessionStore @Inject constructor(
             avoidTolls = prefs[Keys.avoidTolls] ?: false,
             avoidDangerZones = prefs[Keys.avoidDangerZones] ?: true,
             voiceEnabled = prefs[Keys.voiceEnabled] ?: true,
-            voiceId = prefs[Keys.voiceId] ?: "he-default",
+            // A legacy "he-default" (saved before the voice choice existed) reads as he-male.
+            voiceId = prefs[Keys.voiceId]
+                ?.takeIf { it != VoiceIds.HE_DEFAULT_LEGACY }
+                ?: VoiceIds.HE_MALE,
             mapProvider = prefs[Keys.mapProvider]?.let { enumOrNull<MapProvider>(it) } ?: MapProvider.AUTOMATIC,
             acceptedTermsVersion = prefs[Keys.acceptedTermsVersion],
             onboardingComplete = prefs[Keys.onboardingComplete] ?: false,
             voicePackVersion = prefs[Keys.voicePackVersion] ?: 0,
             voicePackLanguage = prefs[Keys.voicePackLanguage],
+            voicePackVoiceId = prefs[Keys.voicePackVoiceId],
             zoneLayerVersion = prefs[Keys.zoneLayerVersion] ?: 0,
             zoneLayerStringency = prefs[Keys.zoneLayerStringency],
             dangerLayerVersion = prefs[Keys.dangerLayerVersion] ?: 0,
@@ -139,6 +148,10 @@ class SessionStore @Inject constructor(
         it[Keys.voiceEnabled] = enabled
     }
 
+    suspend fun setVoiceId(voiceId: String) = context.dataStore.edit {
+        it[Keys.voiceId] = voiceId
+    }
+
     suspend fun setMapProvider(provider: MapProvider) = context.dataStore.edit {
         it[Keys.mapProvider] = provider.name
     }
@@ -151,10 +164,11 @@ class SessionStore @Inject constructor(
         it[Keys.onboardingComplete] = complete
     }
 
-    /** Records the voice-pack version and language now held in the on-disk cache. */
-    suspend fun setVoicePack(language: Language, version: Int) = context.dataStore.edit {
+    /** Records the voice-pack version, language and voice now held in the on-disk cache. */
+    suspend fun setVoicePack(language: Language, voiceId: String, version: Int) = context.dataStore.edit {
         it[Keys.voicePackVersion] = version
         it[Keys.voicePackLanguage] = language.tag
+        it[Keys.voicePackVoiceId] = voiceId
     }
 
     /** Records the zone-layer version and stringency now held in the on-disk cache. */
