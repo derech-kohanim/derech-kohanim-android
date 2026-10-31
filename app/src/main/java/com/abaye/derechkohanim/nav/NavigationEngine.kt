@@ -857,6 +857,17 @@ class NavigationEngine @Inject constructor(
         voicePlayer.submit(instruction)
     }
 
+    /**
+     * Says the upcoming instruction again, at the current distance, on demand (a tap on the
+     * banner). It bypasses the once-per-rung bookkeeping, which only governs automatic prompts.
+     */
+    fun repeatInstruction() {
+        val route = _state.value.route ?: return
+        val index = (_state.value.currentManeuverIndex + 1).coerceAtMost(route.maneuvers.lastIndex)
+        val maneuver = route.maneuvers.getOrNull(index) ?: return
+        emitManeuver(maneuver, VoicePhrase.snapToRung(_state.value.distanceToManeuverMeters))
+    }
+
     fun toggleMute() {
         val muted = !_state.value.muted
         _state.value = _state.value.copy(muted = muted)

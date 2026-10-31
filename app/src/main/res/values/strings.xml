@@ -485,4 +485,13 @@
     <string name="cd_speedometer">מהירות נוכחית %1$d קמ״ש</string>
     <string name="nav_speeding">חריגה מהמהירות המותרת</string>
 
+    <!-- Driving HUD -->
+    <string name="nav_then_short">ואז</string>
+    <string name="cd_repeat_instruction">השמע שוב את ההנחיה</string>
+    <string name="cd_lanes">נתיבים לפנייה</string>
+    <string name="cd_lane_valid">נתיב מתאים</string>
+    <string name="cd_lane_invalid">נתיב לא מתאים</string>
+    <string name="nav_road_ref">כביש %1$s</string>
+    <string name="cd_mute_long_press">לחיצה ארוכה פותחת את הגדרות הקול</string>
+
 </resources>

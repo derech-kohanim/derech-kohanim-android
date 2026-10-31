@@ -119,6 +119,10 @@ data class NavigationState(
         get() = route?.maneuvers?.getOrNull(currentManeuverIndex)
     val nextManeuver: Maneuver?
         get() = route?.maneuvers?.getOrNull(currentManeuverIndex + 1)
+
+    /** The manoeuvre after [nextManeuver], for the "then" box. */
+    val secondManeuver: Maneuver?
+        get() = route?.maneuvers?.getOrNull(currentManeuverIndex + 2)
     val verifiedClean: Boolean get() = route?.verifiedClean == true
     val hasZoneNearby: Boolean get() = route?.maneuvers?.any { it.zone != null } == true
 }
@@ -149,6 +153,8 @@ class NavigationViewModel @Inject constructor(
     fun speak(instruction: SpokenInstruction) = engine.speak(instruction)
 
     fun toggleMute() = engine.toggleMute()
+
+    fun repeatInstruction() = engine.repeatInstruction()
 
     fun togglePause() = engine.togglePause()
 

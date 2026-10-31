@@ -3,6 +3,7 @@ package com.abaye.derechkohanim.ui.screens.nav
 import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,8 +27,6 @@ import androidx.compose.material.icons.filled.NavigateNext
 import androidx.compose.material.icons.filled.Report
 import androidx.compose.material.icons.filled.ThumbDown
 import androidx.compose.material.icons.filled.ThumbUp
-import androidx.compose.material.icons.filled.VolumeOff
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -40,7 +39,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -61,6 +62,7 @@ import com.abaye.derechkohanim.ui.components.DkBottomSheet
 import com.abaye.derechkohanim.ui.components.DkCard
 import com.abaye.derechkohanim.ui.components.DkTextField
 import com.abaye.derechkohanim.ui.components.DkFloatingIconButton
+import com.abaye.derechkohanim.ui.components.DkIconButton
 import com.abaye.derechkohanim.ui.components.DkMap
 import com.abaye.derechkohanim.ui.components.DkMapController
 import com.abaye.derechkohanim.ui.components.MapControls
@@ -82,6 +84,7 @@ import com.abaye.derechkohanim.ui.theme.DkTheme
 @Composable
 fun NavigationRoute(
     onFinished: () -> Unit,
+    onOpenVoiceSettings: () -> Unit = {},
     viewModel: NavigationViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -111,6 +114,8 @@ fun NavigationRoute(
     NavigationScreen(
         state = state,
         onToggleMute = viewModel::toggleMute,
+        onRepeatInstruction = viewModel::repeatInstruction,
+        onOpenVoiceSettings = onOpenVoiceSettings,
         onTogglePause = viewModel::togglePause,
         onRestart = viewModel::restart,
         onStop = viewModel::stop,
@@ -171,6 +176,8 @@ private fun buildSpokenInstruction(
 fun NavigationScreen(
     state: NavigationState,
     onToggleMute: () -> Unit,
+    onRepeatInstruction: () -> Unit = {},
+    onOpenVoiceSettings: () -> Unit = {},
     onTogglePause: () -> Unit,
     onRestart: () -> Unit,
     onStop: () -> Unit,
@@ -271,7 +278,14 @@ fun NavigationScreen(
             } else if (state.returnToRoute != null) {
                 ReturnToRoutePanel(guidance = state.returnToRoute, offline = state.offline)
             } else {
-                NextManeuverPanel(state = state, onOpenSteps = { showSteps = true })
+                NextManeuverPanel(
+                    state = state,
+                    onRepeat = onRepeatInstruction,
+                    onOpenSteps = { showSteps = true },
+                )
+                state.secondManeuver?.let { second ->
+                    SecondTurnBox(maneuver = second, onClick = onRepeatInstruction)
+                }
                 if (alert != null) {
                     EventAlertBanner(
                         text = eventAlertText(context, alert),
@@ -372,6 +386,8 @@ fun NavigationScreen(
                 onPreviousStep = onPreviousStep,
                 onNextStep = onNextStep,
                 onSetSpeed = onSetSpeed,
+                onOpenVoiceSettings = onOpenVoiceSettings,
+                onOpenSteps = { showSteps = true },
                 // Stopping early offers optional feedback first; the sheet's own actions stop.
                 onStop = { showStopFeedback = true },
                 modifier = Modifier
@@ -415,11 +431,15 @@ fun NavigationScreen(
     }
 }
 
+/**
+ * The next manoeuvre. A tap repeats it aloud (DirGo); the list button opens the step list. Within
+ * [LANES_VISIBLE_METERS] of the turn, the lanes appear under it when the map has them.
+ */
 @Composable
-private fun NextManeuverPanel(state: NavigationState, onOpenSteps: () -> Unit) {
+private fun NextManeuverPanel(state: NavigationState, onRepeat: () -> Unit, onOpenSteps: () -> Unit) {
     val context = LocalContext.current
     val maneuver = state.nextManeuver ?: state.currentManeuver
-    DkCard(color = DkTheme.colors.surfaceOverlay, onClick = onOpenSteps) {
+    DkCard(color = DkTheme.colors.surfaceOverlay, onClick = onRepeat) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (maneuver != null) {
                 val glyph = maneuverGlyph(maneuver.action)
@@ -457,10 +477,18 @@ private fun NextManeuverPanel(state: NavigationState, onOpenSteps: () -> Unit) {
                     }
                 }
             }
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.List,
+            DkIconButton(
+                icon = Icons.AutoMirrored.Filled.List,
                 contentDescription = stringResource(R.string.cd_open_steps),
+                onClick = onOpenSteps,
                 tint = DkTheme.colors.textMuted,
+            )
+        }
+        val lanes = maneuver?.lanes
+        if (!lanes.isNullOrEmpty() && state.distanceToManeuverMeters <= LANES_VISIBLE_METERS) {
+            LanesRow(
+                lanes = lanes,
+                modifier = Modifier.padding(top = DkTheme.spacing.s2),
             )
         }
         Row(
@@ -616,11 +644,23 @@ private fun BottomBar(
     onPreviousStep: () -> Unit,
     onNextStep: () -> Unit,
     onSetSpeed: (Int) -> Unit,
+    onOpenVoiceSettings: () -> Unit,
+    onOpenSteps: () -> Unit,
     onStop: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s3)) {
+    // Dragging the bottom card upwards opens the route steps, like pulling up a sheet.
+    val dragThreshold = with(LocalDensity.current) { DkTheme.spacing.s8.toPx() }
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s3),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        // The road being driven, as a floating pill over the bottom card.
+        state.currentManeuver?.let { current ->
+            StreetPill(roadRef = current.roadRef, street = current.street)
+        }
         if (state.simulated) {
             SimulationBar(
                 paused = state.simulationPaused,
@@ -633,7 +673,19 @@ private fun BottomBar(
                 onSetSpeed = onSetSpeed,
             )
         }
-        DkCard(color = DkTheme.colors.surfaceOverlay) {
+        DkCard(
+            color = DkTheme.colors.surfaceOverlay,
+            modifier = Modifier
+                .fillMaxWidth()
+                .pointerInput(Unit) {
+                    var dragged = 0f
+                    detectVerticalDragGestures(
+                        onDragStart = { dragged = 0f },
+                        onVerticalDrag = { _, delta -> dragged += delta },
+                        onDragEnd = { if (dragged < -dragThreshold) onOpenSteps() },
+                    )
+                },
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -659,12 +711,10 @@ private fun BottomBar(
                         )
                     }
                 }
-                DkFloatingIconButton(
-                    icon = if (state.muted) Icons.Filled.VolumeOff else Icons.Filled.VolumeUp,
-                    contentDescription = stringResource(
-                        if (state.muted) R.string.nav_unmute else R.string.nav_mute
-                    ),
-                    onClick = onToggleMute,
+                MuteButton(
+                    muted = state.muted,
+                    onToggle = onToggleMute,
+                    onLongPress = onOpenVoiceSettings,
                 )
                 Spacer(Modifier.width(DkTheme.spacing.s2))
                 DkButton(

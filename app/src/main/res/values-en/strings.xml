@@ -484,4 +484,13 @@
     <string name="cd_speedometer">Current speed %1$d km/h</string>
     <string name="nav_speeding">Over the speed limit</string>
 
+    <!-- Driving HUD -->
+    <string name="nav_then_short">Then</string>
+    <string name="cd_repeat_instruction">Repeat the instruction</string>
+    <string name="cd_lanes">Lanes for the turn</string>
+    <string name="cd_lane_valid">Recommended lane</string>
+    <string name="cd_lane_invalid">Other lane</string>
+    <string name="nav_road_ref">Road %1$s</string>
+    <string name="cd_mute_long_press">Long press opens the voice settings</string>
+
 </resources>

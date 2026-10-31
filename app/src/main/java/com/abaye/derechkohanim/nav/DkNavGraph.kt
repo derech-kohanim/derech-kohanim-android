@@ -171,6 +171,7 @@ fun DkNavGraph(
 
         composable(Routes.NAVIGATION) {
             NavigationRoute(
+                onOpenVoiceSettings = { navController.navigate(Routes.SETTINGS) },
                 onFinished = {
                     navController.navigate(Routes.HOME) {
                         popUpTo(Routes.HOME) { inclusive = true }
