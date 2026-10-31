@@ -293,6 +293,8 @@ private fun markerHue(event: RouteEvent): Float = when (event.type) {
     RouteEventType.ACCIDENT -> BitmapDescriptorFactory.HUE_ORANGE
     RouteEventType.HAZARD -> BitmapDescriptorFactory.HUE_YELLOW
     RouteEventType.CLOSURE -> BitmapDescriptorFactory.HUE_VIOLET
+    RouteEventType.SPEED_CAMERA -> BitmapDescriptorFactory.HUE_AZURE
+    RouteEventType.RAIL_CROSSING -> BitmapDescriptorFactory.HUE_ROSE
 }
 
 /** How long Google Maps has to report loaded before it is judged failed for the session. */

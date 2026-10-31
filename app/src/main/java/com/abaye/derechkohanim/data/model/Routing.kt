@@ -1,7 +1,13 @@
 package com.abaye.derechkohanim.data.model
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 
 /** Mirrors derech-kohanim-shared/src/types/routing.ts. */
 
@@ -88,6 +94,70 @@ data class ManeuverZone(
 )
 
 /**
+ * What a lane's road markings allow, from the OSM `turn:lanes` vocabulary. Decoded leniently:
+ * a value this client does not know becomes [NONE] instead of failing the whole route.
+ */
+@Serializable(with = LaneIndicationSerializer::class)
+enum class LaneIndication(val wire: String) {
+    LEFT("left"),
+    SLIGHT_LEFT("slight_left"),
+    SHARP_LEFT("sharp_left"),
+    THROUGH("through"),
+    RIGHT("right"),
+    SLIGHT_RIGHT("slight_right"),
+    SHARP_RIGHT("sharp_right"),
+    REVERSE("reverse"),
+    MERGE_TO_LEFT("merge_to_left"),
+    MERGE_TO_RIGHT("merge_to_right"),
+    NONE("none"),
+    ;
+
+    companion object {
+        fun fromWire(value: String): LaneIndication = entries.firstOrNull { it.wire == value } ?: NONE
+    }
+}
+
+object LaneIndicationSerializer : KSerializer<LaneIndication> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("LaneIndication", PrimitiveKind.STRING)
+
+    override fun serialize(encoder: Encoder, value: LaneIndication) = encoder.encodeString(value.wire)
+
+    override fun deserialize(decoder: Decoder): LaneIndication =
+        LaneIndication.fromWire(decoder.decodeString())
+}
+
+/** One lane at the approach to a manoeuvre. */
+@Serializable
+data class Lane(
+    val indications: List<LaneIndication> = emptyList(),
+    /** True when this lane can be used to perform the manoeuvre. */
+    val valid: Boolean = false,
+)
+
+@Serializable
+enum class SpeedLimitSource {
+    @SerialName("sign") SIGN,
+    @SerialName("estimated") ESTIMATED,
+    @SerialName("urban_default") URBAN_DEFAULT,
+}
+
+/**
+ * A stretch of the route with one speed limit, by vertex index (inclusive [fromIndex],
+ * exclusive [toIndex]). Segments cover the geometry contiguously and in order.
+ */
+@Serializable
+data class SpeedLimitSegment(
+    val fromIndex: Int,
+    val toIndex: Int,
+    /** Limit in km/h, or null when nothing is known for this stretch. */
+    val kmh: Int? = null,
+    val source: SpeedLimitSource = SpeedLimitSource.ESTIMATED,
+    /** True when the stretch lies in a built-up area. */
+    val urban: Boolean? = null,
+)
+
+/**
  * One step. `voiceKeys` is the ordered clip list needed to speak it, so the client can
  * preload exactly what this route requires before departure.
  */
@@ -102,6 +172,12 @@ data class Maneuver(
     val distanceMeters: Double,
     val geometryIndex: Int,
     val street: String? = null,
+    /** Road reference number of the road this step continues on, e.g. "1" or "443". */
+    val roadRef: String? = null,
+    /** Roundabout exit to take, 1-based. Only on roundabout manoeuvres. */
+    val exitNumber: Int? = null,
+    /** Lanes at the approach, left to right in the driving direction. Null when unknown. */
+    val lanes: List<Lane>? = null,
     val zone: ManeuverZone? = null,
     val voiceKeys: List<String> = emptyList(),
 )
@@ -150,8 +226,14 @@ data class RouteResult(
     /** Returned distance divided by the direct route. 1 means avoidance cost nothing. */
     val detourRatio: Double? = null,
     val requiredVoiceKeys: List<String> = emptyList(),
+    /** Speed limits along the geometry. Null when the shape engine has no speed data. */
+    val speedLimits: List<SpeedLimitSegment>? = null,
     val debug: RouteDebug? = null,
-)
+) {
+    /** The limit segment covering geometry vertex [index], or null when none does. */
+    fun speedLimitAt(index: Int): SpeedLimitSegment? =
+        speedLimits?.firstOrNull { index >= it.fromIndex && index < it.toIndex }
+}
 
 /**
  * Result of a compute: the chosen route plus up to two alternatives, plus optionally the

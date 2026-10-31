@@ -10,10 +10,12 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalPolice
 import androidx.compose.material.icons.filled.LocationCity
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Traffic
+import androidx.compose.material.icons.filled.Train
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.runtime.Composable
@@ -65,7 +67,9 @@ fun maneuverGlyph(action: String): ManeuverGlyph = when (action) {
     "keep_left" -> ManeuverGlyph(Icons.Filled.ArrowUpward, -25f)
     "merge" -> ManeuverGlyph(Icons.Filled.ArrowUpward, 30f)
     "uturn" -> ManeuverGlyph(Icons.Filled.Refresh, 0f)
-    "roundabout" -> ManeuverGlyph(Icons.Filled.Refresh, 0f)
+    "roundabout", "roundabout_enter", "roundabout_exit" -> ManeuverGlyph(Icons.Filled.Refresh, 0f)
+    "ramp_right" -> ManeuverGlyph(Icons.Filled.ArrowUpward, 30f)
+    "ramp_left" -> ManeuverGlyph(Icons.Filled.ArrowUpward, -30f)
     "depart" -> ManeuverGlyph(Icons.Filled.MyLocation, 0f)
     "arrive" -> ManeuverGlyph(Icons.Filled.Flag, 0f)
     "continue" -> ManeuverGlyph(Icons.Filled.ArrowUpward, 0f)
@@ -84,7 +88,7 @@ fun maneuverLabelRes(action: String): Int = when (action) {
     "keep_right" -> R.string.maneuver_keep_right
     "continue" -> R.string.maneuver_continue
     "uturn" -> R.string.maneuver_uturn
-    "roundabout" -> R.string.maneuver_roundabout
+    "roundabout", "roundabout_enter" -> R.string.maneuver_roundabout
     "merge" -> R.string.maneuver_merge
     "arrive" -> R.string.maneuver_arrive
     else -> R.string.maneuver_unknown
@@ -99,6 +103,8 @@ fun eventIcon(type: com.abaye.derechkohanim.data.model.RouteEventType): ImageVec
     com.abaye.derechkohanim.data.model.RouteEventType.ACCIDENT -> Icons.Filled.CarCrash
     com.abaye.derechkohanim.data.model.RouteEventType.HAZARD -> Icons.Filled.Warning
     com.abaye.derechkohanim.data.model.RouteEventType.CLOSURE -> Icons.Filled.Block
+    com.abaye.derechkohanim.data.model.RouteEventType.SPEED_CAMERA -> Icons.Filled.PhotoCamera
+    com.abaye.derechkohanim.data.model.RouteEventType.RAIL_CROSSING -> Icons.Filled.Train
 }
 
 fun eventLabelRes(type: com.abaye.derechkohanim.data.model.RouteEventType): Int = when (type) {
@@ -108,4 +114,6 @@ fun eventLabelRes(type: com.abaye.derechkohanim.data.model.RouteEventType): Int 
     com.abaye.derechkohanim.data.model.RouteEventType.ACCIDENT -> R.string.report_accident
     com.abaye.derechkohanim.data.model.RouteEventType.HAZARD -> R.string.report_hazard
     com.abaye.derechkohanim.data.model.RouteEventType.CLOSURE -> R.string.report_road_closure
+    com.abaye.derechkohanim.data.model.RouteEventType.SPEED_CAMERA -> R.string.event_speed_camera
+    com.abaye.derechkohanim.data.model.RouteEventType.RAIL_CROSSING -> R.string.event_rail_crossing
 }

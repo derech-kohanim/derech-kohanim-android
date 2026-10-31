@@ -396,4 +396,9 @@
     <string name="delete_account_sent_title">הבקשה נרשמה</string>
     <string name="delete_account_sent_body">הבקשה התקבלה ותטופל. אם נצטרך לאמת את הזהות, נפנה לכתובת שמסרת.</string>
     <string name="delete_account_failed">לא הצלחנו לרשום את הבקשה, אפשר לנסות שוב</string>
+    <!-- Road alerts from the map -->
+    <string name="event_speed_camera">מצלמת מהירות</string>
+    <string name="event_rail_crossing">מפגש מסילת ברזל</string>
+    <string name="event_speed_camera_limit">מצלמת מהירות, %1$d קמ״ש</string>
+
 </resources>

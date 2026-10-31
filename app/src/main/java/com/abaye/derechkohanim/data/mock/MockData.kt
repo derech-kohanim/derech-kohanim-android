@@ -5,6 +5,8 @@ import com.abaye.derechkohanim.data.model.AuthProvider
 import com.abaye.derechkohanim.data.model.AuthResponse
 import com.abaye.derechkohanim.data.model.AuthTokens
 import com.abaye.derechkohanim.data.model.GeoJsonLineString
+import com.abaye.derechkohanim.data.model.Lane
+import com.abaye.derechkohanim.data.model.LaneIndication
 import com.abaye.derechkohanim.data.model.Language
 import com.abaye.derechkohanim.data.model.LatLng
 import com.abaye.derechkohanim.data.model.Maneuver
@@ -26,6 +28,8 @@ import com.abaye.derechkohanim.data.model.RouteResult
 import com.abaye.derechkohanim.data.model.RoutingEngine
 import com.abaye.derechkohanim.data.model.points
 import com.abaye.derechkohanim.data.model.SavedPlace
+import com.abaye.derechkohanim.data.model.SpeedLimitSegment
+import com.abaye.derechkohanim.data.model.SpeedLimitSource
 import com.abaye.derechkohanim.data.model.Stringency
 import com.abaye.derechkohanim.data.model.ThemePreference
 import com.abaye.derechkohanim.data.model.User
@@ -162,7 +166,7 @@ object MockData {
             stringency = Stringency.TAHARAT,
             trafficAware = true,
             voiceEnabled = true,
-            voiceId = "he-default",
+            voiceId = "he-male",
         ),
         acceptedTermsVersion = TERMS_VERSION,
         createdAt = "2026-01-04T08:00:00Z",
@@ -215,9 +219,37 @@ object MockData {
             requiredVoiceKeys = listOf(
                 "prefix.in", "dist.500m", "dist.200m", "dist.50m",
                 "action.turn_right", "action.turn_left", "action.continue", "action.arrive",
-                "zone.ahead",
+                "action.roundabout_enter", "exit.2", "zone.ahead",
+                "alert.speed_camera", "alert.rail_crossing", "alert.speeding",
+                "misc.gps_lost", "misc.gps_recovered", "misc.back_on_route", "misc.return_to_route",
             ),
+            speedLimits = speedLimits(geometry.size),
         )
+    }
+
+    /**
+     * Contiguous limit segments over the mock geometry: an urban start, a signed intercity
+     * stretch, an unknown gap and an urban end, so every display state is exercised.
+     */
+    private fun speedLimits(vertexCount: Int): List<SpeedLimitSegment> {
+        val n = vertexCount
+        val cuts = listOf(0, n / 5, n / 2, (n * 3) / 5, (n * 4) / 5, n)
+        val specs = listOf(
+            Triple(50, SpeedLimitSource.URBAN_DEFAULT, true),
+            Triple(90, SpeedLimitSource.SIGN, false),
+            Triple(null, SpeedLimitSource.ESTIMATED, false),
+            Triple(110, SpeedLimitSource.SIGN, false),
+            Triple(50, SpeedLimitSource.SIGN, true),
+        )
+        return specs.mapIndexed { i, (kmh, source, urban) ->
+            SpeedLimitSegment(
+                fromIndex = cuts[i],
+                toIndex = cuts[i + 1],
+                kmh = kmh,
+                source = source,
+                urban = urban,
+            )
+        }
     }
 
     /**
@@ -276,8 +308,9 @@ object MockData {
 
     private fun maneuvers(geometry: List<LatLng>): List<Maneuver> {
         val picks = listOf(0, 8, 18, 30, 40, geometry.lastIndex)
-        val actions = listOf("depart", "turn_right", "continue", "turn_left", "continue", "arrive")
-        val streets = listOf("שדרות הרצל", "רחוב הרב קוק", "כביש 1", "רחוב רבי עקיבא", "כביש 4", null)
+        val actions = listOf("depart", "turn_right", "roundabout_enter", "turn_left", "continue", "arrive")
+        val streets = listOf("שדרות הרצל", "רחוב הרב קוק", "דרך בגין", "רחוב רבי עקיבא", null, null)
+        val roadRefs = listOf(null, null, "1", null, "4", null)
         return picks.mapIndexed { i, index ->
             Maneuver(
                 id = "mock-maneuver-$i",
@@ -287,6 +320,22 @@ object MockData {
                 distanceMeters = if (i == 0) 0.0 else 420.0 * i,
                 geometryIndex = index,
                 street = streets[i],
+                roadRef = roadRefs[i],
+                exitNumber = if (actions[i] == "roundabout_enter") 2 else null,
+                lanes = when (actions[i]) {
+                    "turn_right" -> listOf(
+                        Lane(listOf(LaneIndication.LEFT), valid = false),
+                        Lane(listOf(LaneIndication.THROUGH), valid = false),
+                        Lane(listOf(LaneIndication.THROUGH, LaneIndication.RIGHT), valid = true),
+                        Lane(listOf(LaneIndication.RIGHT), valid = true),
+                    )
+                    "turn_left" -> listOf(
+                        Lane(listOf(LaneIndication.LEFT), valid = true),
+                        Lane(listOf(LaneIndication.THROUGH), valid = false),
+                        Lane(listOf(LaneIndication.NONE), valid = false),
+                    )
+                    else -> null
+                },
                 zone = if (i == 3) {
                     ManeuverZone(
                         name = "הר המנוחות",
@@ -299,7 +348,12 @@ object MockData {
                 } else {
                     null
                 },
-                voiceKeys = listOf("prefix.in", "dist.200m", "action.${actions[i]}"),
+                voiceKeys = buildList {
+                    add("prefix.in")
+                    add("dist.200m")
+                    add("action.${actions[i]}")
+                    if (actions[i] == "roundabout_enter") add("exit.2")
+                },
             )
         }
     }
@@ -436,9 +490,28 @@ object MockData {
             )
         }
 
+        // Fixed road features from the map (OSM), not community reports: one camera and one
+        // level crossing, placed on the route so the approach alerts can be exercised.
+        val cameraIndex = (geometry.size * 0.35).toInt().coerceIn(0, geometry.lastIndex)
+        val crossingIndex = (geometry.size * 0.7).toInt().coerceIn(0, geometry.lastIndex)
+        events += RouteEvent(
+            id = "camera-mock",
+            type = RouteEventType.SPEED_CAMERA,
+            location = geometry[cameraIndex],
+            routeDistanceMeters = cumulative[cameraIndex],
+            maxSpeedKmh = 90,
+        )
+        events += RouteEvent(
+            id = "rail-mock",
+            type = RouteEventType.RAIL_CROSSING,
+            location = geometry[crossingIndex],
+            routeDistanceMeters = cumulative[crossingIndex],
+            guarded = true,
+        )
+
         return RouteEventBundle(
             routeId = route.id,
-            events = events,
+            events = events.sortedBy { it.routeDistanceMeters },
         )
     }
 

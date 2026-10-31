@@ -59,5 +59,29 @@ data class VoiceResolveResponse(
     val missing: List<String> = emptyList(),
 )
 
+/**
+ * The selectable voices. Hebrew instructions are gendered, so the id decides both the
+ * synthesized voice and the grammatical form of the text. `he-default` is a legacy alias of
+ * `he-male`.
+ */
+object VoiceIds {
+    const val HE_MALE = "he-male"
+    const val HE_FEMALE = "he-female"
+    const val EN_DEFAULT = "en-default"
+    const val HE_DEFAULT_LEGACY = "he-default"
+
+    /** Maps a stored id onto a current one; legacy and unknown Hebrew ids become [HE_MALE]. */
+    fun normalize(id: String?, language: Language): String = when {
+        language == Language.EN -> EN_DEFAULT
+        id == HE_FEMALE -> HE_FEMALE
+        else -> HE_MALE
+    }
+
+    fun isFemale(id: String?): Boolean = id == HE_FEMALE
+}
+
+/** Highest roundabout exit that has its own ordinal clip (`exit.1` .. `exit.8`). */
+const val ROUNDABOUT_EXIT_KEYS_MAX = 8
+
 /** Announced distances are a closed ladder, so the clip library stays small. */
 val DISTANCE_LADDER_METERS = listOf(2000, 1000, 800, 500, 300, 200, 100, 50, 0)

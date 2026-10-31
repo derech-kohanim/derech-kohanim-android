@@ -568,6 +568,8 @@ private fun eventColor(event: RouteEvent, colors: DkColors): Color = when (event
     RouteEventType.ACCIDENT -> colors.warning
     RouteEventType.HAZARD -> colors.zoneMachmirim
     RouteEventType.CLOSURE -> colors.zoneDanger
+    RouteEventType.SPEED_CAMERA -> colors.accent
+    RouteEventType.RAIL_CROSSING -> colors.warning
 }
 
 /** MapLibre parses an "rgba(r,g,b,a)" string via Expression.toColor; keeps per-feature alpha. */

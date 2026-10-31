@@ -89,5 +89,7 @@ object VoicePhrase {
         RouteEventType.ACCIDENT -> R.string.report_accident
         RouteEventType.HAZARD -> R.string.report_hazard
         RouteEventType.CLOSURE -> R.string.report_road_closure
+        RouteEventType.SPEED_CAMERA -> R.string.event_speed_camera
+        RouteEventType.RAIL_CROSSING -> R.string.event_rail_crossing
     }
 }

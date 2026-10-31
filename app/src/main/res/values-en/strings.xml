@@ -396,4 +396,9 @@
     <string name="delete_account_sent_title">Request recorded</string>
     <string name="delete_account_sent_body">The request has been received and will be handled. If we need to verify your identity we will write to the address you gave.</string>
     <string name="delete_account_failed">The request could not be recorded, please try again</string>
+    <!-- Road alerts from the map -->
+    <string name="event_speed_camera">Speed camera</string>
+    <string name="event_rail_crossing">Railway crossing</string>
+    <string name="event_speed_camera_limit">Speed camera, %1$d km/h</string>
+
 </resources>

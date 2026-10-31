@@ -13,6 +13,10 @@ enum class RouteEventType {
     @SerialName("accident") ACCIDENT,
     @SerialName("hazard") HAZARD,
     @SerialName("closure") CLOSURE,
+    /** Fixed enforcement camera, from OpenStreetMap. Not user-reportable. */
+    @SerialName("speed_camera") SPEED_CAMERA,
+    /** Level crossing with a railway, from OpenStreetMap. Not user-reportable. */
+    @SerialName("rail_crossing") RAIL_CROSSING,
 }
 
 @Serializable
@@ -35,8 +39,16 @@ data class RouteEvent(
     /** True when a driver raised this report rather than it being seeded. */
     val reportedByUser: Boolean? = null,
     val createdAt: String? = null,
+    /** Enforced limit in km/h, for a speed camera when the map records it. */
+    val maxSpeedKmh: Int? = null,
+    /** True for a level crossing guarded by barriers or gates. */
+    val guarded: Boolean? = null,
 ) {
     val isZone: Boolean get() = type == RouteEventType.ZONE
+
+    /** Fixed road features from the map, as opposed to live reports. */
+    val isRoadAlert: Boolean
+        get() = type == RouteEventType.SPEED_CAMERA || type == RouteEventType.RAIL_CROSSING
 }
 
 @Serializable
