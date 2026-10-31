@@ -106,6 +106,12 @@ class RemoteAuthRepository @Inject constructor(
             sessionStore.setTheme(value.user.preferences.theme)
             sessionStore.setTrafficAware(value.user.preferences.trafficAware)
             sessionStore.setVoiceEnabled(value.user.preferences.voiceEnabled)
+            // The account's voice gender follows the user to a new device; English has one voice.
+            val female = com.abaye.derechkohanim.data.model.VoiceIds.isFemale(value.user.preferences.voiceId)
+            sessionStore.setVoiceId(
+                if (female) com.abaye.derechkohanim.data.model.VoiceIds.HE_FEMALE
+                else com.abaye.derechkohanim.data.model.VoiceIds.HE_MALE,
+            )
             value.user.acceptedTermsVersion?.let { sessionStore.setAcceptedTermsVersion(it) }
         }
         return map { it.user }
