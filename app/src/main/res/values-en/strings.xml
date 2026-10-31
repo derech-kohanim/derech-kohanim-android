@@ -479,4 +479,9 @@
     <string name="nav_return_to_route_offline">No network, a new route cannot be computed</string>
     <string name="cd_return_to_route_arrow">Direction back to the route</string>
 
+    <!-- Speed -->
+    <string name="cd_speed_limit">Speed limit %1$d km/h</string>
+    <string name="cd_speedometer">Current speed %1$d km/h</string>
+    <string name="nav_speeding">Over the speed limit</string>
+
 </resources>

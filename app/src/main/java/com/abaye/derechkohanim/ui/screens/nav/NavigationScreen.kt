@@ -2,6 +2,7 @@ package com.abaye.derechkohanim.ui.screens.nav
 
 import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -327,7 +328,11 @@ fun NavigationScreen(
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2),
         ) {
-            SpeedPill(text = Formatters.speed(context, state.speedMps))
+            SpeedCluster(
+                speedKmh = speedKmh(state.speedMps),
+                limitKmh = state.speedLimitKmh,
+                speeding = state.speeding,
+            )
             // In-drive reporting is temporarily hidden behind REPORTING_ENABLED. The ReportSheet
             // and its handling are kept intact so it can be re-enabled by flipping the flag.
             if (REPORTING_ENABLED) {
@@ -337,6 +342,15 @@ fun NavigationScreen(
                     onClick = { showReport = true },
                 )
             }
+        }
+
+        // A red frame around the whole screen while speeding: visible in peripheral vision.
+        if (state.speeding) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .border(DkTheme.spacing.s2, DkTheme.colors.danger),
+            )
         }
 
         if (state.status == NavigationStatus.ARRIVED) {
@@ -590,17 +604,6 @@ private fun EventAlertBanner(text: String, kind: RouteEventType) {
                 modifier = Modifier.padding(start = DkTheme.spacing.s3),
             )
         }
-    }
-}
-
-@Composable
-private fun SpeedPill(text: String) {
-    DkCard(color = DkTheme.colors.surfaceOverlay) {
-        Text(
-            text = text,
-            style = DkNavTextStyles.stat,
-            color = DkTheme.colors.text,
-        )
     }
 }
 
@@ -987,6 +990,7 @@ private fun NavigationPreview() {
                 distanceRemainingMeters = 4_800.0,
                 durationRemainingSeconds = 620.0,
                 speedMps = 14.0,
+                speedLimitKmh = 50,
                 currentLocation = MockData.currentLocation,
                 simulated = true,
             ),

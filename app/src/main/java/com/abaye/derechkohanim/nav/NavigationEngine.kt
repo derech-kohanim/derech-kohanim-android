@@ -55,6 +55,7 @@ import com.abaye.derechkohanim.ui.screens.nav.Announcement
 import com.abaye.derechkohanim.ui.screens.nav.NavigationState
 import com.abaye.derechkohanim.ui.screens.nav.ReturnGuidance
 import com.abaye.derechkohanim.ui.screens.nav.RouteAlert
+import com.abaye.derechkohanim.ui.screens.nav.speedKmh
 import com.abaye.derechkohanim.data.model.VoiceIds
 import com.abaye.derechkohanim.voice.SpokenInstruction
 import com.abaye.derechkohanim.voice.VoiceCue
@@ -143,6 +144,9 @@ class NavigationEngine @Inject constructor(
     private val gpsThrottle = AlertThrottle(GPS_REPEAT_MS, 0.0)
     /** Cameras and level crossings: one announcement per feature, even across reroutes. */
     private val roadAlertThrottle = AlertThrottle(ROAD_ALERT_REPEAT_MS, ROAD_ALERT_REPEAT_METERS)
+    private val speedingThrottle = AlertThrottle(SPEEDING_REPEAT_MS, SPEEDING_REPEAT_METERS)
+    /** When the current stretch over the limit began (elapsed realtime), 0 when not over it. */
+    private var overLimitSinceMs = 0L
 
     private val announcedManeuverRungs = mutableSetOf<String>()
     private val announcedEvents = mutableSetOf<String>()
@@ -208,6 +212,8 @@ class NavigationEngine @Inject constructor(
         returnThrottle.reset()
         gpsThrottle.reset()
         roadAlertThrottle.reset()
+        speedingThrottle.reset()
+        overLimitSinceMs = 0L
 
         scope.launch {
             val snapshot = sessionStore.snapshot()
@@ -630,8 +636,13 @@ class NavigationEngine @Inject constructor(
             0.0
         }
 
+        val limit = route.speedLimitAt(progressIndex)?.kmh
+        val speeding = updateSpeeding(speedKmh(speed), limit, location)
+
         _state.value = _state.value.copy(
             currentLocation = location,
+            speedLimitKmh = limit,
+            speeding = speeding,
             remainingRoutePoints = remainingFrom(location),
             remainingTraffic = remainingTrafficFrom(),
             headingDegrees = heading,
@@ -708,6 +719,36 @@ class NavigationEngine @Inject constructor(
                 cue = cue,
             )
         )
+    }
+
+    /**
+     * Over the limit by more than [SPEEDING_MARGIN_KMH] for [SPEEDING_SUSTAIN_MS] counts as
+     * speeding (a brief overshoot or a GPS spike does not); it ends once back within
+     * [SPEEDING_CLEAR_MARGIN_KMH]. The spoken warning is throttled. A simulated drive has no real
+     * speed, so it never speeds.
+     */
+    private fun updateSpeeding(kmh: Int, limit: Int?, location: LatLng): Boolean {
+        if (limit == null || _state.value.simulated) {
+            overLimitSinceMs = 0L
+            return false
+        }
+        val now = SystemClock.elapsedRealtime()
+        return when {
+            kmh > limit + SPEEDING_MARGIN_KMH -> {
+                if (overLimitSinceMs == 0L) overLimitSinceMs = now
+                val sustained = now - overLimitSinceMs >= SPEEDING_SUSTAIN_MS
+                if (sustained && !_state.value.speeding && speedingThrottle.tryFire("speeding", location)) {
+                    emitCue(VoiceCue.SPEEDING, bucketMeters = 0, urgent = false)
+                }
+                sustained || _state.value.speeding
+            }
+            kmh <= limit + SPEEDING_CLEAR_MARGIN_KMH -> {
+                overLimitSinceMs = 0L
+                false
+            }
+            // Between the two margins: keep whatever state we were in (hysteresis).
+            else -> _state.value.speeding
+        }
     }
 
     private fun announceManeuver(index: Int, maneuver: Maneuver?, distance: Double) {
@@ -957,6 +998,11 @@ class NavigationEngine @Inject constructor(
         const val RAIL_CROSSING_TRIGGER_METERS = 300.0
         const val ROAD_ALERT_REPEAT_MS = 5 * 60_000L
         const val ROAD_ALERT_REPEAT_METERS = 1_000.0
+        const val SPEEDING_MARGIN_KMH = 5
+        const val SPEEDING_CLEAR_MARGIN_KMH = 2
+        const val SPEEDING_SUSTAIN_MS = 3_000L
+        const val SPEEDING_REPEAT_MS = 60_000L
+        const val SPEEDING_REPEAT_METERS = 500.0
         const val MIN_HEADING_MOVE_METERS = 3.0
         const val LOOK_BACK_STEPS = 2
         const val OFF_ROUTE_THRESHOLD_METERS = 45.0

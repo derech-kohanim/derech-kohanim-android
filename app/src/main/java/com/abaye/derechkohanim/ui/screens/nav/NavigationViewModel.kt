@@ -87,6 +87,10 @@ data class NavigationState(
     val dangerZones: List<com.abaye.derechkohanim.data.model.DangerZoneFeature> = emptyList(),
     val headingDegrees: Float = 0f,
     val speedMps: Double = 0.0,
+    /** The speed limit where the driver is now, from the route's limit segments; null if unknown. */
+    val speedLimitKmh: Int? = null,
+    /** True while the driver has been over [speedLimitKmh] by the margin for a few seconds. */
+    val speeding: Boolean = false,
     val stringency: Stringency = Stringency.BASIC,
     val simulated: Boolean = false,
     val muted: Boolean = false,

@@ -480,4 +480,9 @@
     <string name="nav_return_to_route_offline">אין רשת, לא ניתן לחשב מסלול חדש</string>
     <string name="cd_return_to_route_arrow">כיוון חזרה למסלול</string>
 
+    <!-- Speed -->
+    <string name="cd_speed_limit">מהירות מותרת %1$d קמ״ש</string>
+    <string name="cd_speedometer">מהירות נוכחית %1$d קמ״ש</string>
+    <string name="nav_speeding">חריגה מהמהירות המותרת</string>
+
 </resources>
