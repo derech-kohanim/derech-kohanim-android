@@ -37,7 +37,12 @@ import com.abaye.derechkohanim.data.model.RouteResult
 import com.abaye.derechkohanim.data.model.TrafficSegment
 import com.abaye.derechkohanim.data.model.TravelMode
 import com.abaye.derechkohanim.data.model.points
+import com.abaye.derechkohanim.core.AlertThrottle
 import com.abaye.derechkohanim.core.ZoneFilter
+import com.abaye.derechkohanim.core.ZoneTripwire
+import com.abaye.derechkohanim.data.model.DangerZoneFeature
+import com.abaye.derechkohanim.data.model.ManeuverZone
+import com.abaye.derechkohanim.data.model.ZoneFeature
 import com.abaye.derechkohanim.data.repository.RouteEventsRepository
 import com.abaye.derechkohanim.data.repository.RoutingRepository
 import com.abaye.derechkohanim.data.repository.ZoneLayerStore
@@ -123,6 +128,16 @@ class NavigationEngine @Inject constructor(
     private var connectivityJob: Job? = null
     private var zonesJob: Job? = null
 
+    /**
+     * The on-device tripwire over the zones near the route (spec section 2). Rebuilt whenever the
+     * layers or the corridor change; works with no network because the layers are cached on disk.
+     */
+    private var tripwire: ZoneTripwire<ManeuverZone>? = null
+    private var insideZone: ManeuverZone? = null
+    private var avoidDangerZones = true
+    private var offRouteNow = false
+    private val zoneThrottle = AlertThrottle(ZONE_REPEAT_MS, ZONE_REPEAT_METERS)
+
     private val announcedManeuverRungs = mutableSetOf<String>()
     private val announcedEvents = mutableSetOf<String>()
     private val userReports = mutableListOf<RouteEvent>()
@@ -165,9 +180,13 @@ class NavigationEngine @Inject constructor(
         userReports.clear()
         lastUpcomingIndex = -1
         offRouteFixes = 0
+        insideZone = null
+        offRouteNow = false
+        zoneThrottle.reset()
 
         scope.launch {
             val snapshot = sessionStore.snapshot()
+            avoidDangerZones = snapshot.avoidDangerZones
             geometry = route.geometry.points()
             cumulative = cumulativeDistances(geometry)
             progressIndex = startIndex.coerceIn(0, geometry.lastIndex.coerceAtLeast(0))
@@ -291,10 +310,47 @@ class NavigationEngine @Inject constructor(
 
     private fun applyZoneFilter() {
         val bounds = ZoneFilter.boundsAround(geometry, ZoneFilter.ROUTE_PAD_DEG) ?: return
-        _state.value = _state.value.copy(
-            zones = ZoneFilter.zonesIn(zoneLayerStore.zones.value, bounds),
-            dangerZones = ZoneFilter.dangerIn(zoneLayerStore.danger.value, bounds),
-        )
+        val zones = ZoneFilter.zonesIn(zoneLayerStore.zones.value, bounds)
+        val danger = ZoneFilter.dangerIn(zoneLayerStore.danger.value, bounds)
+        _state.value = _state.value.copy(zones = zones, dangerZones = danger)
+        tripwire = buildTripwire(zones, danger)
+    }
+
+    /**
+     * The tripwire covers the same corridor the map draws (the route padded by ~13 km), which is
+     * wide enough for any realistic detour. Danger zones take part only when the driver avoids
+     * them, matching what the route itself was computed to avoid.
+     */
+    private fun buildTripwire(
+        zones: List<ZoneFeature>,
+        danger: List<DangerZoneFeature>,
+    ): ZoneTripwire<ManeuverZone> {
+        val stringency = _state.value.stringency
+        val halachic = zones.map { feature ->
+            feature.geometry to ManeuverZone(
+                name = feature.properties.name,
+                nameHe = feature.properties.nameHe,
+                stringency = feature.properties.stringency,
+                description = feature.properties.description,
+                city = feature.properties.city,
+                danger = false,
+            )
+        }
+        val areaA = if (avoidDangerZones) {
+            danger.map { feature ->
+                feature.geometry to ManeuverZone(
+                    name = feature.properties.name,
+                    nameHe = feature.properties.name,
+                    stringency = stringency,
+                    description = feature.properties.description,
+                    city = feature.properties.city,
+                    danger = true,
+                )
+            }
+        } else {
+            emptyList()
+        }
+        return ZoneTripwire(halachic + areaA)
     }
 
     private fun prefetchRouteClips(route: RouteResult) {
@@ -365,6 +421,7 @@ class NavigationEngine @Inject constructor(
         if (_state.value.rerouting || geometry.isEmpty()) return
         val nearest = geometry.getOrNull(progressIndex) ?: return
         val offset = Geo.distanceMeters(location, nearest)
+        offRouteNow = offset > OFF_ROUTE_THRESHOLD_METERS
         if (offset <= OFF_ROUTE_THRESHOLD_METERS) {
             offRouteFixes = 0
             return
@@ -513,6 +570,68 @@ class NavigationEngine @Inject constructor(
 
         announceManeuver(upcomingIndex, toManeuver, distanceToManeuver)
         updateEventAlert()
+        checkTripwire(location, heading)
+    }
+
+    /**
+     * The local safety net. Inside a zone: an urgent "entering a forbidden zone" (once per entry,
+     * throttled) and a banner that stays up while inside; on leaving, a short "left the zone".
+     * Otherwise it looks ahead - along the remaining route while on it, or straight along the
+     * heading while off it - and warns of the first zone within [ZONE_LOOKAHEAD_METERS]. Runs on
+     * every progress update with no network: the polygons come from the on-disk layer cache.
+     */
+    private fun checkTripwire(location: LatLng, heading: Float) {
+        val wire = tripwire ?: return
+        if (wire.size == 0) return
+
+        val inside = wire.containing(location)
+        if (inside != null) {
+            _state.value = _state.value.copy(activeAlert = zoneAlert(inside, 0.0, inside = true))
+            if (insideZone == null && zoneThrottle.tryFire("enter:${inside.nameHe}", location)) {
+                emitCue(VoiceCue.ZONE_ENTER, bucketMeters = 0, urgent = true)
+            }
+            insideZone = inside
+            return
+        }
+        if (insideZone != null) {
+            insideZone = null
+            emitCue(VoiceCue.ZONE_EXIT, bucketMeters = 0, urgent = false)
+        }
+
+        val path = if (offRouteNow) {
+            listOf(location, Geo.destination(location, heading, ZONE_LOOKAHEAD_METERS))
+        } else {
+            remainingFrom(location)
+        }
+        val hit = wire.firstAlong(path, ZONE_LOOKAHEAD_METERS) ?: return
+        // A server-side zone event already on screen keeps its banner; the tripwire adds its own
+        // only when nothing zone-related is showing yet.
+        if (_state.value.activeAlert?.isZone != true) {
+            _state.value = _state.value.copy(activeAlert = zoneAlert(hit.zone, hit.distanceMeters, inside = false))
+        }
+        if (zoneThrottle.tryFire("ahead:${hit.zone.nameHe}", location)) {
+            emitCue(VoiceCue.ZONE_AHEAD, VoicePhrase.snapToRung(hit.distanceMeters), urgent = true)
+        }
+    }
+
+    private fun zoneAlert(zone: ManeuverZone, distance: Double, inside: Boolean) = RouteAlert(
+        type = RouteEventType.ZONE,
+        title = zone.nameHe.ifBlank { zone.name },
+        distanceMeters = distance,
+        city = zone.city,
+        description = zone.description,
+        inside = inside,
+    )
+
+    private fun emitCue(cue: VoiceCue, bucketMeters: Int, urgent: Boolean) {
+        _announcements.tryEmit(
+            Announcement(
+                id = announcementId++,
+                urgent = urgent,
+                bucketMeters = bucketMeters,
+                cue = cue,
+            )
+        )
     }
 
     private fun announceManeuver(index: Int, maneuver: Maneuver?, distance: Double) {
@@ -741,6 +860,11 @@ class NavigationEngine @Inject constructor(
         const val LOOK_BACK_STEPS = 2
         const val OFF_ROUTE_THRESHOLD_METERS = 45.0
         const val OFF_ROUTE_MIN_FIXES = 2
+        /** How far ahead the tripwire looks for a zone, along the route or the heading. */
+        const val ZONE_LOOKAHEAD_METERS = 400.0
+        /** A warning for the same zone repeats only after this long AND this far. */
+        const val ZONE_REPEAT_MS = 90_000L
+        const val ZONE_REPEAT_METERS = 300.0
         const val GPS_STALE_MS = 10_000L
         const val GPS_CHECK_MS = 2_000L
         // How often the fast-moving progress index is written to durable storage while driving.

@@ -887,10 +887,13 @@ private fun ThumbButton(
  * card on the review screen and in the step list.
  */
 private fun zoneAlertText(context: Context, alert: RouteAlert): String {
-    val distance = Formatters.distance(context, alert.distanceMeters)
     val place = listOfNotNull(alert.title?.takeIf { it.isNotBlank() }, alert.city).joinToString(", ")
-    return context.getString(R.string.nav_zone_ahead_alert, distance)
-        .let { if (place.isBlank()) it else "$it - $place" }
+    val head = if (alert.inside) {
+        context.getString(R.string.nav_zone_enter_alert)
+    } else {
+        context.getString(R.string.nav_zone_ahead_alert, Formatters.distance(context, alert.distanceMeters))
+    }
+    return if (place.isBlank()) head else "$head - $place"
 }
 
 private fun eventAlertText(context: Context, kind: RouteEventType, distanceMeters: Double): String =

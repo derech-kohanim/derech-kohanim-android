@@ -25,6 +25,8 @@ data class RouteAlert(
     /** The reason and locality for a zone, surfaced with the alert (short) - not just a name. */
     val city: String? = null,
     val description: String? = null,
+    /** True when the driver is already inside the zone (the on-device tripwire fired). */
+    val inside: Boolean = false,
 ) {
     val isZone: Boolean get() = type == RouteEventType.ZONE
 }

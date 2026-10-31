@@ -19,6 +19,19 @@ object Geo {
         return EARTH_RADIUS_METERS * 2 * asin(sqrt(h))
     }
 
+    /**
+     * The point [meters] away from [from] along [bearingDegrees]. A flat-earth step, accurate to
+     * well under a metre over the few hundred metres it is used for (look-ahead projection).
+     */
+    fun destination(from: LatLng, bearingDegrees: Float, meters: Double): LatLng {
+        val bearing = Math.toRadians(bearingDegrees.toDouble())
+        val dLat = meters * cos(bearing) / METERS_PER_DEGREE_LAT
+        val dLng = meters * sin(bearing) / (METERS_PER_DEGREE_LAT * cos(Math.toRadians(from.lat)))
+        return LatLng(from.lat + dLat, from.lng + dLng)
+    }
+
+    private const val METERS_PER_DEGREE_LAT = 111_320.0
+
     /** Initial bearing from a to b, in degrees clockwise from north, 0 to 360. */
     fun bearingDegrees(a: LatLng, b: LatLng): Float {
         val lat1 = Math.toRadians(a.lat)
