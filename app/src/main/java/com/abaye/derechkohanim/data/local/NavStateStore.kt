@@ -11,6 +11,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
 import com.abaye.derechkohanim.data.model.PlaceSuggestion
+import com.abaye.derechkohanim.data.model.RouteEventBundle
 import com.abaye.derechkohanim.data.model.RouteResult
 import com.abaye.derechkohanim.data.model.Stringency
 import kotlinx.serialization.Serializable
@@ -31,6 +32,11 @@ data class PersistedNavState(
     val simulated: Boolean = false,
     val progressIndex: Int = 0,
     val stringency: Stringency,
+    /**
+     * The route's events (zones, cameras, level crossings) as fetched at the start, so a drive
+     * resumed with no network still has its road alerts.
+     */
+    val events: RouteEventBundle? = null,
 )
 
 private val Context.navDataStore: DataStore<Preferences> by preferencesDataStore(name = "derech_kohanim_nav")

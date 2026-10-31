@@ -38,6 +38,7 @@ import com.abaye.derechkohanim.data.model.TrafficSegment
 import com.abaye.derechkohanim.data.model.TravelMode
 import com.abaye.derechkohanim.data.model.points
 import com.abaye.derechkohanim.core.AlertThrottle
+import com.abaye.derechkohanim.core.RouteProjection
 import com.abaye.derechkohanim.core.ZoneFilter
 import com.abaye.derechkohanim.core.ZoneTripwire
 import com.abaye.derechkohanim.data.model.DangerZoneFeature
@@ -52,6 +53,7 @@ import com.abaye.derechkohanim.service.LocationPermissions
 import com.abaye.derechkohanim.service.NavigationForegroundService
 import com.abaye.derechkohanim.ui.screens.nav.Announcement
 import com.abaye.derechkohanim.ui.screens.nav.NavigationState
+import com.abaye.derechkohanim.ui.screens.nav.ReturnGuidance
 import com.abaye.derechkohanim.ui.screens.nav.RouteAlert
 import com.abaye.derechkohanim.data.model.VoiceIds
 import com.abaye.derechkohanim.voice.SpokenInstruction
@@ -137,6 +139,8 @@ class NavigationEngine @Inject constructor(
     private var avoidDangerZones = true
     private var offRouteNow = false
     private val zoneThrottle = AlertThrottle(ZONE_REPEAT_MS, ZONE_REPEAT_METERS)
+    private val returnThrottle = AlertThrottle(RETURN_REPEAT_MS, RETURN_REPEAT_METERS)
+    private val gpsThrottle = AlertThrottle(GPS_REPEAT_MS, 0.0)
 
     private val announcedManeuverRungs = mutableSetOf<String>()
     private val announcedEvents = mutableSetOf<String>()
@@ -168,10 +172,26 @@ class NavigationEngine @Inject constructor(
         tripStore.setRoute(persisted.route)
         persisted.destination?.let { tripStore.setDestination(it); tripStore.setRoute(persisted.route) }
         tripStore.setSimulated(false)
-        beginDrive(persisted.route, simulated = false, startIndex = persisted.progressIndex, persistImmediately = true)
+        beginDrive(
+            persisted.route,
+            simulated = false,
+            startIndex = persisted.progressIndex,
+            persistImmediately = true,
+            fallbackEvents = persisted.events,
+        )
     }
 
-    private fun beginDrive(route: RouteResult, simulated: Boolean, startIndex: Int, persistImmediately: Boolean) {
+    /**
+     * Starts (or resumes) a drive. [fallbackEvents] are the events saved with a persisted drive,
+     * used when they cannot be fetched now - a drive resumed with no network keeps its alerts.
+     */
+    private fun beginDrive(
+        route: RouteResult,
+        simulated: Boolean,
+        startIndex: Int,
+        persistImmediately: Boolean,
+        fallbackEvents: RouteEventBundle? = null,
+    ) {
         isActive = true
         analytics.track("navigation_started", mapOf("simulated" to simulated))
         cancelLoops()
@@ -183,6 +203,8 @@ class NavigationEngine @Inject constructor(
         insideZone = null
         offRouteNow = false
         zoneThrottle.reset()
+        returnThrottle.reset()
+        gpsThrottle.reset()
 
         scope.launch {
             val snapshot = sessionStore.snapshot()
@@ -192,6 +214,7 @@ class NavigationEngine @Inject constructor(
             progressIndex = startIndex.coerceIn(0, geometry.lastIndex.coerceAtLeast(0))
 
             val bundle = (routeEventsRepository.events(route.id) as? DkResult.Success)?.value
+                ?: fallbackEvents?.takeIf { it.routeId == route.id }
                 ?: RouteEventBundle.empty(route.id)
 
             voicePlayer.setMuted(!snapshot.voiceEnabled)
@@ -262,6 +285,7 @@ class NavigationEngine @Inject constructor(
             simulated = false,
             progressIndex = progressIndex,
             stringency = _state.value.stringency,
+            events = _state.value.events,
         )
         scope.launch { navStateStore.save(persisted) }
     }
@@ -290,6 +314,11 @@ class NavigationEngine @Inject constructor(
         connectivityJob = scope.launch {
             connectivity.online().collect { online ->
                 _state.value = _state.value.copy(offline = !online)
+                // Back online while being guided back to the route: compute a proper new route.
+                val location = _state.value.currentLocation
+                if (online && _state.value.returnToRoute != null && location != null) {
+                    reroute(location)
+                }
             }
         }
     }
@@ -372,6 +401,7 @@ class NavigationEngine @Inject constructor(
                 val stale = SystemClock.elapsedRealtime() - lastFixMs > GPS_STALE_MS
                 if (_state.value.noGps != stale) {
                     _state.value = _state.value.copy(noGps = stale)
+                    if (stale) announceGps(VoiceCue.GPS_LOST)
                 }
                 delay(GPS_CHECK_MS)
             }
@@ -398,7 +428,10 @@ class NavigationEngine @Inject constructor(
         loop = scope.launch {
             deviceLocation.updates().collect { fix ->
                 lastFixMs = SystemClock.elapsedRealtime()
-                if (_state.value.noGps) _state.value = _state.value.copy(noGps = false)
+                if (_state.value.noGps) {
+                    _state.value = _state.value.copy(noGps = false)
+                    announceGps(VoiceCue.GPS_RECOVERED)
+                }
                 val previous = _state.value.currentLocation
                 progressIndex = nearestIndex(fix.location, progressIndex)
 
@@ -409,7 +442,7 @@ class NavigationEngine @Inject constructor(
                     ?: _state.value.headingDegrees
                 val speed = fix.speedMps ?: 0.0
 
-                trackOffRoute(fix.location)
+                trackOffRoute(fix.location, heading)
                 applyProgress(fix.location, heading, speed)
 
                 if (progressIndex >= geometry.lastIndex) onArrived()
@@ -417,19 +450,51 @@ class NavigationEngine @Inject constructor(
         }
     }
 
-    private fun trackOffRoute(location: LatLng) {
+    /**
+     * Off-route handling. Online, leaving the route reroutes as before. Offline (stage A of the
+     * offline plan) no new route can be computed, so the driver is guided back to the closest
+     * point of the stored route instead, and told when they are back on it. The distance is the
+     * true distance to the route line (projected onto its segments), not to the nearest vertex.
+     */
+    private fun trackOffRoute(location: LatLng, heading: Float) {
         if (_state.value.rerouting || geometry.isEmpty()) return
-        val nearest = geometry.getOrNull(progressIndex) ?: return
-        val offset = Geo.distanceMeters(location, nearest)
-        offRouteNow = offset > OFF_ROUTE_THRESHOLD_METERS
-        if (offset <= OFF_ROUTE_THRESHOLD_METERS) {
+        val foot = RouteProjection.nearest(location, geometry) ?: return
+        offRouteNow = foot.distanceMeters > OFF_ROUTE_THRESHOLD_METERS
+        if (!offRouteNow) {
             offRouteFixes = 0
+            if (_state.value.returnToRoute != null) {
+                _state.value = _state.value.copy(returnToRoute = null)
+                emitCue(VoiceCue.BACK_ON_ROUTE, bucketMeters = 0, urgent = false)
+            }
+            return
+        }
+        if (_state.value.returnToRoute != null) {
+            updateReturnGuidance(location, heading, foot)
             return
         }
         offRouteFixes++
         if (offRouteFixes < OFF_ROUTE_MIN_FIXES) return
         offRouteFixes = 0
-        if (connectivity.isOnline()) reroute(location)
+        if (connectivity.isOnline()) reroute(location) else updateReturnGuidance(location, heading, foot)
+    }
+
+    private fun updateReturnGuidance(location: LatLng, heading: Float, foot: RouteProjection.Foot) {
+        val bearing = Geo.bearingDegrees(location, foot.point)
+        val relative = (((bearing - heading) % 360f) + 540f) % 360f - 180f
+        _state.value = _state.value.copy(
+            returnToRoute = ReturnGuidance(
+                distanceMeters = foot.distanceMeters,
+                bearingDegrees = bearing,
+                relativeDegrees = relative,
+            ),
+        )
+        if (returnThrottle.tryFire("return", location)) {
+            emitCue(VoiceCue.RETURN_TO_ROUTE, bucketMeters = 0, urgent = false)
+        }
+    }
+
+    private fun announceGps(cue: VoiceCue) {
+        if (gpsThrottle.tryFire(cue.name, null)) emitCue(cue, bucketMeters = 0, urgent = false)
     }
 
     private fun reroute(origin: LatLng) {
@@ -456,6 +521,13 @@ class NavigationEngine @Inject constructor(
                 replaceRoute(newRoute)
             } else {
                 _state.value = _state.value.copy(rerouting = false, status = NavigationStatus.NAVIGATING)
+                // The server could not be reached after all: fall back to guiding back to the
+                // stored route, exactly as when the network was known to be down.
+                RouteProjection.nearest(origin, geometry)?.let { foot ->
+                    if (foot.distanceMeters > OFF_ROUTE_THRESHOLD_METERS) {
+                        updateReturnGuidance(origin, _state.value.headingDegrees, foot)
+                    }
+                }
             }
         }
     }
@@ -475,6 +547,7 @@ class NavigationEngine @Inject constructor(
             route = route,
             events = bundle,
             rerouting = false,
+            returnToRoute = null,
             status = NavigationStatus.NAVIGATING,
             currentManeuverIndex = 0,
             currentLocation = geometry.firstOrNull(),
@@ -865,6 +938,11 @@ class NavigationEngine @Inject constructor(
         /** A warning for the same zone repeats only after this long AND this far. */
         const val ZONE_REPEAT_MS = 90_000L
         const val ZONE_REPEAT_METERS = 300.0
+        /** "Return to the route" repeats only after this long AND this far. */
+        const val RETURN_REPEAT_MS = 60_000L
+        const val RETURN_REPEAT_METERS = 150.0
+        /** GPS lost / recovered are each said at most once in this window, against flapping. */
+        const val GPS_REPEAT_MS = 60_000L
         const val GPS_STALE_MS = 10_000L
         const val GPS_CHECK_MS = 2_000L
         // How often the fast-moving progress index is written to durable storage while driving.

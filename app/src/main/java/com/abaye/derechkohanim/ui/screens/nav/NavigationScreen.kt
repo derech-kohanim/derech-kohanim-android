@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.NavigateBefore
@@ -266,6 +267,8 @@ fun NavigationScreen(
                 ZoneAlertBanner(text = zoneAlertText(context, alert))
             } else if (state.rerouting) {
                 ReroutingPanel()
+            } else if (state.returnToRoute != null) {
+                ReturnToRoutePanel(guidance = state.returnToRoute, offline = state.offline)
             } else {
                 NextManeuverPanel(state = state, onOpenSteps = { showSteps = true })
                 if (alert != null) {
@@ -455,6 +458,53 @@ private fun NextManeuverPanel(state: NavigationState, onOpenSteps: () -> Unit) {
         ) {
             CertaintyChip(state)
             DkBadge(text = stringResource(stringencyTitleRes(state.stringency)))
+        }
+    }
+}
+
+/**
+ * Replaces the manoeuvre card while the driver is off the route with no network: an arrow
+ * pointing back to the route relative to the driving direction, and how far it is.
+ */
+@Composable
+private fun ReturnToRoutePanel(guidance: ReturnGuidance, offline: Boolean) {
+    val context = LocalContext.current
+    DkCard(color = DkTheme.colors.surfaceOverlay, borderColor = DkTheme.colors.warning) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Filled.ArrowUpward,
+                contentDescription = stringResource(R.string.cd_return_to_route_arrow),
+                tint = DkTheme.colors.warning,
+                modifier = Modifier
+                    .size(DkTheme.spacing.s12)
+                    .rotate(guidance.relativeDegrees),
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = DkTheme.spacing.s4),
+            ) {
+                Text(
+                    text = stringResource(R.string.nav_return_to_route),
+                    style = DkNavTextStyles.instruction,
+                    color = DkTheme.colors.text,
+                )
+                Text(
+                    text = stringResource(
+                        R.string.nav_return_to_route_detail,
+                        Formatters.distance(context, guidance.distanceMeters),
+                    ),
+                    style = DkNavTextStyles.street,
+                    color = DkTheme.colors.textMuted,
+                )
+                if (offline) {
+                    Text(
+                        text = stringResource(R.string.nav_return_to_route_offline),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DkTheme.colors.textMuted,
+                    )
+                }
+            }
         }
     }
 }
@@ -944,6 +994,37 @@ private fun NavigationPreview() {
             onFinish = {},
         )
     }
+}
+
+@Preview(name = "Navigation, back to route offline", showBackground = true, locale = "he")
+@Composable
+private fun NavigationReturnPreview() {
+    DerechKohanimTheme {
+        val route = MockData.route(MockData.currentLocation, MockData.savedPlaces.first().location)
+        NavigationScreen(
+            state = NavigationState(
+                status = NavigationStatus.NAVIGATING,
+                route = route,
+                currentLocation = MockData.currentLocation,
+                offline = true,
+                returnToRoute = ReturnGuidance(distanceMeters = 140.0, bearingDegrees = 250f, relativeDegrees = -70f),
+            ),
+            onToggleMute = {},
+            onTogglePause = {},
+            onRestart = {},
+            onStop = {},
+            onPreviousStep = {},
+            onNextStep = {},
+            onReport = {},
+            onFinish = {},
+        )
+    }
+}
+
+@Preview(name = "Navigation, back to route offline (en)", showBackground = true, locale = "en")
+@Composable
+private fun NavigationReturnPreviewEnglish() {
+    NavigationReturnPreview()
 }
 
 @Preview(name = "Navigation, zone alert", showBackground = true, locale = "he")

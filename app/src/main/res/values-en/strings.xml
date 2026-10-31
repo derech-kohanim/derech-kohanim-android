@@ -473,4 +473,10 @@
     <string name="event_rail_crossing">Railway crossing</string>
     <string name="event_speed_camera_limit">Speed camera, %1$d km/h</string>
 
+    <!-- Off route with no network -->
+    <string name="nav_return_to_route">Head back to the route</string>
+    <string name="nav_return_to_route_detail">The route is %1$s away</string>
+    <string name="nav_return_to_route_offline">No network, a new route cannot be computed</string>
+    <string name="cd_return_to_route_arrow">Direction back to the route</string>
+
 </resources>

@@ -474,4 +474,10 @@
     <string name="event_rail_crossing">מפגש מסילת ברזל</string>
     <string name="event_speed_camera_limit">מצלמת מהירות, %1$d קמ״ש</string>
 
+    <!-- Off route with no network -->
+    <string name="nav_return_to_route">חזור למסלול</string>
+    <string name="nav_return_to_route_detail">המסלול במרחק %1$s</string>
+    <string name="nav_return_to_route_offline">אין רשת, לא ניתן לחשב מסלול חדש</string>
+    <string name="cd_return_to_route_arrow">כיוון חזרה למסלול</string>
+
 </resources>

@@ -17,6 +17,18 @@ import com.abaye.derechkohanim.voice.SpokenInstruction
 import com.abaye.derechkohanim.voice.VoiceCue
 import javax.inject.Inject
 
+/**
+ * Guidance back to the route when the driver left it and no new route can be computed (no
+ * network). Points at the closest point of the stored route.
+ */
+data class ReturnGuidance(
+    val distanceMeters: Double,
+    /** Bearing from the driver to the target, degrees clockwise from north. */
+    val bearingDegrees: Float,
+    /** The same bearing relative to the driving direction: 0 is straight ahead, 90 is right. */
+    val relativeDegrees: Float,
+)
+
 /** The banner state for an approaching event, distinct from the on-screen maneuver panel. */
 data class RouteAlert(
     val type: RouteEventType,
@@ -94,6 +106,8 @@ data class NavigationState(
     val noGps: Boolean = false,
     /** The route's voice clips are all cached, so the drive can run with no connectivity. */
     val offlineReady: Boolean = false,
+    /** Set while off the route with no network: guidance back to the stored route. */
+    val returnToRoute: ReturnGuidance? = null,
 ) {
     val currentManeuver: Maneuver?
         get() = route?.maneuvers?.getOrNull(currentManeuverIndex)
