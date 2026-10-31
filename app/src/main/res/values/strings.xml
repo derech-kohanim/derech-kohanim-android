@@ -451,18 +451,18 @@
     <string name="voice_cue_zone_ahead_f">אזור אסור לפנינו</string>
     <string name="voice_cue_speed_camera">מַצְלֵמַת מְהִירוּת לְפָנֶיךָ</string>
     <string name="voice_cue_speed_camera_f">מַצְלֵמַת מְהִירוּת לְפָנַיִךְ</string>
-    <string name="voice_cue_rail_crossing">מפגש מסילת ברזל לפניכם</string>
-    <string name="voice_cue_rail_crossing_f">מפגש מסילת ברזל לפניכם</string>
-    <string name="voice_cue_speeding">שִׂים לֵב, חָרַגְתָּ מהמהירות המותרת</string>
-    <string name="voice_cue_speeding_f">שִׂימִי לֵב, חָרַגְתְּ מהמהירות המותרת</string>
+    <string name="voice_cue_rail_crossing">מפגש מסילת ברזל לְפָנֶיךָ</string>
+    <string name="voice_cue_rail_crossing_f">מפגש מסילת ברזל לְפָנַיִךְ</string>
+    <string name="voice_cue_speeding">שִׂים לֵב, אַתָּה חוֹרֵג מהמהירות המותרת</string>
+    <string name="voice_cue_speeding_f">שִׂימִי לֵב, אַתְּ חוֹרֶגֶת מהמהירות המותרת</string>
     <string name="voice_cue_gps_lost">אין קליטת לוויין</string>
     <string name="voice_cue_gps_lost_f">אין קליטת לוויין</string>
     <string name="voice_cue_gps_recovered">הקליטה חזרה</string>
     <string name="voice_cue_gps_recovered_f">הקליטה חזרה</string>
     <string name="voice_cue_back_on_route">חָזַרְתָּ למסלול</string>
     <string name="voice_cue_back_on_route_f">חָזַרְתְּ למסלול</string>
-    <string name="voice_cue_return_to_route">סָטִיתָ מהמסלול, חֲזוֹר אליו</string>
-    <string name="voice_cue_return_to_route_f">סָטִית מהמסלול, חִזְרִי אליו</string>
+    <string name="voice_cue_return_to_route">חֲזוֹר למסלול</string>
+    <string name="voice_cue_return_to_route_f">חִזְרִי למסלול</string>
 
     <!-- Voice choice -->
     <string name="settings_voice_gender">קול ההנחיות</string>

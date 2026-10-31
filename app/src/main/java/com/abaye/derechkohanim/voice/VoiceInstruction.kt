@@ -29,10 +29,10 @@ object VoiceInstruction {
         if (bucketMeters > 0) {
             keys += "prefix.in"
             keys += distanceKey(bucketMeters)
-        } else {
-            keys += "prefix.now"
         }
         keys += "action.$action"
+        // "Turn right now": the server catalogue has no "prefix.now"; "dist.now" follows the action.
+        if (bucketMeters <= 0) keys += "dist.now"
         street?.takeIf { it.isNotBlank() }?.let { keys += "street.$it" }
         exitKey(action, exitNumber)?.let { keys += it }
         return keys
