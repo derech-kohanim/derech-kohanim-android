@@ -273,7 +273,7 @@ fun NavigationScreen(
                 NextManeuverPanel(state = state, onOpenSteps = { showSteps = true })
                 if (alert != null) {
                     EventAlertBanner(
-                        text = eventAlertText(context, alert.type, alert.distanceMeters),
+                        text = eventAlertText(context, alert),
                         kind = alert.type,
                     )
                 }
@@ -946,12 +946,18 @@ private fun zoneAlertText(context: Context, alert: RouteAlert): String {
     return if (place.isBlank()) head else "$head - $place"
 }
 
-private fun eventAlertText(context: Context, kind: RouteEventType, distanceMeters: Double): String =
-    context.getString(
+private fun eventAlertText(context: Context, alert: RouteAlert): String {
+    // A camera with a known enforced limit names it: "מצלמת מהירות, 90 קמ״ש בעוד 300 מ'".
+    val name = alert.maxSpeedKmh
+        ?.takeIf { alert.type == RouteEventType.SPEED_CAMERA }
+        ?.let { context.getString(R.string.event_speed_camera_limit, it) }
+        ?: context.getString(eventLabelRes(alert.type))
+    return context.getString(
         R.string.event_ahead_announcement,
-        context.getString(eventLabelRes(kind)),
-        Formatters.distance(context, distanceMeters),
+        name,
+        Formatters.distance(context, alert.distanceMeters),
     )
+}
 
 private val FALLBACK_CENTER = MockData.currentLocation
 private val BOTTOM_BAR_CLEARANCE = androidx.compose.ui.unit.Dp(120f)
@@ -1025,6 +1031,40 @@ private fun NavigationReturnPreview() {
 @Composable
 private fun NavigationReturnPreviewEnglish() {
     NavigationReturnPreview()
+}
+
+@Preview(name = "Navigation, speed camera", showBackground = true, locale = "he")
+@Composable
+private fun NavigationCameraPreview() {
+    DerechKohanimTheme {
+        val route = MockData.route(MockData.currentLocation, MockData.savedPlaces.first().location)
+        NavigationScreen(
+            state = NavigationState(
+                status = NavigationStatus.NAVIGATING,
+                route = route,
+                events = MockData.eventBundle(route),
+                currentManeuverIndex = 1,
+                distanceToManeuverMeters = 640.0,
+                currentLocation = MockData.currentLocation,
+                speedMps = 24.0,
+                activeAlert = RouteAlert(RouteEventType.SPEED_CAMERA, null, 420.0, maxSpeedKmh = 90),
+            ),
+            onToggleMute = {},
+            onTogglePause = {},
+            onRestart = {},
+            onStop = {},
+            onPreviousStep = {},
+            onNextStep = {},
+            onReport = {},
+            onFinish = {},
+        )
+    }
+}
+
+@Preview(name = "Navigation, speed camera (en)", showBackground = true, locale = "en")
+@Composable
+private fun NavigationCameraPreviewEnglish() {
+    NavigationCameraPreview()
 }
 
 @Preview(name = "Navigation, zone alert", showBackground = true, locale = "he")

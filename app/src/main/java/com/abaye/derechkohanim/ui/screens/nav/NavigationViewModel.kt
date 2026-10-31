@@ -39,6 +39,8 @@ data class RouteAlert(
     val description: String? = null,
     /** True when the driver is already inside the zone (the on-device tripwire fired). */
     val inside: Boolean = false,
+    /** Enforced limit of a speed camera, when the map records it. */
+    val maxSpeedKmh: Int? = null,
 ) {
     val isZone: Boolean get() = type == RouteEventType.ZONE
 }

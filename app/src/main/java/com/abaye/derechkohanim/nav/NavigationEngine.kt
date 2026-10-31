@@ -141,6 +141,8 @@ class NavigationEngine @Inject constructor(
     private val zoneThrottle = AlertThrottle(ZONE_REPEAT_MS, ZONE_REPEAT_METERS)
     private val returnThrottle = AlertThrottle(RETURN_REPEAT_MS, RETURN_REPEAT_METERS)
     private val gpsThrottle = AlertThrottle(GPS_REPEAT_MS, 0.0)
+    /** Cameras and level crossings: one announcement per feature, even across reroutes. */
+    private val roadAlertThrottle = AlertThrottle(ROAD_ALERT_REPEAT_MS, ROAD_ALERT_REPEAT_METERS)
 
     private val announcedManeuverRungs = mutableSetOf<String>()
     private val announcedEvents = mutableSetOf<String>()
@@ -205,6 +207,7 @@ class NavigationEngine @Inject constructor(
         zoneThrottle.reset()
         returnThrottle.reset()
         gpsThrottle.reset()
+        roadAlertThrottle.reset()
 
         scope.launch {
             val snapshot = sessionStore.snapshot()
@@ -768,8 +771,24 @@ class NavigationEngine @Inject constructor(
                 distanceMeters = remaining,
                 city = zone?.city,
                 description = zone?.description,
+                maxSpeedKmh = event.maxSpeedKmh,
             ),
         )
+        if (event.isRoadAlert) {
+            // Map features from OSM: a fixed cue ("speed camera ahead"), once per feature. The
+            // throttle keeps a reroute (which resets announcedEvents) from repeating it at once.
+            if (announcedEvents.add(event.id) &&
+                roadAlertThrottle.tryFire(event.id, _state.value.currentLocation)
+            ) {
+                val cue = if (event.type == RouteEventType.SPEED_CAMERA) {
+                    VoiceCue.SPEED_CAMERA
+                } else {
+                    VoiceCue.RAIL_CROSSING
+                }
+                emitCue(cue, VoicePhrase.snapToRung(remaining), urgent = false)
+            }
+            return
+        }
         if (!announcedEvents.contains(event.id)) {
             announcedEvents.add(event.id)
             _announcements.tryEmit(
@@ -784,8 +803,12 @@ class NavigationEngine @Inject constructor(
         }
     }
 
-    private fun triggerFor(type: RouteEventType): Double =
-        if (type == RouteEventType.ZONE) ZONE_TRIGGER_METERS else REPORT_TRIGGER_METERS
+    private fun triggerFor(type: RouteEventType): Double = when (type) {
+        RouteEventType.ZONE -> ZONE_TRIGGER_METERS
+        RouteEventType.SPEED_CAMERA -> CAMERA_TRIGGER_METERS
+        RouteEventType.RAIL_CROSSING -> RAIL_CROSSING_TRIGGER_METERS
+        else -> REPORT_TRIGGER_METERS
+    }
 
     // -- user actions (forwarded from the view model) --------------------------------------------
 
@@ -929,6 +952,11 @@ class NavigationEngine @Inject constructor(
         const val NOW_THRESHOLD_METERS = 25.0
         const val ZONE_TRIGGER_METERS = 500.0
         const val REPORT_TRIGGER_METERS = 350.0
+        /** Cameras are announced early enough to settle to the limit; crossings a bit later. */
+        const val CAMERA_TRIGGER_METERS = 500.0
+        const val RAIL_CROSSING_TRIGGER_METERS = 300.0
+        const val ROAD_ALERT_REPEAT_MS = 5 * 60_000L
+        const val ROAD_ALERT_REPEAT_METERS = 1_000.0
         const val MIN_HEADING_MOVE_METERS = 3.0
         const val LOOK_BACK_STEPS = 2
         const val OFF_ROUTE_THRESHOLD_METERS = 45.0
