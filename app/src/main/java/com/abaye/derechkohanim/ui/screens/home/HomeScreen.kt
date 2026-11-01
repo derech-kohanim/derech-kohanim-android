@@ -384,6 +384,8 @@ fun HomeScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
+                    // Above the system navigation bar (3-button or gesture), never behind it.
+                    .navigationBarsPadding()
                     .padding(DkTheme.spacing.s4),
                 horizontalAlignment = Alignment.Start,
             ) {
