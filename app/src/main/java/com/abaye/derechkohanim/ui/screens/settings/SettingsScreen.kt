@@ -1,5 +1,7 @@
 package com.abaye.derechkohanim.ui.screens.settings
 
+import androidx.compose.material.icons.outlined.Phone
+import com.abaye.derechkohanim.ui.components.TaharatContactDialog
 import android.widget.Toast
 import androidx.compose.material.icons.automirrored.outlined.AltRoute
 import androidx.compose.material.icons.outlined.Lightbulb
@@ -237,6 +239,8 @@ private fun SettingsGroup(title: String?, hint: String? = null, content: @Compos
 
 @Composable
 fun SettingsMenuScreen(state: SettingsState, actions: SettingsActions) {
+    var contactOpen by remember { mutableStateOf(false) }
+    if (contactOpen) TaharatContactDialog(onDismiss = { contactOpen = false })
     SettingsPage(title = stringResource(R.string.settings_title), onBack = actions.onBack) {
         DkListBox {
             DkListRow(
@@ -281,6 +285,13 @@ fun SettingsMenuScreen(state: SettingsState, actions: SettingsActions) {
                     null
                 },
                 onClick = { actions.onOpenSection(SettingsSection.ACCOUNT) },
+            )
+            DkListDivider()
+            DkListRow(
+                title = stringResource(R.string.taharat_contact_title),
+                supporting = stringResource(R.string.taharat_contact_summary),
+                icon = Icons.Outlined.Phone,
+                onClick = { contactOpen = true },
             )
             DkListDivider()
             DkListRow(

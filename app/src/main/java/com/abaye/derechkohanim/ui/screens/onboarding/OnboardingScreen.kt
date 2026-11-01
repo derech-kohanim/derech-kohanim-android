@@ -1,5 +1,14 @@
 package com.abaye.derechkohanim.ui.screens.onboarding
 
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withLink
+import com.abaye.derechkohanim.ui.components.TaharatContact
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.height
@@ -228,6 +237,24 @@ private fun WelcomeStep() {
             color = DkTheme.colors.textBody,
             textAlign = TextAlign.Center,
         )
+        // The developer credit, stacked and centred, well apart from the tagline.
+        Spacer(Modifier.height(32.dp))
+        Image(
+            painter = painterResource(R.drawable.developer_abaye),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(72.dp)
+                .clip(CircleShape),
+        )
+        Text(
+            text = stringResource(R.string.onboarding_made_by),
+            style = MaterialTheme.typography.bodyLarge,
+            color = DkTheme.colors.textMuted,
+            textAlign = TextAlign.Center,
+            // 12dp under the logo: the column already spaces 16dp, so pull it up 4dp.
+            modifier = Modifier.offset(y = (-4).dp),
+        )
     }
 }
 
@@ -271,9 +298,32 @@ private fun HowRow(icon: ImageVector, titleRes: Int, bodyRes: Int) {
 
 @Composable
 private fun DataSourceStep() {
+    val linkStyle = TextLinkStyles(
+        style = SpanStyle(color = DkTheme.colors.primary, textDecoration = TextDecoration.Underline),
+    )
     StepTitle(stringResource(R.string.onboarding_data_title))
     Lead(stringResource(R.string.onboarding_data_source_body))
-    Lead(stringResource(R.string.onboarding_limits_body))
+    Lead(stringResource(R.string.onboarding_data_report))
+    // The phone and the email are links (tel: and mailto:), isolated left to right.
+    val notRabbi = stringResource(R.string.onboarding_not_rabbi)
+    val orEmail = stringResource(R.string.onboarding_or_email)
+    Text(
+        text = buildAnnotatedString {
+            append(notRabbi)
+            append(' ')
+            withLink(LinkAnnotation.Url("tel:${TaharatContact.PHONE_DIAL}", linkStyle)) {
+                append(TaharatContact.ltr(TaharatContact.PHONE_DISPLAY))
+            }
+            append(' ')
+            append(orEmail)
+            append(' ')
+            withLink(LinkAnnotation.Url("mailto:${TaharatContact.EMAIL}", linkStyle)) {
+                append(TaharatContact.ltr(TaharatContact.EMAIL))
+            }
+        },
+        style = MaterialTheme.typography.bodyLarge,
+        color = DkTheme.colors.textBody,
+    )
     Lead(stringResource(R.string.onboarding_privacy), muted = true)
 }
 

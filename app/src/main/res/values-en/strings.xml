@@ -51,7 +51,7 @@
     <!-- Onboarding, data source and limits -->
     <string name="onboarding_data_title">Where the data comes from</string>
     <string name="onboarding_data_source_title">Data source</string>
-    <string name="onboarding_data_source_body">The list of zones comes from the Taharat HaKohanim association and is updated here every night.</string>
+    <string name="onboarding_data_source_body">The data is taken from publications of the Taharat HaKohanim association, which holds the rights to it.</string>
     <string name="onboarding_limits_title">Not a substitute for a halachic ruling</string>
     <string name="onboarding_limits_body">It is an aid, not a halachic ruling. When there is a question, ask a rabbi.</string>
     <string name="onboarding_privacy">To improve the service, anonymous usage data is collected, with no identifying detail at all.</string>
@@ -508,7 +508,7 @@
     <string name="about_tagline">Navigation for kohanim that goes around forbidden zones at the avoidance level you choose, with an alert before every zone entry.</string>
     <string name="about_developed_by">Developed by abaye</string>
     <string name="about_credits_title">Credits</string>
-    <string name="about_credits">Zone data courtesy of Taharat HaKohanim (gps.hakohanim.org). Road data: OpenStreetMap.</string>
+    <string name="about_credits">The data is taken from publications of the Taharat HaKohanim association, which holds the rights to it. Road data: OpenStreetMap.</string>
     <string name="about_open_source">Open source</string>
     <!-- Saved places -->
     <string name="settings_menu_saved_places">Saved places</string>
@@ -587,4 +587,14 @@
     <string name="tip_account_body">Home, work and saved places, and settings that follow you between phone and computer.</string>
     <string name="tip_offline_title">No signal</string>
     <string name="tip_offline_body">A route already computed keeps working, including the voice guidance and the alerts.</string>
+    <!-- Zone data source and the association contact -->
+    <string name="onboarding_data_report">To report a problem with the forbidden-zone data, contact them or send a report from the app.</string>
+    <string name="onboarding_not_rabbi">We have tried to keep the data accurate, but the app is only an aid. For any question, doubt or special case, contact the Taharat HaKohanim association by phone at</string>
+    <string name="onboarding_or_email">or by email at</string>
+    <string name="onboarding_made_by">Developed by abaye</string>
+    <string name="taharat_contact_title">Contact Taharat HaKohanim</string>
+    <string name="taharat_contact_summary">Questions, doubts and corrections to the zone data</string>
+    <string name="taharat_contact_body">The zone data is taken from publications of the Taharat HaKohanim association. For any question, doubt or special case, and to report a mistake in the data, contact them:</string>
+    <string name="taharat_contact_phone">Phone</string>
+    <string name="taharat_contact_email">Email</string>
 </resources>

@@ -51,7 +51,7 @@
     <!-- Onboarding, data source and limits -->
     <string name="onboarding_data_title">מאיפה המידע</string>
     <string name="onboarding_data_source_title">מקור הנתונים</string>
-    <string name="onboarding_data_source_body">רשימת האזורים מגיעה מהתאחדות טהרת הכהנים, ומתעדכנת אצלנו כל לילה.</string>
+    <string name="onboarding_data_source_body">הנתונים נלקחו מפרסומים של התאחדות טהרת הכהנים, והזכויות שייכות להם.</string>
     <string name="onboarding_limits_title">אינה תחליף להוראת הלכה</string>
     <string name="onboarding_limits_body">זה כלי עזר ולא פסק הלכה. כשיש שאלה, פונים לרב.</string>
     <string name="onboarding_privacy">כדי לשפר את השירות נאספים נתוני שימוש אנונימיים, בלי שום פרט מזהה.</string>
@@ -509,7 +509,7 @@
     <string name="about_tagline">ניווט לכהנים שעוקף אזורים אסורים לפי רמת ההימנעות שבחרת, עם התראה לפני כל כניסה לאזור.</string>
     <string name="about_developed_by">פיתוח: abaye</string>
     <string name="about_credits_title">קרדיטים</string>
-    <string name="about_credits">נתוני האזורים באדיבות טהרת הכהנים (gps.hakohanim.org). נתוני הכבישים: OpenStreetMap.</string>
+    <string name="about_credits">הנתונים נלקחו מפרסומים של התאחדות טהרת הכהנים, והזכויות שייכות להם. נתוני הכבישים: OpenStreetMap.</string>
     <string name="about_open_source">קוד פתוח</string>
     <!-- Saved places -->
     <string name="settings_menu_saved_places">מקומות שמורים</string>
@@ -589,4 +589,14 @@
     <string name="tip_account_body">בית, עבודה ומקומות שמורים, והגדרות שעוברות איתך בין הטלפון למחשב.</string>
     <string name="tip_offline_title">בלי קליטה</string>
     <string name="tip_offline_body">מסלול שכבר חושב ממשיך לעבוד, כולל ההנחיות הקוליות וההתראות.</string>
+    <!-- Zone data source and the association contact -->
+    <string name="onboarding_data_report">לדיווח על בעיה בנתוני האזורים האסורים, יש לפנות אליהם או לפתוח דיווח מהאפליקציה.</string>
+    <string name="onboarding_not_rabbi">השתדלנו לדייק בנתונים, אך יש לראות בתוכנה כלי עזר בלבד. בכל מקרה של שאלה, ספק או מקרה מיוחד, יש לפנות להתאחדות טהרת הכהנים בטלפון</string>
+    <string name="onboarding_or_email">או במייל</string>
+    <string name="onboarding_made_by">פותח על ידי abaye</string>
+    <string name="taharat_contact_title">יצירת קשר עם התאחדות טהרת הכהנים</string>
+    <string name="taharat_contact_summary">לשאלות, ספקות ותיקון נתוני האזורים</string>
+    <string name="taharat_contact_body">נתוני האזורים נלקחו מפרסומים של התאחדות טהרת הכהנים. בכל שאלה, ספק או מקרה מיוחד, ולדיווח על טעות בנתונים, אפשר לפנות אליהם:</string>
+    <string name="taharat_contact_phone">טלפון</string>
+    <string name="taharat_contact_email">מייל</string>
 </resources>
