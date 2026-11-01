@@ -648,4 +648,6 @@
     <string name="tour_home_zone_report_body">Every zone card has \"Is something wrong with this zone?\". The report reaches us and is checked.</string>
     <string name="tip_report_title">Report a mistake</string>
     <string name="tip_report_body">From a zone card, or in settings under \"Report and feedback\". Needs an account.</string>
+    <string name="route_saved_star">Saved in your places</string>
+    <string name="route_saved_removed">Removed from your saved places</string>
 </resources>

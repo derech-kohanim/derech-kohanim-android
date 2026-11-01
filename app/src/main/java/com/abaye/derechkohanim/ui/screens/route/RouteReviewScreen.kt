@@ -1,5 +1,9 @@
 package com.abaye.derechkohanim.ui.screens.route
 
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarOutline
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import com.abaye.derechkohanim.ui.screens.report.ReportIcon
 import com.abaye.derechkohanim.ui.components.TourResult
 import com.abaye.derechkohanim.data.local.Tour
@@ -110,6 +114,11 @@ fun RouteReviewRoute(
     viewModel: RouteReviewViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val snackbar = remember { SnackbarHostState() }
+    val removedText = stringResource(R.string.route_saved_removed)
+    LaunchedEffect(Unit) {
+        viewModel.savedRemoved.collect { snackbar.showSnackbar(removedText) }
+    }
     val tourViewModel: TourViewModel = hiltViewModel()
     val tourPending by tourViewModel.pending(Tour.ROUTE).collectAsStateWithLifecycle()
     val noCleanPending by tourViewModel.pending(Tour.ROUTE_NO_CLEAN).collectAsStateWithLifecycle()
@@ -138,6 +147,8 @@ fun RouteReviewRoute(
         onSetAvoidDangerZones = viewModel::setAvoidDangerZones,
         onSetShowUnavoided = viewModel::setShowUnavoided,
         onSave = viewModel::saveDestination,
+        onRemoveSaved = viewModel::removeSaved,
+        snackbar = snackbar,
         tourPending = tourPending == true,
         noCleanStepPending = noCleanPending == true,
         onTourDone = { result ->
@@ -163,6 +174,8 @@ fun RouteReviewScreen(
     onSetAvoidDangerZones: (Boolean) -> Unit = {},
     onSetShowUnavoided: (Boolean) -> Unit = {},
     onSave: (PlaceCategory) -> Unit = {},
+    onRemoveSaved: () -> Unit = {},
+    snackbar: SnackbarHostState? = null,
     /** True when the route review tour should run (first route ever, tours not off). */
     tourPending: Boolean = false,
     /** False once the "no clean route" step was seen on its own, so it is not repeated. */
@@ -278,6 +291,7 @@ fun RouteReviewScreen(
                 onSetAvoidDangerZones = onSetAvoidDangerZones,
                 onSetShowUnavoided = onSetShowUnavoided,
                 onSave = onSave,
+                onRemoveSaved = onRemoveSaved,
                 onStart = onStart,
                 onReport = { onReportRoute(route.id) },
                 targets = targets,
@@ -308,6 +322,18 @@ fun RouteReviewScreen(
         }
     }
 
+    snackbar?.let { host ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            SnackbarHost(
+                hostState = host,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(DkTheme.spacing.s4),
+            )
+        }
+    }
+
     // The blocking modal: dismissed only on a result (loading flips false) or by Cancel.
     if (state.loading) {
         ComputingRouteDialog(
@@ -329,6 +355,7 @@ private fun RouteReadyPanel(
     onSave: (PlaceCategory) -> Unit,
     onStart: (simulated: Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    onRemoveSaved: () -> Unit = {},
     onReport: () -> Unit = {},
     targets: TourTargets? = null,
 ) {
@@ -376,26 +403,28 @@ private fun RouteReadyPanel(
                         tint = colors.primary,
                     )
                 }
-                if (state.savedToFavorites) {
-                    DkBadge(
-                        text = stringResource(R.string.route_saved),
-                        tone = DkBadgeTone.Success,
-                        icon = Icons.Filled.Favorite,
+                // The star: filled royal when the destination is a saved place (tap removes it),
+                // an outline otherwise (tap opens the save choices).
+                val saved = state.savedToFavorites
+                Surface(
+                    shape = CircleShape,
+                    color = if (saved) colors.primary else colors.surface,
+                    border = if (saved) null else BorderStroke(1.dp, colors.borderStrong),
+                    modifier = Modifier.target(ROUTE_STAR),
+                ) {
+                    DkIconButton(
+                        icon = if (saved) Icons.Filled.Star else Icons.Outlined.StarOutline,
+                        contentDescription = stringResource(if (saved) R.string.route_saved_star else R.string.route_save),
+                        onClick = {
+                            if (saved) {
+                                chooserOpen = false
+                                onRemoveSaved()
+                            } else {
+                                chooserOpen = !chooserOpen
+                            }
+                        },
+                        tint = if (saved) colors.primaryContrast else colors.primary,
                     )
-                } else {
-                    Surface(
-                        shape = CircleShape,
-                        color = colors.surface,
-                        border = BorderStroke(1.dp, colors.borderStrong),
-                        modifier = Modifier.target(ROUTE_STAR),
-                    ) {
-                        DkIconButton(
-                            icon = Icons.Filled.FavoriteBorder,
-                            contentDescription = stringResource(R.string.route_save),
-                            onClick = { chooserOpen = !chooserOpen },
-                            tint = colors.primary,
-                        )
-                    }
                 }
             }
 

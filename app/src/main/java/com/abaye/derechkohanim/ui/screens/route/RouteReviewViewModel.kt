@@ -1,5 +1,6 @@
 package com.abaye.derechkohanim.ui.screens.route
 
+import com.abaye.derechkohanim.core.Geo
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -52,6 +53,8 @@ data class RouteReviewState(
     val avoidDangerZones: Boolean = true,
     /** True once the destination has been saved to favourites in this session. */
     val savedToFavorites: Boolean = false,
+    /** The saved place the destination matches (same id or within 50 m), so the star can remove it. */
+    val savedPlaceId: String? = null,
     val loading: Boolean = true,
     val errorCode: String? = null,
 ) {
@@ -91,6 +94,10 @@ class RouteReviewViewModel @Inject constructor(
     private val _savedConfirmation = MutableSharedFlow<PlaceCategory>(extraBufferCapacity = 4)
     val savedConfirmation: SharedFlow<PlaceCategory> = _savedConfirmation.asSharedFlow()
 
+    /** Emitted when the destination was removed from the saved places, for a brief notice. */
+    private val _savedRemoved = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val savedRemoved: SharedFlow<Unit> = _savedRemoved.asSharedFlow()
+
     /** Emitted when the user cancels the computation, so the screen returns to planning. */
     private val _cancelled = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val cancelled: SharedFlow<Unit> = _cancelled.asSharedFlow()
@@ -99,6 +106,37 @@ class RouteReviewViewModel @Inject constructor(
 
     init {
         compute()
+        checkSaved()
+    }
+
+    /**
+     * Whether the destination is already one of the account's saved places: the same id, or a
+     * saved place within [SAVED_MATCH_METERS] of the destination. Guests have none.
+     */
+    private fun checkSaved() {
+        viewModelScope.launch {
+            if (!sessionStore.snapshot().isSignedIn) return@launch
+            val destination = tripStore.destination.value ?: return@launch
+            val places = (placesRepository.savedPlaces() as? DkResult.Success)?.value.orEmpty()
+            val match = places.firstOrNull { it.id == destination.id }
+                ?: destination.location?.let { target ->
+                    places.firstOrNull { Geo.distanceMeters(it.location, target) <= SAVED_MATCH_METERS }
+                }
+            if (match != null) {
+                _state.value = _state.value.copy(savedToFavorites = true, savedPlaceId = match.id)
+            }
+        }
+    }
+
+    /** Removes the destination from the saved places (the filled star). */
+    fun removeSaved() {
+        val id = _state.value.savedPlaceId ?: return
+        viewModelScope.launch {
+            if (placesRepository.removeSavedPlace(id) is DkResult.Success) {
+                _state.value = _state.value.copy(savedToFavorites = false, savedPlaceId = null)
+                _savedRemoved.tryEmit(Unit)
+            }
+        }
     }
 
     fun compute() {
@@ -294,8 +332,9 @@ class RouteReviewViewModel @Inject constructor(
     fun saveDestination(category: PlaceCategory) {
         val request = _state.value.destination?.toCreateSavedRequest(category) ?: return
         viewModelScope.launch {
-            if (placesRepository.addSavedPlace(request) is DkResult.Success) {
-                _state.value = _state.value.copy(savedToFavorites = true)
+            val result = placesRepository.addSavedPlace(request)
+            if (result is DkResult.Success) {
+                _state.value = _state.value.copy(savedToFavorites = true, savedPlaceId = result.value.id)
                 _savedConfirmation.tryEmit(category)
             }
         }
@@ -307,3 +346,6 @@ class RouteReviewViewModel @Inject constructor(
 
     fun originFor(preview: LatLng? = null): LatLng? = preview
 }
+
+/** A saved place this close to the destination counts as the same place. */
+private const val SAVED_MATCH_METERS = 50.0
