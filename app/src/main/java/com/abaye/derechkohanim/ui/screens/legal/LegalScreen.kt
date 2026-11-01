@@ -1,5 +1,7 @@
 package com.abaye.derechkohanim.ui.screens.legal
 
+import com.abaye.derechkohanim.ui.components.AppLoader
+import com.abaye.derechkohanim.ui.components.AppLoaderSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -156,10 +158,11 @@ fun LegalScreen(
             }
             // A document reads as running text on the page, not inside a card.
             if (loading) {
-                Text(
-                    text = stringResource(R.string.state_loading),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = DkTheme.colors.textMuted,
+                AppLoader(
+                    size = AppLoaderSize.Large,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = DkTheme.spacing.s12),
                 )
             } else {
                 MarkdownText(

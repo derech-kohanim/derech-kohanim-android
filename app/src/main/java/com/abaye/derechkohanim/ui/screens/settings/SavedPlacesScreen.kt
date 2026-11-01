@@ -1,5 +1,7 @@
 package com.abaye.derechkohanim.ui.screens.settings
 
+import com.abaye.derechkohanim.ui.components.AppLoader
+import com.abaye.derechkohanim.ui.components.AppLoaderSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -139,10 +141,11 @@ fun SavedPlacesRoute(
             verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s4),
         ) {
             when {
-                state.loading -> Text(
-                    text = stringResource(R.string.state_loading),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = DkTheme.colors.textMuted,
+                state.loading -> AppLoader(
+                    size = AppLoaderSize.Large,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = DkTheme.spacing.s12),
                 )
                 !state.signedIn -> SavedPlacesEmptyCard(
                     title = stringResource(R.string.saved_places_guest_title),

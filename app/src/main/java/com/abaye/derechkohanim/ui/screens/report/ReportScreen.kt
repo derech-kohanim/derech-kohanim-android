@@ -1,5 +1,7 @@
 package com.abaye.derechkohanim.ui.screens.report
 
+import com.abaye.derechkohanim.ui.components.AppLoader
+import com.abaye.derechkohanim.ui.components.AppLoaderSize
 import android.os.Build
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -204,7 +206,12 @@ fun ReportRoute(
             verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s5),
         ) {
             when {
-                state.loading -> Unit
+                state.loading -> AppLoader(
+                    size = AppLoaderSize.Large,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = DkTheme.spacing.s12),
+                )
                 !state.signedIn -> SavedPlacesEmptyCard(
                     title = stringResource(R.string.report_guest_title),
                     body = stringResource(R.string.report_guest_body),

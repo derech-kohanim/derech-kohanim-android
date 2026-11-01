@@ -65,7 +65,7 @@ fun ComputingRouteDialog(onCancel: () -> Unit, destinationName: String? = null) 
                     .fillMaxWidth()
                     .padding(vertical = DkTheme.spacing.s4),
             ) {
-                ComputingRouteAnimation()
+                AppLoader(size = AppLoaderSize.Medium)
                 Text(
                     text = if (destinationName.isNullOrBlank()) {
                         stringResource(R.string.route_computing)
@@ -90,45 +90,7 @@ fun ComputingRouteDialog(onCancel: () -> Unit, destinationName: String? = null) 
     }
 }
 
-/**
- * Three dots that pulse in sequence along the brand colour, paced by the motion tokens, so
- * it reads as "working" without a spinner. Direction is neutral, so RTL needs no change.
- */
-@Composable
-private fun ComputingRouteAnimation() {
-    val transition = rememberInfiniteTransition(label = "computing")
-    val cycle = DkTheme.motion.slow * DOT_COUNT
 
-    Row(horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2)) {
-        repeat(DOT_COUNT) { index ->
-            val scale by transition.animateFloat(
-                initialValue = MIN_SCALE,
-                targetValue = MIN_SCALE,
-                animationSpec = infiniteRepeatable(
-                    animation = keyframes {
-                        durationMillis = cycle
-                        val start = DkTheme.motion.slow * index
-                        MIN_SCALE at start
-                        MAX_SCALE at start + DkTheme.motion.fast
-                        MIN_SCALE at start + DkTheme.motion.slow
-                    },
-                    repeatMode = RepeatMode.Restart,
-                ),
-                label = "dot$index",
-            )
-            Box(
-                modifier = Modifier
-                    .size(DkTheme.spacing.s3)
-                    .scale(scale)
-                    .background(color = DkTheme.colors.primary, shape = CircleShape),
-            )
-        }
-    }
-}
-
-private const val DOT_COUNT = 3
-private const val MIN_SCALE = 0.6f
-private const val MAX_SCALE = 1f
 
 @Preview(name = "Computing route", showBackground = true, locale = "he")
 @Composable
@@ -143,7 +105,7 @@ private fun ComputingRoutePreview() {
                         .fillMaxWidth()
                         .padding(vertical = DkTheme.spacing.s4),
                 ) {
-                    ComputingRouteAnimation()
+                    AppLoader(size = AppLoaderSize.Medium)
                     Text(
                         text = stringResource(R.string.route_computing),
                         style = MaterialTheme.typography.titleMedium,
@@ -174,7 +136,7 @@ private fun ComputingRouteDarkPreview() {
                         .fillMaxWidth()
                         .padding(vertical = DkTheme.spacing.s4),
                 ) {
-                    ComputingRouteAnimation()
+                    AppLoader(size = AppLoaderSize.Medium)
                     Text(
                         text = stringResource(R.string.route_computing),
                         style = MaterialTheme.typography.titleMedium,

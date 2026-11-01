@@ -1,5 +1,7 @@
 package com.abaye.derechkohanim.ui.screens.onboarding
 
+import com.abaye.derechkohanim.ui.components.AppLoader
+import com.abaye.derechkohanim.ui.components.AppLoaderSize
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MyLocation
@@ -466,7 +468,7 @@ private fun TermsStep(
     DkListBox {
         Box {
         val placeholder = when {
-            loading -> stringResource(R.string.state_loading)
+            loading -> null
             body.isBlank() -> stringResource(R.string.onboarding_terms_placeholder)
             else -> null
         }
@@ -475,7 +477,14 @@ private fun TermsStep(
             .heightIn(max = 300.dp)
             .verticalScroll(scroll)
             .padding(DkTheme.spacing.s4)
-        if (placeholder != null) {
+        if (loading) {
+            AppLoader(
+                size = AppLoaderSize.Medium,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = DkTheme.spacing.s8),
+            )
+        } else if (placeholder != null) {
             Text(text = placeholder, style = MaterialTheme.typography.bodyMedium, color = DkTheme.colors.text, modifier = bodyModifier)
         } else {
             MarkdownText(
