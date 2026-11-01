@@ -158,7 +158,8 @@ fun RouteReviewScreen(
     var tappedZone by remember { mutableStateOf<ZoneTapInfo?>(null) }
     val targets = rememberTourTargets()
     // The tour runs once a ready route is on screen, a moment after it settles.
-    val routeReady = !state.loading && state.route != null && state.certainty != Certainty.Unverified
+    // A ready route, or the no-clean-route panel (its options step explains that state).
+    val routeReady = !state.loading && state.route != null
     var tourShown by remember { mutableStateOf(false) }
     LaunchedEffect(tourPending, routeReady) {
         if (tourPending && routeReady) {
@@ -238,6 +239,7 @@ fun RouteReviewScreen(
                 )
             state.certainty == Certainty.Unverified || route == null ->
                 RouteFailurePanel(
+                    targets = targets,
                     route = route,
                     stringency = state.stringency,
                     modifier = Modifier
@@ -269,6 +271,7 @@ fun RouteReviewScreen(
         if (tourShown) {
             val steps = remember {
                 listOf(
+                    TourStep(ROUTE_BLOCKED, R.string.tour_route_blocked_title, R.string.tour_route_blocked_body),
                     TourStep(ROUTE_ALTS, R.string.tour_route_alts_title, R.string.tour_route_alts_body),
                     TourStep(ROUTE_TOGGLES, R.string.tour_route_toggles_title, R.string.tour_route_toggles_body),
                     TourStep(ROUTE_SIM, R.string.tour_route_sim_title, R.string.tour_route_sim_body),
@@ -594,6 +597,7 @@ private fun RouteFailurePanel(
     onProceed: () -> Unit,
     canProceed: Boolean,
     modifier: Modifier = Modifier,
+    targets: TourTargets? = null,
 ) {
     val context = LocalContext.current
     val colors = DkTheme.colors
@@ -644,7 +648,7 @@ private fun RouteFailurePanel(
 
             Column {
                 DkSectionTitle(stringResource(R.string.route_failure_options_title))
-                DkListBox {
+                DkListBox(modifier = if (targets != null) Modifier.tourTarget(targets, ROUTE_BLOCKED) else Modifier) {
                     DkListRow(
                         title = stringResource(R.string.route_failure_change_destination),
                         icon = Icons.Filled.Search,
@@ -853,6 +857,7 @@ private fun RouteFailurePreview() {
     }
 }
 
+private const val ROUTE_BLOCKED = "route.blocked"
 private const val ROUTE_ALTS = "route.alternatives"
 private const val ROUTE_TOGGLES = "route.toggles"
 private const val ROUTE_SIM = "route.simulate"

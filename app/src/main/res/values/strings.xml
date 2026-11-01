@@ -600,4 +600,6 @@
     <string name="taharat_contact_phone">טלפון</string>
     <string name="taharat_contact_email">מייל</string>
     <string name="onboarding_permission_granted">ניתנה הרשאה</string>
+    <string name="tour_route_blocked_title">כשאין דרך לעקוף</string>
+    <string name="tour_route_blocked_body">אם כל הדרכים עוברות באזור, יופיעו כאן שלוש אפשרויות: לבחור יעד אחר, לשנות את רמת ההקפדה או לנסוע ביודעין. בנסיעה כזו תקבל התראה לפני האזור.</string>
 </resources>

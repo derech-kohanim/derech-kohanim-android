@@ -598,4 +598,6 @@
     <string name="taharat_contact_phone">Phone</string>
     <string name="taharat_contact_email">Email</string>
     <string name="onboarding_permission_granted">Granted</string>
+    <string name="tour_route_blocked_title">When there is no way around</string>
+    <string name="tour_route_blocked_body">If every route passes through a zone, three options appear here: choose another destination, change the level of care, or drive knowingly. On such a drive you get an alert before the zone.</string>
 </resources>
