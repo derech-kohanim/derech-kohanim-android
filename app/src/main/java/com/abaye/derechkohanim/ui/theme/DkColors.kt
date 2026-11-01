@@ -5,13 +5,19 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 /**
- * Every token colour, including the ones Material 3 has no slot for (zone, routeNaive,
+ * Every token colour (Tickta Civic palette), including the ones Material 3 has no slot for (zone, routeNaive,
  * textMuted, focus). Read it through [DkTheme.colors] so nothing has to know which
  * palette is active.
  */
 @Immutable
 data class DkColors(
     val background: Color,
+    val band: Color,
+    val borderStrong: Color,
+    val textBody: Color,
+    val primarySoft: Color,
+    val successSoft: Color,
+    val dangerSoft: Color,
     val surface: Color,
     val surfaceMuted: Color,
     val surfaceOverlay: Color,
@@ -41,6 +47,12 @@ data class DkColors(
 
 internal val dkLightColors = DkColors(
     background = LightColors.background,
+    band = LightColors.band,
+    borderStrong = LightColors.borderStrong,
+    textBody = LightColors.textBody,
+    primarySoft = LightColors.primarySoft,
+    successSoft = LightColors.successSoft,
+    dangerSoft = LightColors.dangerSoft,
     surface = LightColors.surface,
     surfaceMuted = LightColors.surfaceMuted,
     surfaceOverlay = LightColors.surfaceOverlay,
@@ -70,6 +82,12 @@ internal val dkLightColors = DkColors(
 
 internal val dkDarkColors = DkColors(
     background = DarkColors.background,
+    band = DarkColors.band,
+    borderStrong = DarkColors.borderStrong,
+    textBody = DarkColors.textBody,
+    primarySoft = DarkColors.primarySoft,
+    successSoft = DarkColors.successSoft,
+    dangerSoft = DarkColors.dangerSoft,
     surface = DarkColors.surface,
     surfaceMuted = DarkColors.surfaceMuted,
     surfaceOverlay = DarkColors.surfaceOverlay,
@@ -98,3 +116,4 @@ internal val dkDarkColors = DkColors(
 )
 
 val LocalDkColors = staticCompositionLocalOf { dkLightColors }
+

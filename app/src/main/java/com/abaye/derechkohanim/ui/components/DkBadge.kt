@@ -19,7 +19,7 @@ import com.abaye.derechkohanim.ui.theme.DkTheme
 enum class DkBadgeTone { Neutral, Success, Danger, Warning, Info }
 
 /**
- * Status pill. Every tone pairs a colour with an icon, because critical information must
+ * Status pill on a soft tint of its tone (Civic chip). Every tone pairs a colour with an icon, because critical information must
  * never rely on colour alone (spec 17.8).
  */
 @Composable
@@ -32,17 +32,17 @@ fun DkBadge(
     val colors = DkTheme.colors
     val container = when (tone) {
         DkBadgeTone.Neutral -> colors.surfaceMuted
-        DkBadgeTone.Success -> colors.success
-        DkBadgeTone.Danger -> colors.danger
+        DkBadgeTone.Success -> colors.successSoft
+        DkBadgeTone.Danger -> colors.dangerSoft
         DkBadgeTone.Warning -> colors.warning
-        DkBadgeTone.Info -> colors.primary
+        DkBadgeTone.Info -> colors.primarySoft
     }
     val content = when (tone) {
         DkBadgeTone.Neutral -> colors.textMuted
-        DkBadgeTone.Success -> colors.successContrast
-        DkBadgeTone.Danger -> colors.dangerContrast
+        DkBadgeTone.Success -> colors.success
+        DkBadgeTone.Danger -> colors.danger
         DkBadgeTone.Warning -> colors.warningContrast
-        DkBadgeTone.Info -> colors.primaryContrast
+        DkBadgeTone.Info -> colors.primary
     }
 
     Surface(

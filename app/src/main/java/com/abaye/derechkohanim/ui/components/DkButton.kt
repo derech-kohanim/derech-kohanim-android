@@ -1,5 +1,6 @@
 package com.abaye.derechkohanim.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -21,9 +22,15 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.abaye.derechkohanim.ui.theme.DkTheme
 import com.abaye.derechkohanim.ui.theme.DerechKohanimTheme
 
+/**
+ * Civic variants: Primary is the one royal fill, Secondary an outline (control border, royal
+ * text), Danger an outline on the soft danger fill for finishing and destructive actions, Ghost
+ * bare royal text.
+ */
 enum class DkButtonVariant { Primary, Secondary, Danger, Ghost }
 
 /**
@@ -46,15 +53,20 @@ fun DkButton(
     val colors = DkTheme.colors
     val container = when (variant) {
         DkButtonVariant.Primary -> colors.primary
-        DkButtonVariant.Secondary -> colors.surfaceMuted
-        DkButtonVariant.Danger -> colors.danger
+        DkButtonVariant.Secondary -> colors.surface
+        DkButtonVariant.Danger -> colors.dangerSoft
         DkButtonVariant.Ghost -> Color.Transparent
     }
     val content = when (variant) {
         DkButtonVariant.Primary -> colors.primaryContrast
-        DkButtonVariant.Secondary -> colors.text
-        DkButtonVariant.Danger -> colors.dangerContrast
+        DkButtonVariant.Secondary -> colors.primary
+        DkButtonVariant.Danger -> colors.danger
         DkButtonVariant.Ghost -> colors.primary
+    }
+    val border = when (variant) {
+        DkButtonVariant.Secondary -> BorderStroke(1.dp, colors.borderStrong)
+        DkButtonVariant.Danger -> BorderStroke(1.dp, colors.danger)
+        else -> null
     }
     val height = if (large) DkTheme.touch.comfortableTarget else DkTheme.touch.minTarget
 
@@ -63,6 +75,8 @@ fun DkButton(
         modifier = modifier.defaultMinSize(minHeight = height),
         enabled = enabled && !loading,
         shape = RoundedCornerShape(DkTheme.radius.full),
+        border = border,
+        elevation = null,
         colors = ButtonDefaults.buttonColors(
             containerColor = container,
             contentColor = content,

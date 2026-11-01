@@ -6,60 +6,67 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.sp
 import com.abaye.derechkohanim.R
 
 /**
- * Rubik is the product font, matching the web client. It is bundled as a variable font
- * (res/font/rubik.ttf, weight axis) so it works fully offline, with no downloadable or GMS
- * font at runtime. Rubik covers both Hebrew and Latin, so one family serves both languages.
+ * Noto Sans Hebrew is the product font of the Tickta Civic design language, matching the web
+ * client. It is bundled as a variable font (res/font/noto_sans_hebrew.ttf, weight axis) so it
+ * works fully offline, with no downloadable or GMS font at runtime. Latin glyphs it lacks fall
+ * back to the system sans.
  *
- * The generated tokens carry sizes only; the family lives here and is applied through the
- * theme, never per composable.
+ * Civic weights: regular for body and big numbers (size carries a number, not bold), medium for
+ * titles, labels and buttons, semibold only for the one emphasized line of a notice. There is
+ * no bold in the system.
  */
 @OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
-private fun rubik(weight: FontWeight, axisWeight: Int) = Font(
-    resId = R.font.rubik,
+private fun noto(weight: FontWeight, axisWeight: Int) = Font(
+    resId = R.font.noto_sans_hebrew,
     weight = weight,
     variationSettings = FontVariation.Settings(FontVariation.weight(axisWeight)),
 )
 
 private val DkFontFamily = FontFamily(
-    rubik(FontWeight.Normal, 400),
-    rubik(FontWeight.Medium, 500),
-    rubik(FontWeight.SemiBold, 600),
-    rubik(FontWeight.Bold, 700),
+    noto(FontWeight.Normal, 400),
+    noto(FontWeight.Medium, 500),
+    noto(FontWeight.SemiBold, 600),
 )
 
-private fun style(size: androidx.compose.ui.unit.TextUnit, weight: FontWeight) = TextStyle(
-    fontFamily = DkFontFamily,
-    fontSize = size,
-    fontWeight = weight,
-)
+private fun style(size: TextUnit, weight: FontWeight, lineHeight: TextUnit = TextUnit.Unspecified) =
+    TextStyle(
+        fontFamily = DkFontFamily,
+        fontSize = size,
+        fontWeight = weight,
+        lineHeight = lineHeight,
+    )
 
+/** Civic type scale (tokens.json "type"): display 36, figure 32, stat 24, section 21, lead 18, body 16, label/small 14. */
 internal val DkTypography = Typography(
-    displayLarge = style(FontSize.display, FontWeight.Bold),
-    displayMedium = style(FontSize.heading, FontWeight.Bold),
-    displaySmall = style(FontSize.title, FontWeight.SemiBold),
-    headlineLarge = style(FontSize.heading, FontWeight.SemiBold),
-    headlineMedium = style(FontSize.title, FontWeight.SemiBold),
-    headlineSmall = style(FontSize.bodyLarge, FontWeight.SemiBold),
-    titleLarge = style(FontSize.title, FontWeight.SemiBold),
-    titleMedium = style(FontSize.bodyLarge, FontWeight.Medium),
-    titleSmall = style(FontSize.body, FontWeight.Medium),
-    bodyLarge = style(FontSize.bodyLarge, FontWeight.Normal),
-    bodyMedium = style(FontSize.body, FontWeight.Normal),
-    bodySmall = style(FontSize.label, FontWeight.Normal),
-    labelLarge = style(FontSize.body, FontWeight.Medium),
-    labelMedium = style(FontSize.label, FontWeight.Medium),
-    labelSmall = style(FontSize.caption, FontWeight.Medium),
+    displayLarge = style(36.sp, FontWeight.Medium, 44.sp),
+    displayMedium = style(32.sp, FontWeight.Normal, 40.sp),
+    displaySmall = style(24.sp, FontWeight.Normal, 32.sp),
+    headlineLarge = style(24.sp, FontWeight.Medium, 32.sp),
+    headlineMedium = style(21.sp, FontWeight.Medium, 28.sp),
+    headlineSmall = style(18.sp, FontWeight.Medium, 26.sp),
+    titleLarge = style(21.sp, FontWeight.Medium, 28.sp),
+    titleMedium = style(17.sp, FontWeight.Medium, 24.sp),
+    titleSmall = style(16.sp, FontWeight.Medium, 24.sp),
+    bodyLarge = style(16.sp, FontWeight.Normal, 24.sp),
+    bodyMedium = style(15.sp, FontWeight.Normal, 22.sp),
+    bodySmall = style(14.sp, FontWeight.Normal, 20.sp),
+    labelLarge = style(16.sp, FontWeight.Medium, 24.sp),
+    labelMedium = style(14.sp, FontWeight.Medium, 20.sp),
+    labelSmall = style(12.sp, FontWeight.Medium, 16.sp),
 )
 
 /**
- * Driving screen only. Large enough to read in a glance, per spec 17.2.
+ * Driving screen only. Large enough to read in a glance, per spec 17.2. The distance keeps
+ * medium weight (a deliberate step above Civic's regular figures) for legibility at speed.
  */
 object DkNavTextStyles {
-    val distance = style(FontSize.navPrimary, FontWeight.Bold)
-    val instruction = style(FontSize.heading, FontWeight.SemiBold)
-    val street = style(FontSize.title, FontWeight.Medium)
-    val stat = style(FontSize.bodyLarge, FontWeight.SemiBold)
+    val distance = style(FontSize.navPrimary, FontWeight.Medium)
+    val instruction = style(21.sp, FontWeight.Medium, 28.sp)
+    val street = style(18.sp, FontWeight.Normal, 26.sp)
+    val stat = style(24.sp, FontWeight.Normal, 32.sp)
 }

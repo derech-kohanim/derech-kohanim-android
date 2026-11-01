@@ -125,7 +125,7 @@ fun SpeedLimitSign(limitKmh: Int, modifier: Modifier = Modifier) {
     ) {
         Text(
             text = limitKmh.toString(),
-            style = DkNavTextStyles.stat.copy(fontWeight = FontWeight.Bold),
+            style = DkNavTextStyles.stat,
             color = DkTheme.colors.text,
         )
     }

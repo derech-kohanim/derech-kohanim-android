@@ -1,6 +1,13 @@
 package com.abaye.derechkohanim.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Surface
+import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -47,20 +54,42 @@ fun MapControls(
                 onClick = onOverview,
             )
         }
-        DkFloatingIconButton(
-            icon = Icons.Filled.Add,
-            contentDescription = stringResource(R.string.cd_zoom_in),
-            onClick = onZoomIn,
-        )
-        DkFloatingIconButton(
-            icon = Icons.Filled.Remove,
-            contentDescription = stringResource(R.string.cd_zoom_out),
-            onClick = onZoomOut,
-        )
-        DkFloatingIconButton(
-            icon = Icons.Filled.MyLocation,
-            contentDescription = stringResource(R.string.cd_recenter),
-            onClick = onRecenter,
-        )
+        // Civic: zoom in and out share one bordered box split by a hairline.
+        Surface(
+            shape = RoundedCornerShape(DkTheme.radius.md),
+            color = DkTheme.colors.surfaceOverlay,
+            contentColor = DkTheme.colors.text,
+            border = BorderStroke(Dp.Hairline, DkTheme.colors.border),
+        ) {
+            Column {
+                DkIconButton(
+                    icon = Icons.Filled.Add,
+                    contentDescription = stringResource(R.string.cd_zoom_in),
+                    onClick = onZoomIn,
+                    size = DkTheme.touch.comfortableTarget,
+                )
+                HorizontalDivider(
+                    modifier = Modifier.width(DkTheme.touch.comfortableTarget),
+                    thickness = Dp.Hairline,
+                    color = DkTheme.colors.border,
+                )
+                DkIconButton(
+                    icon = Icons.Filled.Remove,
+                    contentDescription = stringResource(R.string.cd_zoom_out),
+                    onClick = onZoomOut,
+                    size = DkTheme.touch.comfortableTarget,
+                )
+            }
+        }
+        // The locate button is the one royal fill in the cluster.
+        Surface(shape = CircleShape, color = DkTheme.colors.primary) {
+            DkIconButton(
+                icon = Icons.Filled.MyLocation,
+                contentDescription = stringResource(R.string.cd_recenter),
+                onClick = onRecenter,
+                tint = DkTheme.colors.primaryContrast,
+                size = DkTheme.touch.comfortableTarget,
+            )
+        }
     }
 }
