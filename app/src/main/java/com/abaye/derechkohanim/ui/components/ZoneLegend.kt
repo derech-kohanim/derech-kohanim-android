@@ -1,5 +1,17 @@
 package com.abaye.derechkohanim.ui.components
 
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Layers
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -52,16 +64,45 @@ private fun LegendRow(color: Color, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
-                .size(DkTheme.spacing.s4)
-                .clip(RoundedCornerShape(DkTheme.radius.xs))
+                .size(DkTheme.spacing.s3)
+                .clip(androidx.compose.foundation.shape.CircleShape)
                 .background(color),
         )
         Text(
             text = text,
             style = MaterialTheme.typography.bodySmall,
-            color = DkTheme.colors.textMuted,
+            color = DkTheme.colors.textBody,
             modifier = Modifier.padding(start = DkTheme.spacing.s3),
         )
+    }
+}
+
+/**
+ * The legend folded into a small corner button over the map. Tapping it opens the legend in a
+ * popup beside the button; tapping outside closes it. Keeps the map clear by default.
+ */
+@Composable
+fun ZoneLegendButton(modifier: Modifier = Modifier, showDanger: Boolean = false) {
+    var open by remember { mutableStateOf(false) }
+    Box(modifier = modifier) {
+        DkFloatingIconButton(
+            icon = Icons.Outlined.Layers,
+            contentDescription = stringResource(R.string.cd_zone_legend),
+            onClick = { open = !open },
+        )
+        if (open) {
+            Popup(
+                alignment = Alignment.TopStart,
+                offset = IntOffset(0, with(LocalDensity.current) { (DkTheme.touch.comfortableTarget + DkTheme.spacing.s2).roundToPx() }),
+                onDismissRequest = { open = false },
+                properties = PopupProperties(focusable = true),
+            ) {
+                ZoneLegend(
+                    modifier = Modifier.widthIn(max = 320.dp),
+                    showDanger = showDanger,
+                )
+            }
+        }
     }
 }
 

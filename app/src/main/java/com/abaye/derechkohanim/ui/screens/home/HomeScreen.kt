@@ -28,6 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
@@ -86,6 +87,7 @@ fun HomeRoute(
         onSetManualOrigin = { viewModel.setManualOrigin(it) },
         onViewportChange = { viewModel.setViewport(it) },
         onSearchOriginAddress = onOpenSearchForOrigin,
+        onSetStringency = { viewModel.setStringency(it) },
         originJustSet = originJustSet,
         onOriginConfirmConsumed = onOriginConfirmConsumed,
         onSavedPlaceChosen = { place ->
@@ -111,6 +113,7 @@ fun HomeScreen(
     /** The box the map camera settled on, so the drawn zones follow the pan/zoom rather than the origin. */
     onViewportChange: (ZoneFilter.GeoBounds) -> Unit = {},
     onSearchOriginAddress: () -> Unit = {},
+    onSetStringency: (Stringency) -> Unit = {},
     originJustSet: Boolean = false,
     onOriginConfirmConsumed: () -> Unit = {},
     mapUpdates: kotlinx.coroutines.flow.SharedFlow<com.abaye.derechkohanim.data.repository.ZoneLayerChange>? = null,
@@ -120,6 +123,9 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
     // The permission launcher needs an activity, which a @Preview does not have.
     val permissions = if (LocalInspectionMode.current) null else rememberLocationPermissionState(context)
+
+    // The avoidance level picker, opened from the chip under the search row.
+    var pickStringency by remember { mutableStateOf(false) }
 
     // A tapped zone/danger polygon, shown as a detail card until dismissed.
     var tappedZone by remember { mutableStateOf<ZoneTapInfo?>(null) }
@@ -203,7 +209,18 @@ fun HomeScreen(
                 )
             }
 
-            DkBadge(text = stringResource(stringencyTitleRes(state.stringency)))
+            // The avoidance level (tap to change) and, at the far edge, the folded zone legend.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                com.abaye.derechkohanim.ui.components.StringencyChip(
+                    stringency = state.stringency,
+                    onClick = { pickStringency = true },
+                )
+                androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
+                com.abaye.derechkohanim.ui.components.ZoneLegendButton(showDanger = state.dangerZones.isNotEmpty())
+            }
 
             // Waze-style connectivity banner at the top of the home view.
             StatusBanner(offline = state.offline, noGps = state.noGps)
@@ -300,6 +317,14 @@ fun HomeScreen(
             )
         }
 
+        if (pickStringency) {
+            com.abaye.derechkohanim.ui.components.StringencyPickerSheet(
+                selected = state.stringency,
+                onSelect = onSetStringency,
+                onDismiss = { pickStringency = false },
+            )
+        }
+
         if (state.savedPlaces.isNotEmpty()) {
             Column(
                 modifier = Modifier
@@ -322,13 +347,10 @@ fun HomeScreen(
 private fun SearchLauncher(modifier: Modifier = Modifier, onClick: () -> Unit) {
     Surface(
         modifier = modifier,
-        // Search entry is an interactive control: a full pill, matching DkSearchField.
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(DkTheme.radius.full),
+        // Civic input: small radius, control-strength outline.
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(DkTheme.radius.sm),
         color = DkTheme.colors.surfaceOverlay,
-        border = androidx.compose.foundation.BorderStroke(
-            androidx.compose.ui.unit.Dp.Hairline,
-            DkTheme.colors.border,
-        ),
+        border = androidx.compose.foundation.BorderStroke(1.dp, DkTheme.colors.borderStrong),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -341,7 +363,7 @@ private fun SearchLauncher(modifier: Modifier = Modifier, onClick: () -> Unit) {
             Icon(
                 imageVector = Icons.Filled.Search,
                 contentDescription = null,
-                tint = DkTheme.colors.textMuted,
+                tint = DkTheme.colors.text,
             )
             Text(
                 text = stringResource(R.string.home_search_hint),

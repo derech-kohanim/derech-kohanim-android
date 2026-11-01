@@ -466,4 +466,8 @@
     <string name="nav_road_ref">כביש %1$s</string>
     <string name="cd_mute_long_press">לחיצה ארוכה פותחת את הגדרות הקול</string>
 
+    <!-- Avoidance level chip and picker -->
+    <string name="avoidance_level_chip">רמת הימנעות: %1$s</string>
+    <string name="avoidance_level_title">רמת הימנעות</string>
+    <string name="avoidance_level_hint">אילו אזורים המסלול עוקף. כל רמה כוללת את הקודמת לה.</string>
 </resources>

@@ -465,4 +465,8 @@
     <string name="nav_road_ref">Road %1$s</string>
     <string name="cd_mute_long_press">Long press opens the voice settings</string>
 
+    <!-- Avoidance level chip and picker -->
+    <string name="avoidance_level_chip">Avoidance: %1$s</string>
+    <string name="avoidance_level_title">Avoidance level</string>
+    <string name="avoidance_level_hint">Which zones the route goes around. Each level includes the one before it.</string>
 </resources>

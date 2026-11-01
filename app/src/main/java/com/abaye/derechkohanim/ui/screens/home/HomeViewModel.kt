@@ -131,6 +131,11 @@ class HomeViewModel @Inject constructor(
      * the first report on, it - not the origin - decides which polygons are drawn, so the zones
      * follow the user wherever they pan or zoom instead of clinging to where the map opened.
      */
+    /** Changes the avoidance level from the map; every screen follows the session store. */
+    fun setStringency(stringency: Stringency) {
+        viewModelScope.launch { sessionStore.setStringency(stringency) }
+    }
+
     fun setViewport(bounds: ZoneFilter.GeoBounds) {
         viewportFlow.value = bounds
     }
