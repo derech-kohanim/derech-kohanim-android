@@ -30,11 +30,25 @@ class TourViewModel @Inject constructor(
 
     fun pending(tour: Tour): StateFlow<Boolean?> = flows.getValue(tour)
 
-    /** Finishing or skipping marks only this tour seen; "never" turns every tour off. */
-    fun finish(tour: Tour, never: Boolean) {
+    /**
+     * Closes [tour]. It is marked seen only if it showed at least one step other than
+     * [onlyStepKey]; a run that showed nothing but that step marks [onlyStepTour] instead, so the
+     * step is not repeated and the regular tour stays pending. "Never" turns every tour off.
+     */
+    fun finish(
+        tour: Tour,
+        result: TourResult,
+        onlyStepKey: String? = null,
+        onlyStepTour: Tour? = null,
+    ) {
         viewModelScope.launch {
-            sessionStore.markTourSeen(tour)
-            if (never) sessionStore.setToursNever(true)
+            val onlyThatStep = onlyStepKey != null && result.shownTargets == setOf(onlyStepKey)
+            if (onlyThatStep && onlyStepTour != null) {
+                sessionStore.markTourSeen(onlyStepTour)
+            } else if (result.shownTargets.isNotEmpty()) {
+                sessionStore.markTourSeen(tour)
+            }
+            if (result.never) sessionStore.setToursNever(true)
         }
     }
 }

@@ -241,5 +241,9 @@ class SessionStore @Inject constructor(
 private inline fun <reified T : Enum<T>> enumOrNull(name: String): T? =
     enumValues<T>().firstOrNull { it.name == name }
 
-/** The guided tours, one per screen. [key] names its stored flag. */
-enum class Tour(val key: String) { HOME("home"), ROUTE("route"), NAVIGATION("navigation") }
+/**
+ * The guided tours, one per screen. [key] names its stored flag. ROUTE_NO_CLEAN is not a tour of
+ * its own: it records that the route tour's "no clean route" step was seen on its own, so it is
+ * not repeated while the regular route tour stays pending.
+ */
+enum class Tour(val key: String) { HOME("home"), ROUTE("route"), ROUTE_NO_CLEAN("route_noclean"), NAVIGATION("navigation") }

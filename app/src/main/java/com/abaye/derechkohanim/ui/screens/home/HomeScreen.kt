@@ -1,5 +1,6 @@
 package com.abaye.derechkohanim.ui.screens.home
 
+import com.abaye.derechkohanim.ui.components.TourResult
 import android.widget.Toast
 import androidx.compose.foundation.layout.size
 import com.abaye.derechkohanim.data.local.Tour
@@ -110,9 +111,9 @@ fun HomeRoute(
         },
         mapUpdates = viewModel.mapUpdates,
         tourPending = tourPending == true,
-        onTourDone = { _, never ->
-            tourViewModel.finish(Tour.HOME, never)
-            if (never) Toast.makeText(context, R.string.tour_off_toast, Toast.LENGTH_SHORT).show()
+        onTourDone = { result ->
+            tourViewModel.finish(Tour.HOME, result)
+            if (result.never) Toast.makeText(context, R.string.tour_off_toast, Toast.LENGTH_SHORT).show()
         },
     )
 }
@@ -138,7 +139,7 @@ fun HomeScreen(
     mapUpdates: kotlinx.coroutines.flow.SharedFlow<com.abaye.derechkohanim.data.repository.ZoneLayerChange>? = null,
     /** True when the home tour should run (first visit after onboarding, tours not off). */
     tourPending: Boolean = false,
-    onTourDone: (skipped: Boolean, never: Boolean) -> Unit = { _, _ -> },
+    onTourDone: (TourResult) -> Unit = {},
 ) {
     val controller = rememberDkMapController()
     val context = LocalContext.current
@@ -404,10 +405,10 @@ fun HomeScreen(
                 steps = steps,
                 targets = targets,
                 onStepChange = { tappedZone = null },
-                onDone = { skipped, never ->
+                onDone = { result ->
                     tourShown = false
                     tappedZone = null
-                    onTourDone(skipped, never)
+                    onTourDone(result)
                 },
             )
         }

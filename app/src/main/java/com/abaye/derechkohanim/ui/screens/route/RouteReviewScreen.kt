@@ -1,5 +1,6 @@
 package com.abaye.derechkohanim.ui.screens.route
 
+import com.abaye.derechkohanim.ui.components.TourResult
 import com.abaye.derechkohanim.data.local.Tour
 import com.abaye.derechkohanim.ui.components.CoachMarkOverlay
 import com.abaye.derechkohanim.ui.components.TourStep
@@ -108,6 +109,7 @@ fun RouteReviewRoute(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val tourViewModel: TourViewModel = hiltViewModel()
     val tourPending by tourViewModel.pending(Tour.ROUTE).collectAsStateWithLifecycle()
+    val noCleanPending by tourViewModel.pending(Tour.ROUTE_NO_CLEAN).collectAsStateWithLifecycle()
 
     // Cancelling the computation returns to planning cleanly: pop back with no route, no error.
     LaunchedEffect(Unit) {
@@ -132,7 +134,10 @@ fun RouteReviewRoute(
         onSetShowUnavoided = viewModel::setShowUnavoided,
         onSave = viewModel::saveDestination,
         tourPending = tourPending == true,
-        onTourDone = { _, never -> tourViewModel.finish(Tour.ROUTE, never) },
+        noCleanStepPending = noCleanPending == true,
+        onTourDone = { result ->
+            tourViewModel.finish(Tour.ROUTE, result, onlyStepKey = ROUTE_BLOCKED, onlyStepTour = Tour.ROUTE_NO_CLEAN)
+        },
     )
 }
 
@@ -153,7 +158,9 @@ fun RouteReviewScreen(
     onSave: (PlaceCategory) -> Unit = {},
     /** True when the route review tour should run (first route ever, tours not off). */
     tourPending: Boolean = false,
-    onTourDone: (skipped: Boolean, never: Boolean) -> Unit = { _, _ -> },
+    /** False once the "no clean route" step was seen on its own, so it is not repeated. */
+    noCleanStepPending: Boolean = true,
+    onTourDone: (TourResult) -> Unit = {},
 ) {
     var tappedZone by remember { mutableStateOf<ZoneTapInfo?>(null) }
     val targets = rememberTourTargets()
@@ -276,14 +283,16 @@ fun RouteReviewScreen(
                     TourStep(ROUTE_TOGGLES, R.string.tour_route_toggles_title, R.string.tour_route_toggles_body),
                     TourStep(ROUTE_SIM, R.string.tour_route_sim_title, R.string.tour_route_sim_body),
                     TourStep(ROUTE_STAR, R.string.tour_route_star_title, R.string.tour_route_star_body),
-                ).filter { targets.has(it.target!!) }
+                ).filter { targets.has(it.target!!) && (it.target != ROUTE_BLOCKED || noCleanStepPending) }
             }
+            // Nothing to show (only the no-clean step, already seen): stay pending, mark nothing.
+            LaunchedEffect(steps) { if (steps.isEmpty()) tourShown = false }
             CoachMarkOverlay(
                 steps = steps,
                 targets = targets,
-                onDone = { skipped, never ->
+                onDone = { result ->
                     tourShown = false
-                    onTourDone(skipped, never)
+                    onTourDone(result)
                 },
             )
         }
@@ -857,7 +866,7 @@ private fun RouteFailurePreview() {
     }
 }
 
-private const val ROUTE_BLOCKED = "route.blocked"
+internal const val ROUTE_BLOCKED = "route.blocked"
 private const val ROUTE_ALTS = "route.alternatives"
 private const val ROUTE_TOGGLES = "route.toggles"
 private const val ROUTE_SIM = "route.simulate"

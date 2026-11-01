@@ -89,6 +89,9 @@ data class TourStep(
     val onTry: (() -> Unit)? = null,
 )
 
+/** How a tour closed: skipped or finished, "never" ticked, and the targets of the steps shown. */
+data class TourResult(val skipped: Boolean, val never: Boolean, val shownTargets: Set<String?>)
+
 /**
  * The coach-mark overlay: a dark scrim with a rounded window around the current step's target,
  * and a Civic card above or below it with the text, progress dots, "דלג", "הקודם" and
@@ -102,7 +105,7 @@ data class TourStep(
 fun CoachMarkOverlay(
     steps: List<TourStep>,
     targets: TourTargets,
-    onDone: (skipped: Boolean, never: Boolean) -> Unit,
+    onDone: (TourResult) -> Unit,
     modifier: Modifier = Modifier,
     /** Called when the step changes, so a screen can close what a step's demo opened. */
     onStepChange: (Int) -> Unit = {},
@@ -113,6 +116,9 @@ fun CoachMarkOverlay(
     var never by rememberSaveable { mutableStateOf(false) }
     var origin by remember { mutableStateOf(Offset.Zero) }
     val step = steps[index.coerceIn(0, steps.lastIndex)]
+    // Every step the user has seen, for the "seen" rule of the caller.
+    val shown = remember { mutableSetOf<String?>() }
+    shown += step.target
     val isLast = index == steps.lastIndex
     val density = LocalDensity.current
     val pad = with(density) { 8.dp.toPx() }
@@ -167,7 +173,7 @@ fun CoachMarkOverlay(
                     never = never,
                     tried = tried,
                     onNeverChange = { never = it },
-                    onSkip = { onDone(true, never) },
+                    onSkip = { onDone(TourResult(skipped = true, never = never, shownTargets = shown.toSet())) },
                     onPrevious = {
                         tried = false
                         index = (index - 1).coerceAtLeast(0)
@@ -179,7 +185,7 @@ fun CoachMarkOverlay(
                             tried = true
                             tryAction()
                         } else if (isLast) {
-                            onDone(false, never)
+                            onDone(TourResult(skipped = false, never = never, shownTargets = shown.toSet()))
                         } else {
                             tried = false
                             index += 1

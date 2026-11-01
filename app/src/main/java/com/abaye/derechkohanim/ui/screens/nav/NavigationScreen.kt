@@ -1,5 +1,6 @@
 package com.abaye.derechkohanim.ui.screens.nav
 
+import com.abaye.derechkohanim.ui.components.TourResult
 import com.abaye.derechkohanim.data.local.Tour
 import com.abaye.derechkohanim.ui.components.CoachMarkOverlay
 import com.abaye.derechkohanim.ui.components.TourStep
@@ -143,7 +144,7 @@ fun NavigationRoute(
         reportAdded = viewModel.reportAdded,
         onSubmitFeedback = viewModel::submitFeedback,
         tourPending = tourPending == true,
-        onTourDone = { _, never -> tourViewModel.finish(Tour.NAVIGATION, never) },
+        onTourDone = { result -> tourViewModel.finish(Tour.NAVIGATION, result) },
         onFinish = {
             viewModel.stop()
             onFinished()
@@ -207,7 +208,7 @@ fun NavigationScreen(
     onFinish: () -> Unit,
     /** True when the navigation tour should run (first drive, tours not off). */
     tourPending: Boolean = false,
-    onTourDone: (skipped: Boolean, never: Boolean) -> Unit = { _, _ -> },
+    onTourDone: (TourResult) -> Unit = {},
 ) {
     val targets = rememberTourTargets()
     // Never in the middle of a real drive: the tour waits for a simulation or a stop. The voice
@@ -442,9 +443,9 @@ fun NavigationScreen(
             CoachMarkOverlay(
                 steps = steps,
                 targets = targets,
-                onDone = { skipped, never ->
+                onDone = { result ->
                     tourShown = false
-                    onTourDone(skipped, never)
+                    onTourDone(result)
                 },
             )
         }
