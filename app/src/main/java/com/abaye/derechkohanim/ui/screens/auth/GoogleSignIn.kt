@@ -8,23 +8,27 @@ import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 
 /**
  * Returns a Google ID token for the server to exchange, or null when the user cancels or
  * Google services are unavailable. The token is never trusted on the device.
  *
- * `serverClientId` is the backend OAuth client id and still has to be supplied - see README.
+ * This is the "Sign in with Google" button flow ([GetSignInWithGoogleOption]): Play Services
+ * answers at once with its own account picker, and the user chooses there. The bottom-sheet flow
+ * (GetGoogleIdOption) first asks Play Services to look the accounts up, and Android gives that
+ * lookup only a few seconds; on a slow or filtered connection (NetFree) it often runs past the
+ * limit, and the request then fails as "no credential" even though the account was found.
+ *
+ * `serverClientId` is the backend (Web) OAuth client id. The app's package and signing
+ * certificate must also be registered as an Android OAuth client in the same project.
  */
 object GoogleSignIn {
 
     suspend fun requestIdToken(context: Context, serverClientId: String): String? {
         if (serverClientId.isBlank()) return null
-        val option = GetGoogleIdOption.Builder()
-            .setFilterByAuthorizedAccounts(false)
-            .setServerClientId(serverClientId)
-            .build()
+        val option = GetSignInWithGoogleOption.Builder(serverClientId).build()
         val request = GetCredentialRequest.Builder()
             .addCredentialOption(option)
             .build()
@@ -39,13 +43,12 @@ object GoogleSignIn {
                 null
             }
         } catch (error: GetCredentialCancellationException) {
-            // The user dismissed the sheet. Not an error worth surfacing.
+            // The user dismissed the picker. Not an error worth surfacing.
             null
         } catch (error: GetCredentialException) {
             // Swallowed to a null result for the UI, but logged so the real cause is visible.
-            // A NoCredentialException here after the account picker almost always means the
-            // project has no Android OAuth client for this package + signing SHA-1, or the
-            // OAuth consent screen is still in testing without this account as a test user.
+            // A NoCredentialException here usually means the project has no Android OAuth client
+            // for this package + signing SHA-1.
             Log.w(
                 "GoogleSignIn",
                 "getCredential failed: ${error.javaClass.simpleName} type=${error.type} " +
