@@ -1,5 +1,12 @@
 package com.abaye.derechkohanim.ui.screens.nav
 
+import com.abaye.derechkohanim.data.local.Tour
+import com.abaye.derechkohanim.ui.components.CoachMarkOverlay
+import com.abaye.derechkohanim.ui.components.TourStep
+import com.abaye.derechkohanim.ui.components.TourTargets
+import com.abaye.derechkohanim.ui.components.TourViewModel
+import com.abaye.derechkohanim.ui.components.rememberTourTargets
+import com.abaye.derechkohanim.ui.components.tourTarget
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -97,6 +104,8 @@ fun NavigationRoute(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val tourViewModel: TourViewModel = hiltViewModel()
+    val tourPending by tourViewModel.pending(Tour.NAVIGATION).collectAsStateWithLifecycle()
 
     LaunchedEffect(state.status) {
         if (state.status == NavigationStatus.CANCELLED) onFinished()
@@ -133,6 +142,8 @@ fun NavigationRoute(
         onReport = viewModel::addReport,
         reportAdded = viewModel.reportAdded,
         onSubmitFeedback = viewModel::submitFeedback,
+        tourPending = tourPending == true,
+        onTourDone = { _, never -> tourViewModel.finish(Tour.NAVIGATION, never) },
         onFinish = {
             viewModel.stop()
             onFinished()
@@ -194,7 +205,21 @@ fun NavigationScreen(
     reportAdded: kotlinx.coroutines.flow.SharedFlow<Unit>? = null,
     onSubmitFeedback: (NavFeedbackRating, String?) -> Unit = { _, _ -> },
     onFinish: () -> Unit,
+    /** True when the navigation tour should run (first drive, tours not off). */
+    tourPending: Boolean = false,
+    onTourDone: (skipped: Boolean, never: Boolean) -> Unit = { _, _ -> },
 ) {
+    val targets = rememberTourTargets()
+    // Never in the middle of a real drive: the tour waits for a simulation or a stop. The voice
+    // guidance carries on underneath the card.
+    val tourCanRun = state.simulated || state.speedMps < TOUR_STOPPED_MPS
+    var tourShown by remember { mutableStateOf(false) }
+    LaunchedEffect(tourPending, tourCanRun, state.status) {
+        if (tourPending && tourCanRun && state.status != NavigationStatus.ARRIVED && !tourShown) {
+            kotlinx.coroutines.delay(1200)
+            tourShown = true
+        }
+    }
     val context = LocalContext.current
     val controller = rememberDkMapController()
     var following by remember { mutableStateOf(true) }
@@ -288,6 +313,7 @@ fun NavigationScreen(
                     state = state,
                     onRepeat = onRepeatInstruction,
                     onOpenSteps = { showSteps = true },
+                    modifier = Modifier.tourTarget(targets, NAV_BANNER),
                 )
                 NavStatusChips(state)
                 if (alert != null) {
@@ -350,6 +376,7 @@ fun NavigationScreen(
                 speedKmh = speedKmh(state.speedMps),
                 limitKmh = state.speedLimitKmh,
                 speeding = state.speeding,
+                modifier = Modifier.tourTarget(targets, NAV_SPEED),
             )
             // In-drive reporting is temporarily hidden behind REPORTING_ENABLED. The ReportSheet
             // and its handling are kept intact so it can be re-enabled by flipping the flag.
@@ -394,11 +421,31 @@ fun NavigationScreen(
                 onOpenSteps = { showSteps = true },
                 // Stopping early offers optional feedback first; the sheet's own actions stop.
                 onStop = { showStopFeedback = true },
+                targets = targets,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .navigationBarsPadding()
                     .padding(DkTheme.spacing.s4),
+            )
+        }
+
+        if (tourShown) {
+            val steps = remember {
+                listOf(
+                    TourStep(NAV_BANNER, R.string.tour_nav_banner_title, R.string.tour_nav_banner_body),
+                    TourStep(NAV_SPEED, R.string.tour_nav_speed_title, R.string.tour_nav_speed_body),
+                    TourStep(NAV_MUTE, R.string.tour_nav_mute_title, R.string.tour_nav_mute_body),
+                    TourStep(NAV_STEPS, R.string.tour_nav_steps_title, R.string.tour_nav_steps_body),
+                ).filter { targets.has(it.target!!) }
+            }
+            CoachMarkOverlay(
+                steps = steps,
+                targets = targets,
+                onDone = { skipped, never ->
+                    tourShown = false
+                    onTourDone(skipped, never)
+                },
             )
         }
     }
@@ -440,7 +487,12 @@ fun NavigationScreen(
  * [LANES_VISIBLE_METERS] of the turn, the lanes appear under it when the map has them.
  */
 @Composable
-private fun NextManeuverPanel(state: NavigationState, onRepeat: () -> Unit, onOpenSteps: () -> Unit) {
+private fun NextManeuverPanel(
+    state: NavigationState,
+    onRepeat: () -> Unit,
+    onOpenSteps: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val context = LocalContext.current
     val colors = DkTheme.colors
     val maneuver = state.nextManeuver ?: state.currentManeuver
@@ -449,6 +501,7 @@ private fun NextManeuverPanel(state: NavigationState, onRepeat: () -> Unit, onOp
     val onBanner = colors.primaryContrast
     Surface(
         onClick = onRepeat,
+        modifier = modifier,
         shape = RoundedCornerShape(DkTheme.radius.lg),
         color = colors.primary,
         contentColor = onBanner,
@@ -711,8 +764,10 @@ private fun BottomBar(
     onOpenSteps: () -> Unit,
     onStop: () -> Unit,
     modifier: Modifier = Modifier,
+    targets: TourTargets? = null,
 ) {
     val context = LocalContext.current
+    fun Modifier.target(key: String) = if (targets != null) tourTarget(targets, key) else this
     // Dragging the bottom card upwards opens the route steps, like pulling up a sheet.
     val dragThreshold = with(LocalDensity.current) { DkTheme.spacing.s8.toPx() }
     Column(
@@ -785,11 +840,13 @@ private fun BottomBar(
                         onClick = onOpenSteps,
                         variant = DkButtonVariant.Secondary,
                         leadingIcon = Icons.AutoMirrored.Filled.List,
+                        modifier = Modifier.target(NAV_STEPS),
                     )
                     MuteButton(
                         muted = state.muted,
                         onToggle = onToggleMute,
                         onLongPress = onOpenVoiceSettings,
+                        modifier = Modifier.target(NAV_MUTE),
                     )
                     Spacer(Modifier.weight(1f))
                     DkButton(
@@ -1225,3 +1282,10 @@ private fun NavigationZonePreview() {
         )
     }
 }
+
+/** Below this the car counts as stopped and the navigation tour may open. */
+private const val TOUR_STOPPED_MPS = 1.0
+private const val NAV_BANNER = "nav.banner"
+private const val NAV_SPEED = "nav.speed"
+private const val NAV_MUTE = "nav.mute"
+private const val NAV_STEPS = "nav.steps"

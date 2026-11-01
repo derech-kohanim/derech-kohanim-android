@@ -1,5 +1,11 @@
 package com.abaye.derechkohanim.ui.screens.settings
 
+import android.widget.Toast
+import androidx.compose.material.icons.automirrored.outlined.AltRoute
+import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.PlayCircle
+import androidx.compose.material.icons.outlined.Replay
+import androidx.compose.material.icons.outlined.WarningAmber
 import com.abaye.derechkohanim.ui.components.UserAvatar
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.ui.res.pluralStringResource
@@ -94,6 +100,7 @@ enum class SettingsSection(val route: String) {
     ZONE_DATA("zones"),
     ACCOUNT("account"),
     SAVED_PLACES("places"),
+    GUIDE("guide"),
     ABOUT("about"),
     ;
 
@@ -123,6 +130,7 @@ class SettingsActions(
     val onDownloadZones: () -> Unit,
     val onSignOut: () -> Unit,
     val onPlaceChosen: () -> Unit = {},
+    val onReplayGuide: () -> Unit = {},
 ) {
     companion object {
         val Preview = SettingsActions({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
@@ -166,6 +174,7 @@ fun SettingsRoute(
         onDownloadZones = viewModel::downloadZoneLayers,
         onSignOut = viewModel::signOut,
         onPlaceChosen = onPlaceChosen,
+        onReplayGuide = viewModel::replayGuide,
     )
     when (section) {
         null -> SettingsMenuScreen(state, actions)
@@ -180,6 +189,7 @@ fun SettingsRoute(
             onPlaceChosen = onPlaceChosen,
         )
         SettingsSection.ABOUT -> AboutScreen(actions)
+        SettingsSection.GUIDE -> GuideScreen(actions)
     }
 }
 
@@ -282,6 +292,13 @@ fun SettingsMenuScreen(state: SettingsState, actions: SettingsActions) {
                 },
                 icon = Icons.Outlined.StarOutline,
                 onClick = { actions.onOpenSection(SettingsSection.SAVED_PLACES) },
+            )
+            DkListDivider()
+            DkListRow(
+                title = stringResource(R.string.settings_menu_guide),
+                supporting = stringResource(R.string.settings_guide_subtitle),
+                icon = Icons.Outlined.Lightbulb,
+                onClick = { actions.onOpenSection(SettingsSection.GUIDE) },
             )
             DkListDivider()
             DkListRow(
@@ -563,6 +580,53 @@ fun AccountSettingsScreen(state: SettingsState, actions: SettingsActions) {
             },
             onDismiss = { confirmSignOut = false },
         )
+    }
+}
+
+// -- guide and tips ------------------------------------------------------------------------------
+
+/** The seven tips, each with its icon chip. Always available, even after tours were turned off. */
+private val TIPS = listOf(
+    Triple(Icons.Outlined.Shield, R.string.tip_zone_title, R.string.tip_zone_body),
+    Triple(Icons.Outlined.Layers, R.string.tip_legend_title, R.string.tip_legend_body),
+    Triple(Icons.Outlined.PlayCircle, R.string.tip_sim_title, R.string.tip_sim_body),
+    Triple(Icons.Outlined.RecordVoiceOver, R.string.tip_voice_title, R.string.tip_voice_body),
+    Triple(Icons.Outlined.WarningAmber, R.string.tip_blocked_title, R.string.tip_blocked_body),
+    Triple(Icons.Outlined.Person, R.string.tip_account_title, R.string.tip_account_body),
+    Triple(Icons.AutoMirrored.Outlined.AltRoute, R.string.tip_offline_title, R.string.tip_offline_body),
+)
+
+@Composable
+fun GuideScreen(actions: SettingsActions) {
+    val context = LocalContext.current
+    SettingsPage(title = stringResource(R.string.settings_menu_guide), onBack = actions.onBack) {
+        SettingsGroup(title = null, hint = stringResource(R.string.guide_replay_hint)) {
+            DkListBox {
+                DkListRow(
+                    title = stringResource(R.string.guide_replay),
+                    icon = Icons.Outlined.Replay,
+                    showChevron = false,
+                    onClick = {
+                        actions.onReplayGuide()
+                        Toast.makeText(context, R.string.guide_replay_toast, Toast.LENGTH_SHORT).show()
+                    },
+                )
+            }
+        }
+        SettingsGroup(title = stringResource(R.string.guide_tips_title)) {
+            DkListBox {
+                TIPS.forEachIndexed { index, (icon, title, body) ->
+                    if (index > 0) DkListDivider()
+                    DkListRow(
+                        title = stringResource(title),
+                        supporting = stringResource(body),
+                        icon = icon,
+                        showChevron = false,
+                        onClick = {},
+                    )
+                }
+            }
+        }
     }
 }
 

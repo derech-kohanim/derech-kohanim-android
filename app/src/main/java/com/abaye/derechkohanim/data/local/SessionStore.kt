@@ -59,6 +59,10 @@ data class SessionSnapshot(
     val profileName: String? = null,
     val profileEmail: String? = null,
     val profileAvatarUrl: String? = null,
+    /** The guided tours already seen on this device. */
+    val toursSeen: Set<Tour> = emptySet(),
+    /** True once "never show tours again" was ticked; cleared by replaying the guide. */
+    val toursNever: Boolean = false,
 ) {
     val isSignedIn: Boolean get() = accessToken != null
 }
@@ -73,6 +77,8 @@ class SessionStore @Inject constructor(
         val profileName = stringPreferencesKey("profile_name")
         val profileEmail = stringPreferencesKey("profile_email")
         val profileAvatarUrl = stringPreferencesKey("profile_avatar_url")
+        val toursNever = booleanPreferencesKey("tours_never")
+        fun tourSeen(tour: Tour) = booleanPreferencesKey("tour_seen_${tour.key}")
         val language = stringPreferencesKey("language")
         val theme = stringPreferencesKey("theme")
         val stringency = stringPreferencesKey("stringency")
@@ -120,10 +126,22 @@ class SessionStore @Inject constructor(
             profileName = prefs[Keys.profileName],
             profileEmail = prefs[Keys.profileEmail],
             profileAvatarUrl = prefs[Keys.profileAvatarUrl],
+            toursSeen = Tour.entries.filter { prefs[Keys.tourSeen(it)] == true }.toSet(),
+            toursNever = prefs[Keys.toursNever] ?: false,
         )
     }
 
     suspend fun snapshot(): SessionSnapshot = snapshots.first()
+
+    suspend fun markTourSeen(tour: Tour) = context.dataStore.edit { it[Keys.tourSeen(tour)] = true }
+
+    suspend fun setToursNever(never: Boolean) = context.dataStore.edit { it[Keys.toursNever] = never }
+
+    /** Replays the guide: every tour shows again, including after "never". */
+    suspend fun resetTours() = context.dataStore.edit { prefs ->
+        Tour.entries.forEach { prefs.remove(Keys.tourSeen(it)) }
+        prefs.remove(Keys.toursNever)
+    }
 
     /** Stores who is signed in, for display only; cleared with the session. */
     suspend fun setProfile(name: String?, email: String?, avatarUrl: String?) = context.dataStore.edit { prefs ->
@@ -222,3 +240,6 @@ class SessionStore @Inject constructor(
 
 private inline fun <reified T : Enum<T>> enumOrNull(name: String): T? =
     enumValues<T>().firstOrNull { it.name == name }
+
+/** The guided tours, one per screen. [key] names its stored flag. */
+enum class Tour(val key: String) { HOME("home"), ROUTE("route"), NAVIGATION("navigation") }

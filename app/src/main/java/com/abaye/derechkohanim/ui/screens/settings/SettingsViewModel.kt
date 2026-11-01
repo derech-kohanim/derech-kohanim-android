@@ -159,6 +159,11 @@ class SettingsViewModel @Inject constructor(
         zoneLayerStore.refreshNow()
     }
 
+    /** Replays the guide: every tour shows again, even after "never show again". */
+    fun replayGuide() {
+        viewModelScope.launch { sessionStore.resetTours() }
+    }
+
     fun signOut() {
         viewModelScope.launch { authRepository.signOut() }
     }

@@ -1,5 +1,15 @@
 package com.abaye.derechkohanim.ui.screens.home
 
+import android.widget.Toast
+import androidx.compose.foundation.layout.size
+import com.abaye.derechkohanim.data.local.Tour
+import com.abaye.derechkohanim.data.model.ZoneFeature
+import com.abaye.derechkohanim.ui.components.CoachMarkOverlay
+import com.abaye.derechkohanim.ui.components.TourStep
+import com.abaye.derechkohanim.ui.components.TourViewModel
+import com.abaye.derechkohanim.ui.components.rememberTourTargets
+import com.abaye.derechkohanim.ui.components.toTapInfo
+import com.abaye.derechkohanim.ui.components.tourTarget
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -72,6 +82,9 @@ fun HomeRoute(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val tourViewModel: TourViewModel = hiltViewModel()
+    val tourPending by tourViewModel.pending(Tour.HOME).collectAsStateWithLifecycle()
+    val context = LocalContext.current
     // The foreground GPS watchdog: only ticks while Home is RESUMED, and is cancelled the moment
     // Home is backgrounded or left, restarting on return. The 10s/5s cadence lives in the VM loop.
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -96,6 +109,11 @@ fun HomeRoute(
             onDestinationChosen()
         },
         mapUpdates = viewModel.mapUpdates,
+        tourPending = tourPending == true,
+        onTourDone = { _, never ->
+            tourViewModel.finish(Tour.HOME, never)
+            if (never) Toast.makeText(context, R.string.tour_off_toast, Toast.LENGTH_SHORT).show()
+        },
     )
 }
 
@@ -118,12 +136,25 @@ fun HomeScreen(
     originJustSet: Boolean = false,
     onOriginConfirmConsumed: () -> Unit = {},
     mapUpdates: kotlinx.coroutines.flow.SharedFlow<com.abaye.derechkohanim.data.repository.ZoneLayerChange>? = null,
+    /** True when the home tour should run (first visit after onboarding, tours not off). */
+    tourPending: Boolean = false,
+    onTourDone: (skipped: Boolean, never: Boolean) -> Unit = { _, _ -> },
 ) {
     val controller = rememberDkMapController()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     // The permission launcher needs an activity, which a @Preview does not have.
     val permissions = if (LocalInspectionMode.current) null else rememberLocationPermissionState(context)
+
+    val targets = rememberTourTargets()
+    // The tour starts a moment after the screen settles, so every target has been measured.
+    var tourShown by remember { mutableStateOf(false) }
+    LaunchedEffect(tourPending) {
+        if (tourPending) {
+            kotlinx.coroutines.delay(TOUR_START_DELAY_MS)
+            tourShown = true
+        }
+    }
 
     // The avoidance level picker, opened from the chip under the search row.
     var pickStringency by remember { mutableStateOf(false) }
@@ -200,13 +231,16 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2),
             ) {
                 SearchLauncher(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .tourTarget(targets, TARGET_SEARCH),
                     onClick = onOpenSearch,
                 )
                 DkFloatingIconButton(
                     icon = Icons.Filled.Settings,
                     contentDescription = stringResource(R.string.cd_settings),
                     onClick = onOpenSettings,
+                    modifier = Modifier.tourTarget(targets, TARGET_ACCOUNT),
                 )
             }
 
@@ -218,6 +252,7 @@ fun HomeScreen(
                 com.abaye.derechkohanim.ui.components.StringencyChip(
                     stringency = state.stringency,
                     onClick = { pickStringency = true },
+                    modifier = Modifier.tourTarget(targets, TARGET_PILL),
                 )
             }
 
@@ -302,19 +337,17 @@ fun HomeScreen(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
                 .padding(DkTheme.spacing.s4),
+            locateModifier = Modifier.tourTarget(targets, TARGET_LOCATE),
         )
 
-        // Tapping a zone/danger polygon shows its full detail, above the other overlays.
-        tappedZone?.let { info ->
-            ZoneInfoCard(
-                info = info,
-                onClose = { tappedZone = null },
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .statusBarsPadding()
-                    .padding(DkTheme.spacing.s4),
-            )
-        }
+        // The map area the zone step points at: the middle of the map, where the zones are.
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(180.dp)
+                .tourTarget(targets, TARGET_ZONE),
+        )
+
 
         if (pickStringency) {
             com.abaye.derechkohanim.ui.components.StringencyDialog(
@@ -333,6 +366,7 @@ fun HomeScreen(
         com.abaye.derechkohanim.ui.components.ZoneLegendButton(
             showDanger = state.dangerZones.isNotEmpty(),
             modifier = Modifier
+                .tourTarget(targets, TARGET_LEGEND)
                 .align(Alignment.BottomStart)
                 .navigationBarsPadding()
                 .padding(
@@ -355,6 +389,40 @@ fun HomeScreen(
                     }
                 }
             }
+        }
+
+        if (tourShown) {
+            val steps = remember {
+                homeTourSteps(
+                    onTryZone = {
+                        // Open the card of the visible zone nearest the start point, like a real tap.
+                        nearestZone(state.zones, state.origin)?.let { tappedZone = it.properties.toTapInfo() }
+                    },
+                ).filter { it.target == null || targets.has(it.target) }
+            }
+            CoachMarkOverlay(
+                steps = steps,
+                targets = targets,
+                onStepChange = { tappedZone = null },
+                onDone = { skipped, never ->
+                    tourShown = false
+                    tappedZone = null
+                    onTourDone(skipped, never)
+                },
+            )
+        }
+
+        // Tapping a zone/danger polygon shows its full detail, above the other overlays.
+        tappedZone?.let { info ->
+            ZoneInfoCard(
+                info = info,
+                onClose = { tappedZone = null },
+                modifier = Modifier
+                    // At the top: during the tour the coach card sits under the map's middle.
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(DkTheme.spacing.s4),
+            )
         }
     }
 }
@@ -436,5 +504,35 @@ private fun HomePreview() {
             onOpenSettings = {},
             onSavedPlaceChosen = {},
         )
+    }
+}
+
+private const val TOUR_START_DELAY_MS = 700L
+private const val TARGET_SEARCH = "home.search"
+private const val TARGET_ZONE = "home.zone"
+private const val TARGET_LEGEND = "home.legend"
+private const val TARGET_PILL = "home.pill"
+private const val TARGET_LOCATE = "home.locate"
+private const val TARGET_ACCOUNT = "home.account"
+
+/** The home tour, in order. The account step points at settings, where the account lives. */
+private fun homeTourSteps(onTryZone: () -> Unit) = listOf(
+    TourStep(TARGET_SEARCH, R.string.tour_home_search_title, R.string.tour_home_search_body),
+    TourStep(TARGET_ZONE, R.string.tour_home_zone_title, R.string.tour_home_zone_body, R.string.tour_try, onTryZone),
+    TourStep(TARGET_LEGEND, R.string.tour_home_legend_title, R.string.tour_home_legend_body),
+    TourStep(TARGET_PILL, R.string.tour_home_pill_title, R.string.tour_home_pill_body),
+    TourStep(TARGET_LOCATE, R.string.tour_home_locate_title, R.string.tour_home_locate_body),
+    TourStep(TARGET_ACCOUNT, R.string.tour_home_account_title, R.string.tour_home_account_body),
+    TourStep(null, R.string.tour_home_done_title, R.string.tour_home_done_body),
+)
+
+/** The zone whose first vertex is closest to [origin]; the first one when there is no origin. */
+private fun nearestZone(zones: List<ZoneFeature>, origin: LatLng?): ZoneFeature? {
+    if (origin == null) return zones.firstOrNull()
+    return zones.minByOrNull { zone ->
+        val c = zone.geometry.coordinates.firstOrNull()?.firstOrNull() ?: return@minByOrNull Double.MAX_VALUE
+        val dLat = c[1] - origin.lat
+        val dLng = c[0] - origin.lng
+        dLat * dLat + dLng * dLng
     }
 }

@@ -35,6 +35,8 @@ fun MapControls(
     headingUp: Boolean? = null,
     onToggleOrientation: (() -> Unit)? = null,
     onOverview: (() -> Unit)? = null,
+    /** Applied to the locate button, e.g. to highlight it in a tour. */
+    locateModifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier,
@@ -82,7 +84,7 @@ fun MapControls(
             }
         }
         // The locate button is the one royal fill in the cluster.
-        Surface(shape = CircleShape, color = DkTheme.colors.primary) {
+        Surface(shape = CircleShape, color = DkTheme.colors.primary, modifier = locateModifier) {
             DkIconButton(
                 icon = Icons.Filled.MyLocation,
                 contentDescription = stringResource(R.string.cd_recenter),

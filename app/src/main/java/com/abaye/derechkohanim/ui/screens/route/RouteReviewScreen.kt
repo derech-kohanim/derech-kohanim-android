@@ -1,5 +1,12 @@
 package com.abaye.derechkohanim.ui.screens.route
 
+import com.abaye.derechkohanim.data.local.Tour
+import com.abaye.derechkohanim.ui.components.CoachMarkOverlay
+import com.abaye.derechkohanim.ui.components.TourStep
+import com.abaye.derechkohanim.ui.components.TourTargets
+import com.abaye.derechkohanim.ui.components.TourViewModel
+import com.abaye.derechkohanim.ui.components.rememberTourTargets
+import com.abaye.derechkohanim.ui.components.tourTarget
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Shield
@@ -99,6 +106,8 @@ fun RouteReviewRoute(
     viewModel: RouteReviewViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val tourViewModel: TourViewModel = hiltViewModel()
+    val tourPending by tourViewModel.pending(Tour.ROUTE).collectAsStateWithLifecycle()
 
     // Cancelling the computation returns to planning cleanly: pop back with no route, no error.
     LaunchedEffect(Unit) {
@@ -122,6 +131,8 @@ fun RouteReviewRoute(
         onSetAvoidDangerZones = viewModel::setAvoidDangerZones,
         onSetShowUnavoided = viewModel::setShowUnavoided,
         onSave = viewModel::saveDestination,
+        tourPending = tourPending == true,
+        onTourDone = { _, never -> tourViewModel.finish(Tour.ROUTE, never) },
     )
 }
 
@@ -140,8 +151,21 @@ fun RouteReviewScreen(
     onSetAvoidDangerZones: (Boolean) -> Unit = {},
     onSetShowUnavoided: (Boolean) -> Unit = {},
     onSave: (PlaceCategory) -> Unit = {},
+    /** True when the route review tour should run (first route ever, tours not off). */
+    tourPending: Boolean = false,
+    onTourDone: (skipped: Boolean, never: Boolean) -> Unit = { _, _ -> },
 ) {
     var tappedZone by remember { mutableStateOf<ZoneTapInfo?>(null) }
+    val targets = rememberTourTargets()
+    // The tour runs once a ready route is on screen, a moment after it settles.
+    val routeReady = !state.loading && state.route != null && state.certainty != Certainty.Unverified
+    var tourShown by remember { mutableStateOf(false) }
+    LaunchedEffect(tourPending, routeReady) {
+        if (tourPending && routeReady) {
+            kotlinx.coroutines.delay(700)
+            tourShown = true
+        }
+    }
     Box(modifier = Modifier.fillMaxSize()) {
         val route = state.route
         val selectedPoints = route?.geometry?.points().orEmpty()
@@ -238,6 +262,26 @@ fun RouteReviewScreen(
                 onSetShowUnavoided = onSetShowUnavoided,
                 onSave = onSave,
                 onStart = onStart,
+                targets = targets,
+            )
+        }
+
+        if (tourShown) {
+            val steps = remember {
+                listOf(
+                    TourStep(ROUTE_ALTS, R.string.tour_route_alts_title, R.string.tour_route_alts_body),
+                    TourStep(ROUTE_TOGGLES, R.string.tour_route_toggles_title, R.string.tour_route_toggles_body),
+                    TourStep(ROUTE_SIM, R.string.tour_route_sim_title, R.string.tour_route_sim_body),
+                    TourStep(ROUTE_STAR, R.string.tour_route_star_title, R.string.tour_route_star_body),
+                ).filter { targets.has(it.target!!) }
+            }
+            CoachMarkOverlay(
+                steps = steps,
+                targets = targets,
+                onDone = { skipped, never ->
+                    tourShown = false
+                    onTourDone(skipped, never)
+                },
             )
         }
     }
@@ -263,10 +307,12 @@ private fun RouteReadyPanel(
     onSave: (PlaceCategory) -> Unit,
     onStart: (simulated: Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    targets: TourTargets? = null,
 ) {
     val context = LocalContext.current
     val colors = DkTheme.colors
     var chooserOpen by remember { mutableStateOf(false) }
+    fun Modifier.target(key: String) = if (targets != null) tourTarget(targets, key) else this
 
     // Civic bottom panel: a white surface with a hairline top edge, no shadow.
     Surface(
@@ -303,6 +349,7 @@ private fun RouteReadyPanel(
                         shape = CircleShape,
                         color = colors.surface,
                         border = BorderStroke(1.dp, colors.borderStrong),
+                        modifier = Modifier.target(ROUTE_STAR),
                     ) {
                         DkIconButton(
                             icon = Icons.Filled.FavoriteBorder,
@@ -379,6 +426,7 @@ private fun RouteReadyPanel(
                         shape = RoundedCornerShape(DkTheme.radius.md),
                         color = colors.surface,
                         border = BorderStroke(Dp.Hairline, colors.border),
+                        modifier = Modifier.target(ROUTE_ALTS),
                     ) {
                         Column {
                             state.routes.take(3).forEachIndexed { index, candidate ->
@@ -395,7 +443,7 @@ private fun RouteReadyPanel(
                 }
             }
 
-            Column {
+            Column(modifier = Modifier.target(ROUTE_TOGGLES)) {
                 // Toggling this re-prices the trip; the server returns the new durationSeconds.
                 DkSwitchRow(
                     label = stringResource(R.string.route_traffic_aware),
@@ -447,6 +495,7 @@ private fun RouteReadyPanel(
                     onClick = { onStart(true) },
                     variant = DkButtonVariant.Secondary,
                     large = true,
+                    modifier = Modifier.target(ROUTE_SIM),
                 )
             }
         }
@@ -803,3 +852,8 @@ private fun RouteFailurePreview() {
         )
     }
 }
+
+private const val ROUTE_ALTS = "route.alternatives"
+private const val ROUTE_TOGGLES = "route.toggles"
+private const val ROUTE_SIM = "route.simulate"
+private const val ROUTE_STAR = "route.save"
