@@ -28,6 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -218,8 +219,6 @@ fun HomeScreen(
                     stringency = state.stringency,
                     onClick = { pickStringency = true },
                 )
-                androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
-                com.abaye.derechkohanim.ui.components.ZoneLegendButton(showDanger = state.dangerZones.isNotEmpty())
             }
 
             // Waze-style connectivity banner at the top of the home view.
@@ -327,6 +326,20 @@ fun HomeScreen(
                 onDismiss = { pickStringency = false },
             )
         }
+
+        // The folded legend, at the bottom start of the map (the right edge in Hebrew), clear of
+        // the avoidance pill at the top and the zoom/locate column on the other edge. It sits
+        // above the saved-place chips when there are any.
+        com.abaye.derechkohanim.ui.components.ZoneLegendButton(
+            showDanger = state.dangerZones.isNotEmpty(),
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .navigationBarsPadding()
+                .padding(
+                    start = DkTheme.spacing.s2,
+                    bottom = if (state.savedPlaces.isNotEmpty()) DkTheme.spacing.s16 + DkTheme.spacing.s4 else DkTheme.spacing.s4,
+                ),
+        )
 
         if (state.savedPlaces.isNotEmpty()) {
             Column(

@@ -1,17 +1,21 @@
 package com.abaye.derechkohanim.ui.components
 
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.ui.unit.Dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -78,29 +82,74 @@ private fun LegendRow(color: Color, text: String) {
 }
 
 /**
- * The legend folded into a small corner button over the map. Tapping it opens the legend in a
- * popup beside the button; tapping outside closes it. Keeps the map clear by default.
+ * The legend folded into a small map button. Tapping it slides the legend up from the bottom
+ * as a Civic sheet (surface, hairline top edge, 16dp top corners): the title, then one row per
+ * layer with its colour swatch, split by hairlines. Drag, the scrim or back closes it.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ZoneLegendButton(modifier: Modifier = Modifier, showDanger: Boolean = false) {
     var open by remember { mutableStateOf(false) }
-    Box(modifier = modifier) {
-        DkFloatingIconButton(
-            icon = Icons.Outlined.Layers,
-            contentDescription = stringResource(R.string.cd_zone_legend),
-            onClick = { open = !open },
-        )
-        if (open) {
-            Popup(
-                alignment = Alignment.TopStart,
-                offset = IntOffset(0, with(LocalDensity.current) { (DkTheme.touch.comfortableTarget + DkTheme.spacing.s2).roundToPx() }),
-                onDismissRequest = { open = false },
-                properties = PopupProperties(focusable = true),
+    DkFloatingIconButton(
+        icon = Icons.Outlined.Layers,
+        contentDescription = stringResource(R.string.cd_zone_legend),
+        onClick = { open = true },
+        modifier = modifier,
+    )
+    if (open) {
+        val colors = DkTheme.colors
+        val shape = RoundedCornerShape(topStart = DkTheme.radius.lg, topEnd = DkTheme.radius.lg)
+        ModalBottomSheet(
+            onDismissRequest = { open = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = colors.surface,
+            contentColor = colors.text,
+            shape = shape,
+            tonalElevation = 0.dp,
+            modifier = Modifier.border(BorderStroke(Dp.Hairline, colors.border), shape),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(start = DkTheme.spacing.s4, end = DkTheme.spacing.s4, bottom = DkTheme.spacing.s6),
             ) {
-                ZoneLegend(
-                    modifier = Modifier.widthIn(max = 320.dp),
-                    showDanger = showDanger,
+                Text(
+                    text = stringResource(R.string.zone_legend_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = colors.text,
+                    modifier = Modifier.padding(bottom = DkTheme.spacing.s2),
                 )
+                val rows = buildList {
+                    add(colors.zoneBasic to R.string.zone_legend_basic)
+                    add(colors.zoneTaharat to R.string.zone_legend_taharat)
+                    add(colors.zoneMachmirim to R.string.zone_legend_machmirim)
+                    if (showDanger) add(colors.zoneDanger to R.string.zone_legend_danger)
+                }
+                rows.forEachIndexed { index, (color, label) ->
+                    if (index > 0) HorizontalDivider(thickness = Dp.Hairline, color = colors.border)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = DkTheme.spacing.s3),
+                    ) {
+                        // The swatch is drawn like the map paints the zone: a tinted fill, a solid edge.
+                        Box(
+                            modifier = Modifier
+                                .size(DkTheme.spacing.s5)
+                                .clip(RoundedCornerShape(DkTheme.radius.xs))
+                                .background(color.copy(alpha = 0.25f))
+                                .border(2.dp, color, RoundedCornerShape(DkTheme.radius.xs)),
+                        )
+                        Text(
+                            text = stringResource(label),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = colors.textBody,
+                            modifier = Modifier.padding(start = DkTheme.spacing.s3),
+                        )
+                    }
+                }
             }
         }
     }
