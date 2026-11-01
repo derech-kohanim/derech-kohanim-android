@@ -1,5 +1,7 @@
 package com.abaye.derechkohanim.ui.screens.onboarding
 
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.CloudDownload
@@ -164,6 +166,8 @@ fun OnboardingScreen(
                         text = stringResource(R.string.action_back),
                         onClick = onBack,
                         variant = DkButtonVariant.Secondary,
+                        // The same size as the next button beside it.
+                        large = true,
                     )
                 }
                 DkButton(
@@ -455,7 +459,12 @@ private fun TermsStep(
     Lead(stringResource(R.string.onboarding_terms_intro))
     // The real terms document from the server, in a bounded scrolling box so the accept control
     // never leaves the screen. No legal text is authored here.
+    // While more of the document remains below, a fade covers the bottom of the box and a hint
+    // under it says to scroll; both go once the end has been reached. Accepting is never blocked.
+    val scroll = rememberScrollState()
+    val moreBelow = scroll.canScrollForward
     DkListBox {
+        Box {
         val placeholder = when {
             loading -> stringResource(R.string.state_loading)
             body.isBlank() -> stringResource(R.string.onboarding_terms_placeholder)
@@ -464,7 +473,7 @@ private fun TermsStep(
         val bodyModifier = Modifier
             .fillMaxWidth()
             .heightIn(max = 300.dp)
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scroll)
             .padding(DkTheme.spacing.s4)
         if (placeholder != null) {
             Text(text = placeholder, style = MaterialTheme.typography.bodyMedium, color = DkTheme.colors.text, modifier = bodyModifier)
@@ -474,6 +483,33 @@ private fun TermsStep(
                 modifier = bodyModifier,
                 color = DkTheme.colors.textBody,
                 numberHeadings = true,
+            )
+        }
+        if (moreBelow) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .background(
+                        Brush.verticalGradient(listOf(DkTheme.colors.surface.copy(alpha = 0f), DkTheme.colors.surface)),
+                    ),
+            )
+        }
+        }
+    }
+    if (moreBelow) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s1)) {
+            Icon(
+                imageVector = Icons.Filled.KeyboardArrowDown,
+                contentDescription = null,
+                tint = DkTheme.colors.primary,
+                modifier = Modifier.size(DkTheme.spacing.s5),
+            )
+            Text(
+                text = stringResource(R.string.onboarding_terms_scroll_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = DkTheme.colors.textMuted,
             )
         }
     }

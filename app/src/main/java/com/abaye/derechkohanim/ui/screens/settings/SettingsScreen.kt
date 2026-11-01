@@ -133,6 +133,8 @@ class SettingsActions(
     val onSignOut: () -> Unit,
     val onPlaceChosen: () -> Unit = {},
     val onReplayGuide: () -> Unit = {},
+    /** Debug builds only: walk through onboarding again. */
+    val onOpenOnboarding: () -> Unit = {},
 ) {
     companion object {
         val Preview = SettingsActions({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
@@ -153,6 +155,7 @@ fun SettingsRoute(
     onOpenPrivacy: () -> Unit = {},
     onDeleteAccount: () -> Unit = {},
     onPlaceChosen: () -> Unit = {},
+    onOpenOnboarding: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -177,6 +180,7 @@ fun SettingsRoute(
         onSignOut = viewModel::signOut,
         onPlaceChosen = onPlaceChosen,
         onReplayGuide = viewModel::replayGuide,
+        onOpenOnboarding = onOpenOnboarding,
     )
     when (section) {
         null -> SettingsMenuScreen(state, actions)
@@ -625,6 +629,16 @@ fun GuideScreen(actions: SettingsActions) {
                         actions.onReplayGuide()
                         Toast.makeText(context, R.string.guide_replay_toast, Toast.LENGTH_SHORT).show()
                     },
+                )
+            }
+        }
+        if (BuildConfig.DEBUG) {
+            DkListBox {
+                DkListRow(
+                    title = "Show onboarding (debug build)",
+                    icon = Icons.Outlined.Replay,
+                    chipTone = DkChipTone.Neutral,
+                    onClick = actions.onOpenOnboarding,
                 )
             }
         }

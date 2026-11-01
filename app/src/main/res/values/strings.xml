@@ -602,4 +602,5 @@
     <string name="onboarding_permission_granted">ניתנה הרשאה</string>
     <string name="tour_route_blocked_title">כשאין דרך לעקוף</string>
     <string name="tour_route_blocked_body">אם כל הדרכים עוברות באזור, יופיעו כאן שלוש אפשרויות: לבחור יעד אחר, לשנות את רמת ההקפדה או לנסוע ביודעין. בנסיעה כזו תקבל התראה לפני האזור.</string>
+    <string name="onboarding_terms_scroll_hint">גוללים לקריאת התנאים המלאים</string>
 </resources>
