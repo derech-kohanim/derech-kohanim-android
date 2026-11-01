@@ -276,3 +276,13 @@ class MockVoiceRepository @Inject constructor() : VoiceRepository {
     ): DkResult<VoiceResolveResponse> =
         DkResult.Success(VoiceResolveResponse(clips = emptyList(), missing = keys))
 }
+
+/** Accepts every report and hands back a made-up issue number. */
+class MockSupportRepository @Inject constructor() : com.abaye.derechkohanim.data.repository.SupportRepository {
+    private var next = 101
+
+    override suspend fun sendReport(
+        request: com.abaye.derechkohanim.data.model.SupportReportRequest,
+    ): DkResult<com.abaye.derechkohanim.data.model.SupportReportResponse> =
+        DkResult.Success(com.abaye.derechkohanim.data.model.SupportReportResponse(id = "mock-$next", reference = next++))
+}

@@ -1,5 +1,6 @@
 package com.abaye.derechkohanim.nav
 
+import com.abaye.derechkohanim.ui.screens.report.ReportRoute
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -59,6 +60,7 @@ fun DkNavGraph(
                 Routes.NAVIGATION -> "navigation"
                 Routes.SETTINGS, Routes.SETTINGS_SECTION_PATTERN -> "settings"
                 Routes.TERMS -> "terms"
+                Routes.REPORT_PATTERN -> "report"
                 Routes.PRIVACY -> "privacy"
                 Routes.DELETE_ACCOUNT -> "delete_account"
                 else -> null
@@ -111,6 +113,9 @@ fun DkNavGraph(
                 onOpenSearch = { navController.navigate(Routes.search()) },
                 onOpenSearchForOrigin = { navController.navigate(Routes.search(originMode = true)) },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                onReportZone = { info ->
+                    navController.navigate(Routes.report(kind = "DATA", zoneId = info.zoneId, zoneName = info.name, location = info.location))
+                },
                 onDestinationChosen = { navController.navigate(Routes.ROUTE_REVIEW) },
                 originJustSet = originJustSet,
                 onOriginConfirmConsumed = {
@@ -168,6 +173,10 @@ fun DkNavGraph(
                 onChangeStringency = {
                     navController.navigate(Routes.settingsSection(SettingsSection.AVOIDANCE.route))
                 },
+                onReportRoute = { routeId -> navController.navigate(Routes.report(kind = "ROUTE", routeId = routeId)) },
+                onReportZone = { info ->
+                    navController.navigate(Routes.report(kind = "DATA", zoneId = info.zoneId, zoneName = info.name, location = info.location))
+                },
                 onBack = { navController.popBackStack() },
             )
         }
@@ -176,6 +185,9 @@ fun DkNavGraph(
             NavigationRoute(
                 onOpenVoiceSettings = {
                     navController.navigate(Routes.settingsSection(SettingsSection.VOICE.route))
+                },
+                onDescribeMark = { mark ->
+                    navController.navigate(Routes.report(kind = "ROUTE", routeId = mark.routeId, location = mark.location, marked = true))
                 },
                 onFinished = {
                     navController.navigate(Routes.HOME) {
@@ -190,6 +202,7 @@ fun DkNavGraph(
                 section = null,
                 onBack = { navController.popBackStack() },
                 onOpenSection = { navController.navigate(Routes.settingsSection(it.route)) },
+                onOpenReport = { navController.navigate(Routes.report()) },
                 onSignIn = { navController.navigate(Routes.LOGIN) },
                 onOpenTerms = { navController.navigate(Routes.TERMS) },
                 onOpenPrivacy = { navController.navigate(Routes.PRIVACY) },
@@ -207,10 +220,27 @@ fun DkNavGraph(
                 onOpenOnboarding = { navController.navigate(Routes.ONBOARDING) },
                 onBack = { navController.popBackStack() },
                 onOpenSection = { navController.navigate(Routes.settingsSection(it.route)) },
+                onOpenReport = { navController.navigate(Routes.report()) },
                 onSignIn = { navController.navigate(Routes.LOGIN) },
                 onOpenTerms = { navController.navigate(Routes.TERMS) },
                 onOpenPrivacy = { navController.navigate(Routes.PRIVACY) },
                 onDeleteAccount = { navController.navigate(Routes.DELETE_ACCOUNT) },
+            )
+        }
+
+        composable(
+            route = Routes.REPORT_PATTERN,
+            arguments = Routes.REPORT_ARGS.map { name ->
+                navArgument(name) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            },
+        ) {
+            ReportRoute(
+                onClose = { navController.popBackStack() },
+                onSignIn = { navController.navigate(Routes.LOGIN) },
             )
         }
 

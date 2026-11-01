@@ -1,5 +1,8 @@
 package com.abaye.derechkohanim.di
 
+import com.abaye.derechkohanim.data.repository.SupportRepository
+import com.abaye.derechkohanim.data.repository.RemoteSupportRepository
+import com.abaye.derechkohanim.data.mock.MockSupportRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -32,6 +35,11 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
+
+    @Provides
+    @Singleton
+    fun supportRepository(api: DerechKohanimApi): SupportRepository =
+        if (BuildConfig.USE_MOCK_DATA) MockSupportRepository() else RemoteSupportRepository(api)
 
     @Provides
     @Singleton

@@ -77,6 +77,7 @@ fun HomeRoute(
     onOpenSearch: () -> Unit,
     onOpenSettings: () -> Unit,
     onDestinationChosen: () -> Unit,
+    onReportZone: (ZoneTapInfo) -> Unit = {},
     onOpenSearchForOrigin: () -> Unit = {},
     originJustSet: Boolean = false,
     onOriginConfirmConsumed: () -> Unit = {},
@@ -102,6 +103,7 @@ fun HomeRoute(
         onSetManualOrigin = { viewModel.setManualOrigin(it) },
         onViewportChange = { viewModel.setViewport(it) },
         onSearchOriginAddress = onOpenSearchForOrigin,
+        onReportZone = onReportZone,
         onSetStringency = { viewModel.setStringency(it) },
         originJustSet = originJustSet,
         onOriginConfirmConsumed = onOriginConfirmConsumed,
@@ -134,6 +136,7 @@ fun HomeScreen(
     onViewportChange: (ZoneFilter.GeoBounds) -> Unit = {},
     onSearchOriginAddress: () -> Unit = {},
     onSetStringency: (Stringency) -> Unit = {},
+    onReportZone: (ZoneTapInfo) -> Unit = {},
     originJustSet: Boolean = false,
     onOriginConfirmConsumed: () -> Unit = {},
     mapUpdates: kotlinx.coroutines.flow.SharedFlow<com.abaye.derechkohanim.data.repository.ZoneLayerChange>? = null,
@@ -397,7 +400,7 @@ fun HomeScreen(
                 homeTourSteps(
                     onTryZone = {
                         // Open the card of the visible zone nearest the start point, like a real tap.
-                        nearestZone(state.zones, state.origin)?.let { tappedZone = it.properties.toTapInfo() }
+                        nearestZone(state.zones, state.origin)?.let { tappedZone = it.toTapInfo() }
                     },
                 ).filter { it.target == null || targets.has(it.target) }
             }
@@ -418,6 +421,7 @@ fun HomeScreen(
             ZoneInfoCard(
                 info = info,
                 onClose = { tappedZone = null },
+                onReport = if (tourShown) null else ({ onReportZone(info) }),
                 modifier = Modifier
                     // At the top: during the tour the coach card sits under the map's middle.
                     .align(Alignment.TopCenter)
@@ -520,6 +524,7 @@ private const val TARGET_ACCOUNT = "home.account"
 private fun homeTourSteps(onTryZone: () -> Unit) = listOf(
     TourStep(TARGET_SEARCH, R.string.tour_home_search_title, R.string.tour_home_search_body),
     TourStep(TARGET_ZONE, R.string.tour_home_zone_title, R.string.tour_home_zone_body, R.string.tour_try, onTryZone),
+    TourStep(null, R.string.tour_home_zone_report_title, R.string.tour_home_zone_report_body),
     TourStep(TARGET_LEGEND, R.string.tour_home_legend_title, R.string.tour_home_legend_body),
     TourStep(TARGET_PILL, R.string.tour_home_pill_title, R.string.tour_home_pill_body),
     TourStep(TARGET_LOCATE, R.string.tour_home_locate_title, R.string.tour_home_locate_body),

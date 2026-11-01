@@ -470,6 +470,8 @@ private fun updateOverlays(
             feature.properties.description?.let { addStringProperty("description", it) }
             addStringProperty("stringency", feature.properties.stringency.name)
             addBooleanProperty("danger", false)
+            addNumberProperty("zone_id", feature.properties.id)
+            ringCentre(ring)?.let { addNumberProperty("lat", it.lat); addNumberProperty("lng", it.lng) }
         }
     })
     // Danger zones.
@@ -481,6 +483,7 @@ private fun updateOverlays(
             feature.properties.city?.let { addStringProperty("city", it) }
             feature.properties.description?.let { addStringProperty("description", it) }
             addBooleanProperty("danger", true)
+            ringCentre(ring)?.let { addNumberProperty("lat", it.lat); addNumberProperty("lng", it.lng) }
         }
     })
     // Naive route.
@@ -558,6 +561,12 @@ private fun Feature.toZoneTapInfo(): ZoneTapInfo {
         description = if (hasProperty("description")) getStringProperty("description") else null,
         stringency = stringency,
         danger = danger,
+        zoneId = if (hasProperty("zone_id")) runCatching { getNumberProperty("zone_id").toInt() }.getOrNull() else null,
+        location = if (hasProperty("lat") && hasProperty("lng")) {
+            runCatching { LatLng(getNumberProperty("lat").toDouble(), getNumberProperty("lng").toDouble()) }.getOrNull()
+        } else {
+            null
+        },
     )
 }
 

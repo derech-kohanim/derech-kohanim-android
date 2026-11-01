@@ -1,5 +1,6 @@
 package com.abaye.derechkohanim.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,8 @@ fun ZoneInfoCard(
     info: ZoneTapInfo,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Opens the report form about this zone; the link is hidden when null. */
+    onReport: (() -> Unit)? = null,
 ) {
     val colors = DkTheme.colors
     val layerColor = if (info.danger) colors.zoneDanger else zoneColor(info.stringency ?: Stringency.BASIC, colors)
@@ -85,6 +88,17 @@ fun ZoneInfoCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.text,
                 modifier = Modifier.padding(top = DkTheme.spacing.s2),
+            )
+        }
+        if (onReport != null) {
+            Text(
+                text = stringResource(R.string.zone_report_link),
+                style = MaterialTheme.typography.labelLarge,
+                color = colors.primary,
+                modifier = Modifier
+                    .padding(top = DkTheme.spacing.s3)
+                    .clickable(onClick = onReport)
+                    .padding(vertical = DkTheme.spacing.s1),
             )
         }
     }

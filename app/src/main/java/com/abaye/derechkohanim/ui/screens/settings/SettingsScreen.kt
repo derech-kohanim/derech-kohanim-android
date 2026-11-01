@@ -1,5 +1,6 @@
 package com.abaye.derechkohanim.ui.screens.settings
 
+import com.abaye.derechkohanim.ui.screens.report.ReportIcon
 import com.abaye.derechkohanim.ui.components.TaharatContactCard
 import android.widget.Toast
 import androidx.compose.material.icons.automirrored.outlined.AltRoute
@@ -135,6 +136,7 @@ class SettingsActions(
     val onReplayGuide: () -> Unit = {},
     /** Debug builds only: walk through onboarding again. */
     val onOpenOnboarding: () -> Unit = {},
+    val onOpenReport: () -> Unit = {},
 ) {
     companion object {
         val Preview = SettingsActions({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
@@ -156,6 +158,7 @@ fun SettingsRoute(
     onDeleteAccount: () -> Unit = {},
     onPlaceChosen: () -> Unit = {},
     onOpenOnboarding: () -> Unit = {},
+    onOpenReport: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -181,6 +184,7 @@ fun SettingsRoute(
         onPlaceChosen = onPlaceChosen,
         onReplayGuide = viewModel::replayGuide,
         onOpenOnboarding = onOpenOnboarding,
+        onOpenReport = onOpenReport,
     )
     when (section) {
         null -> SettingsMenuScreen(state, actions)
@@ -311,6 +315,13 @@ fun SettingsMenuScreen(state: SettingsState, actions: SettingsActions) {
                 },
                 icon = Icons.Outlined.StarOutline,
                 onClick = { actions.onOpenSection(SettingsSection.SAVED_PLACES) },
+            )
+            DkListDivider()
+            DkListRow(
+                title = stringResource(R.string.settings_menu_report),
+                supporting = stringResource(R.string.settings_report_subtitle),
+                icon = ReportIcon,
+                onClick = actions.onOpenReport,
             )
             DkListDivider()
             DkListRow(
@@ -613,6 +624,7 @@ private val TIPS = listOf(
     Triple(Icons.Outlined.WarningAmber, R.string.tip_blocked_title, R.string.tip_blocked_body),
     Triple(Icons.Outlined.Person, R.string.tip_account_title, R.string.tip_account_body),
     Triple(Icons.AutoMirrored.Outlined.AltRoute, R.string.tip_offline_title, R.string.tip_offline_body),
+    Triple(ReportIcon, R.string.tip_report_title, R.string.tip_report_body),
 )
 
 @Composable

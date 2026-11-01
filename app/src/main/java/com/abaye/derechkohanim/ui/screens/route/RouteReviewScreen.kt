@@ -1,5 +1,6 @@
 package com.abaye.derechkohanim.ui.screens.route
 
+import com.abaye.derechkohanim.ui.screens.report.ReportIcon
 import com.abaye.derechkohanim.ui.components.TourResult
 import com.abaye.derechkohanim.data.local.Tour
 import com.abaye.derechkohanim.ui.components.CoachMarkOverlay
@@ -104,6 +105,8 @@ fun RouteReviewRoute(
     onChangeDestination: () -> Unit,
     onChangeStringency: () -> Unit,
     onBack: () -> Unit,
+    onReportRoute: (String?) -> Unit = {},
+    onReportZone: (ZoneTapInfo) -> Unit = {},
     viewModel: RouteReviewViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -127,6 +130,8 @@ fun RouteReviewRoute(
         },
         onChangeDestination = onChangeDestination,
         onChangeStringency = onChangeStringency,
+        onReportRoute = onReportRoute,
+        onReportZone = onReportZone,
         onSelectRoute = viewModel::selectRoute,
         onSetTrafficAware = viewModel::setTrafficAware,
         onSetAvoidTolls = viewModel::setAvoidTolls,
@@ -150,6 +155,8 @@ fun RouteReviewScreen(
     onChangeDestination: () -> Unit,
     onChangeStringency: () -> Unit,
     onCancelCompute: () -> Unit = {},
+    onReportRoute: (String?) -> Unit = {},
+    onReportZone: (ZoneTapInfo) -> Unit = {},
     onSelectRoute: (String) -> Unit = {},
     onSetTrafficAware: (Boolean) -> Unit = {},
     onSetAvoidTolls: (Boolean) -> Unit = {},
@@ -224,6 +231,7 @@ fun RouteReviewScreen(
             ZoneInfoCard(
                 info = info,
                 onClose = { tappedZone = null },
+                onReport = { onReportZone(info) },
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .statusBarsPadding()
@@ -271,6 +279,7 @@ fun RouteReviewScreen(
                 onSetShowUnavoided = onSetShowUnavoided,
                 onSave = onSave,
                 onStart = onStart,
+                onReport = { onReportRoute(route.id) },
                 targets = targets,
             )
         }
@@ -283,6 +292,7 @@ fun RouteReviewScreen(
                     TourStep(ROUTE_TOGGLES, R.string.tour_route_toggles_title, R.string.tour_route_toggles_body),
                     TourStep(ROUTE_SIM, R.string.tour_route_sim_title, R.string.tour_route_sim_body),
                     TourStep(ROUTE_STAR, R.string.tour_route_star_title, R.string.tour_route_star_body),
+                    TourStep(ROUTE_REPORT, R.string.tour_route_report_title, R.string.tour_route_report_body),
                 ).filter { targets.has(it.target!!) && (it.target != ROUTE_BLOCKED || noCleanStepPending) }
             }
             // Nothing to show (only the no-clean step, already seen): stay pending, mark nothing.
@@ -319,6 +329,7 @@ private fun RouteReadyPanel(
     onSave: (PlaceCategory) -> Unit,
     onStart: (simulated: Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    onReport: () -> Unit = {},
     targets: TourTargets? = null,
 ) {
     val context = LocalContext.current
@@ -350,6 +361,21 @@ private fun RouteReadyPanel(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
+                Surface(
+                    shape = CircleShape,
+                    color = colors.surface,
+                    border = BorderStroke(1.dp, colors.borderStrong),
+                    modifier = Modifier
+                        .padding(end = DkTheme.spacing.s2)
+                        .target(ROUTE_REPORT),
+                ) {
+                    DkIconButton(
+                        icon = ReportIcon,
+                        contentDescription = stringResource(R.string.route_report),
+                        onClick = onReport,
+                        tint = colors.primary,
+                    )
+                }
                 if (state.savedToFavorites) {
                     DkBadge(
                         text = stringResource(R.string.route_saved),
@@ -871,3 +897,4 @@ private const val ROUTE_ALTS = "route.alternatives"
 private const val ROUTE_TOGGLES = "route.toggles"
 private const val ROUTE_SIM = "route.simulate"
 private const val ROUTE_STAR = "route.save"
+private const val ROUTE_REPORT = "route.report"

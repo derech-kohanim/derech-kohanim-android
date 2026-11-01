@@ -1,5 +1,7 @@
 package com.abaye.derechkohanim.data.remote
 
+import com.abaye.derechkohanim.data.model.SupportReportRequest
+import com.abaye.derechkohanim.data.model.SupportReportResponse
 import com.abaye.derechkohanim.data.model.AcceptTermsRequest
 import com.abaye.derechkohanim.data.model.AuthResponse
 import com.abaye.derechkohanim.data.model.AuthTokens
@@ -67,6 +69,10 @@ interface DerechKohanimApi {
 
     @POST("auth/logout")
     suspend fun logout(@Body body: LogoutRequest)
+
+    /** A report or feedback for the support desk. Signed in only; 429 when rate limited. */
+    @POST("support/reports")
+    suspend fun sendSupportReport(@Body request: SupportReportRequest): SupportReportResponse
 
     @GET("auth/me")
     suspend fun me(): User

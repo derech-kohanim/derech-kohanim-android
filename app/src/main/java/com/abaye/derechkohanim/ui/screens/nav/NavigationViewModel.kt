@@ -1,5 +1,7 @@
 package com.abaye.derechkohanim.ui.screens.nav
 
+import com.abaye.derechkohanim.data.repository.DriveMark
+import com.abaye.derechkohanim.data.repository.DriveMarkStore
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharedFlow
@@ -136,7 +138,19 @@ data class NavigationState(
 @HiltViewModel
 class NavigationViewModel @Inject constructor(
     private val engine: NavigationEngine,
+    private val driveMarks: DriveMarkStore,
 ) : ViewModel() {
+
+    /** One tap while driving: remember where and when, to ask about it after the drive. */
+    fun markProblem() {
+        val current = state.value
+        driveMarks.add(DriveMark(current.route?.id, current.currentLocation, System.currentTimeMillis()))
+    }
+
+    /** The problems marked on this drive, for the end-of-drive prompt. */
+    fun marks(): List<DriveMark> = driveMarks.all()
+
+    fun clearMarks() = driveMarks.clear()
 
     val state: StateFlow<NavigationState> = engine.state
     val announcements: SharedFlow<Announcement> = engine.announcements

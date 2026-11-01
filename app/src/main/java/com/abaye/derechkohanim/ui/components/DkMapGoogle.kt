@@ -168,7 +168,7 @@ internal fun GoogleDkMap(
             }
             if (outer.size >= 3) {
                 val layerColor = zoneColor(feature.properties.stringency, colors)
-                val info = feature.properties.toTapInfo()
+                val info = feature.toTapInfo()
                 Polygon(
                     points = outer,
                     fillColor = layerColor.copy(alpha = ZONE_FILL_ALPHA),
@@ -186,7 +186,7 @@ internal fun GoogleDkMap(
                 GmsLatLng(it[1], it[0])
             }
             if (outer.size >= 3) {
-                val info = feature.properties.toTapInfo()
+                val info = feature.toTapInfo()
                 Polygon(
                     points = outer,
                     fillColor = colors.zoneDanger.copy(alpha = ZONE_FILL_ALPHA),

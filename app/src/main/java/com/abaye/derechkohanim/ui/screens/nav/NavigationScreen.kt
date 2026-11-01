@@ -1,5 +1,10 @@
 package com.abaye.derechkohanim.ui.screens.nav
 
+import android.widget.Toast
+import com.abaye.derechkohanim.data.repository.DriveMark
+import com.abaye.derechkohanim.ui.screens.report.ReportIcon
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.unit.dp
 import com.abaye.derechkohanim.ui.components.TourResult
 import com.abaye.derechkohanim.data.local.Tour
 import com.abaye.derechkohanim.ui.components.CoachMarkOverlay
@@ -101,6 +106,7 @@ import com.abaye.derechkohanim.ui.theme.DkTheme
 fun NavigationRoute(
     onFinished: () -> Unit,
     onOpenVoiceSettings: () -> Unit = {},
+    onDescribeMark: (DriveMark) -> Unit = {},
     viewModel: NavigationViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -143,6 +149,16 @@ fun NavigationRoute(
         onReport = viewModel::addReport,
         reportAdded = viewModel.reportAdded,
         onSubmitFeedback = viewModel::submitFeedback,
+        onMarkProblem = {
+            viewModel.markProblem()
+            Toast.makeText(context, R.string.nav_mark_toast, Toast.LENGTH_SHORT).show()
+        },
+        marks = { viewModel.marks() },
+        onDescribeMark = { mark ->
+            viewModel.clearMarks()
+            onDescribeMark(mark)
+        },
+        onDismissMarks = viewModel::clearMarks,
         tourPending = tourPending == true,
         onTourDone = { result -> tourViewModel.finish(Tour.NAVIGATION, result) },
         onFinish = {
@@ -206,6 +222,11 @@ fun NavigationScreen(
     reportAdded: kotlinx.coroutines.flow.SharedFlow<Unit>? = null,
     onSubmitFeedback: (NavFeedbackRating, String?) -> Unit = { _, _ -> },
     onFinish: () -> Unit,
+    onMarkProblem: () -> Unit = {},
+    /** The problems marked on this drive, read when the drive ends. */
+    marks: () -> List<DriveMark> = { emptyList() },
+    onDescribeMark: (DriveMark) -> Unit = {},
+    onDismissMarks: () -> Unit = {},
     /** True when the navigation tour should run (first drive, tours not off). */
     tourPending: Boolean = false,
     onTourDone: (TourResult) -> Unit = {},
@@ -403,6 +424,9 @@ fun NavigationScreen(
             ArrivalPanel(
                 onSubmitFeedback = onSubmitFeedback,
                 onFinish = onFinish,
+                marks = remember { marks() },
+                onDescribeMark = onDescribeMark,
+                onDismissMarks = onDismissMarks,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
@@ -422,6 +446,7 @@ fun NavigationScreen(
                 onOpenSteps = { showSteps = true },
                 // Stopping early offers optional feedback first; the sheet's own actions stop.
                 onStop = { showStopFeedback = true },
+                onMarkProblem = onMarkProblem,
                 targets = targets,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -438,6 +463,7 @@ fun NavigationScreen(
                     TourStep(NAV_SPEED, R.string.tour_nav_speed_title, R.string.tour_nav_speed_body),
                     TourStep(NAV_MUTE, R.string.tour_nav_mute_title, R.string.tour_nav_mute_body),
                     TourStep(NAV_STEPS, R.string.tour_nav_steps_title, R.string.tour_nav_steps_body),
+                    TourStep(NAV_FLAG, R.string.tour_nav_flag_title, R.string.tour_nav_flag_body),
                 ).filter { targets.has(it.target!!) }
             }
             CoachMarkOverlay(
@@ -765,6 +791,7 @@ private fun BottomBar(
     onOpenSteps: () -> Unit,
     onStop: () -> Unit,
     modifier: Modifier = Modifier,
+    onMarkProblem: () -> Unit = {},
     targets: TourTargets? = null,
 ) {
     val context = LocalContext.current
@@ -849,6 +876,20 @@ private fun BottomBar(
                         onLongPress = onOpenVoiceSettings,
                         modifier = Modifier.target(NAV_MUTE),
                     )
+                    // One tap marks a problem here; no typing while driving.
+                    Surface(
+                        shape = CircleShape,
+                        color = DkTheme.colors.surface,
+                        border = BorderStroke(1.dp, DkTheme.colors.borderStrong),
+                        modifier = Modifier.target(NAV_FLAG),
+                    ) {
+                        DkIconButton(
+                            icon = ReportIcon,
+                            contentDescription = stringResource(R.string.nav_mark_problem),
+                            onClick = onMarkProblem,
+                            tint = DkTheme.colors.primary,
+                        )
+                    }
                     Spacer(Modifier.weight(1f))
                     DkButton(
                         text = stringResource(R.string.nav_stop),
@@ -940,13 +981,51 @@ private fun ArrivalPanel(
     onSubmitFeedback: (NavFeedbackRating, String?) -> Unit,
     onFinish: () -> Unit,
     modifier: Modifier = Modifier,
+    marks: List<DriveMark> = emptyList(),
+    onDescribeMark: (DriveMark) -> Unit = {},
+    onDismissMarks: () -> Unit = {},
 ) {
+    var marksPending by remember { mutableStateOf(marks.isNotEmpty()) }
     DkCard(modifier = modifier, color = DkTheme.colors.surfaceOverlay) {
         Text(
             text = stringResource(R.string.nav_arrived_title),
             style = MaterialTheme.typography.displaySmall,
             color = DkTheme.colors.text,
         )
+        // Problems marked on the way: offer to describe the first, or let them go.
+        if (marksPending) {
+            Surface(
+                shape = RoundedCornerShape(DkTheme.radius.md),
+                color = DkTheme.colors.primarySoft,
+                border = BorderStroke(Dp.Hairline, DkTheme.colors.primary.copy(alpha = 0.25f)),
+                modifier = Modifier.padding(top = DkTheme.spacing.s3),
+            ) {
+                Column(
+                    modifier = Modifier.padding(DkTheme.spacing.s3),
+                    verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2),
+                ) {
+                    Text(
+                        text = stringResource(R.string.nav_marks_prompt),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = DkTheme.colors.text,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2)) {
+                        DkButton(
+                            text = stringResource(R.string.nav_marks_describe),
+                            onClick = { marks.firstOrNull()?.let(onDescribeMark) },
+                        )
+                        DkButton(
+                            text = stringResource(R.string.nav_marks_later),
+                            onClick = {
+                                marksPending = false
+                                onDismissMarks()
+                            },
+                            variant = DkButtonVariant.Ghost,
+                        )
+                    }
+                }
+            }
+        }
         FeedbackControls(
             onSubmitFeedback = onSubmitFeedback,
             onProceed = onFinish,
@@ -1290,3 +1369,4 @@ private const val NAV_BANNER = "nav.banner"
 private const val NAV_SPEED = "nav.speed"
 private const val NAV_MUTE = "nav.mute"
 private const val NAV_STEPS = "nav.steps"
+private const val NAV_FLAG = "nav.flag"

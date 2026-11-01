@@ -53,7 +53,21 @@ data class ZoneTapInfo(
     val description: String?,
     val stringency: Stringency?,
     val danger: Boolean,
+    /** The zone's id, for a report about it; null for a danger zone. */
+    val zoneId: Int? = null,
+    /** A point inside the zone (the centre of its outline), for a report about it. */
+    val location: LatLng? = null,
 )
+
+/** The average of a polygon ring's vertices, as a stand-in for its centre. */
+fun ringCentre(ring: List<List<Double>>): LatLng? {
+    if (ring.isEmpty()) return null
+    return LatLng(ring.sumOf { it[1] } / ring.size, ring.sumOf { it[0] } / ring.size)
+}
+
+fun ZoneFeature.toTapInfo() = properties.toTapInfo().copy(location = ringCentre(geometry.coordinates.firstOrNull().orEmpty()))
+
+fun DangerZoneFeature.toTapInfo() = properties.toTapInfo().copy(location = ringCentre(geometry.coordinates.firstOrNull().orEmpty()))
 
 fun ZoneProperties.toTapInfo() = ZoneTapInfo(
     name = nameHe,
@@ -62,6 +76,7 @@ fun ZoneProperties.toTapInfo() = ZoneTapInfo(
     description = description,
     stringency = stringency,
     danger = false,
+    zoneId = id,
 )
 
 fun DangerZoneProperties.toTapInfo() = ZoneTapInfo(

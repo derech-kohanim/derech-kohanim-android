@@ -235,6 +235,8 @@ fun SavedPlacesEmptyCard(
     body: String,
     onSignIn: (() -> Unit)? = null,
     onContinueAsGuest: (() -> Unit)? = null,
+    /** The secondary button's label; "continue as a guest" by default. */
+    secondaryLabel: String? = null,
 ) {
     val colors = DkTheme.colors
     DkListBox {
@@ -299,7 +301,7 @@ fun SavedPlacesEmptyCard(
             }
             if (onContinueAsGuest != null) {
                 DkButton(
-                    text = stringResource(R.string.saved_places_continue_guest),
+                    text = secondaryLabel ?: stringResource(R.string.saved_places_continue_guest),
                     onClick = onContinueAsGuest,
                     variant = DkButtonVariant.Secondary,
                     modifier = Modifier.fillMaxWidth(),
