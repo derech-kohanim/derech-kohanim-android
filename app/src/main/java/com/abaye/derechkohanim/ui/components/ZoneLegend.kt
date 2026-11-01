@@ -1,6 +1,5 @@
 package com.abaye.derechkohanim.ui.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -83,7 +82,7 @@ private fun LegendRow(color: Color, text: String) {
 
 /**
  * The legend folded into a small map button. Tapping it slides the legend up from the bottom
- * as a Civic sheet (surface, hairline top edge, 16dp top corners): the title, then one row per
+ * as a Civic sheet (surface, 16dp top corners, the scrim setting it off the map): the title, then one row per
  * layer with its colour swatch, split by hairlines. Drag, the scrim or back closes it.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -106,7 +105,6 @@ fun ZoneLegendButton(modifier: Modifier = Modifier, showDanger: Boolean = false)
             contentColor = colors.text,
             shape = shape,
             tonalElevation = 0.dp,
-            modifier = Modifier.border(BorderStroke(Dp.Hairline, colors.border), shape),
         ) {
             Column(
                 modifier = Modifier
