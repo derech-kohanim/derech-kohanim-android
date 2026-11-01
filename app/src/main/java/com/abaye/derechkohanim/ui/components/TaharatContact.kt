@@ -1,10 +1,11 @@
 package com.abaye.derechkohanim.ui.components
 
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -58,7 +59,6 @@ object TaharatContact {
  * The association's contact, pinned under the settings menu: a royal-soft card with a phone
  * chip, the title and why to call, and two pills, the phone (dial) and the email (compose).
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TaharatContactCard(modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -88,7 +88,9 @@ fun TaharatContactCard(modifier: Modifier = Modifier) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = stringResource(R.string.taharat_contact_title),
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                        // Sized so the title stays on one line on a 360dp phone.
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold),
+                        maxLines = 1,
                         color = colors.text,
                     )
                     Text(
@@ -98,22 +100,45 @@ fun TaharatContactCard(modifier: Modifier = Modifier) {
                     )
                 }
             }
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2),
-                verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2),
-            ) {
-                DkButton(
+            // Compact pills so both fit on one row on a 360dp phone.
+            Row(horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2)) {
+                ContactPill(
                     text = TaharatContact.ltr(TaharatContact.PHONE_DISPLAY),
+                    icon = Icons.Outlined.Phone,
+                    filled = true,
                     onClick = { TaharatContact.dial(context) },
-                    leadingIcon = Icons.Outlined.Phone,
                 )
-                DkButton(
+                ContactPill(
                     text = TaharatContact.ltr(TaharatContact.EMAIL),
+                    icon = Icons.Outlined.Email,
+                    filled = false,
                     onClick = { TaharatContact.email(context) },
-                    variant = DkButtonVariant.Secondary,
-                    leadingIcon = Icons.Outlined.Email,
                 )
             }
+        }
+    }
+}
+
+/** A compact Civic pill: royal fill or outline, a small icon and short text. */
+@Composable
+private fun ContactPill(text: String, icon: ImageVector, filled: Boolean, onClick: () -> Unit) {
+    val colors = DkTheme.colors
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(DkTheme.radius.full),
+        color = if (filled) colors.primary else colors.surface,
+        contentColor = if (filled) colors.primaryContrast else colors.primary,
+        border = if (filled) null else BorderStroke(1.dp, colors.borderStrong),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier
+                .heightIn(min = 40.dp)
+                .padding(horizontal = 10.dp),
+        ) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(14.dp))
+            Text(text = text, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1, softWrap = false)
         }
     }
 }
