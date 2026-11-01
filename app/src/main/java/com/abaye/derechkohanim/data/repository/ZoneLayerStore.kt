@@ -41,6 +41,8 @@ data class ZoneLayerStatus(
     val dangerVersion: Int = 0,
     val zoneCount: Int = 0,
     val dangerCount: Int = 0,
+    /** When the cached layers were last written (a sync that changed them), epoch millis. */
+    val updatedAtMillis: Long? = null,
 )
 
 /**
@@ -266,6 +268,7 @@ class ZoneLayerStore @Inject constructor(
             dangerVersion = snapshot.dangerLayerVersion,
             zoneCount = zoneCount,
             dangerCount = dangerCount,
+            updatedAtMillis = zonesDir().listFiles()?.maxOfOrNull { it.lastModified() }?.takeIf { it > 0 },
         )
     }
 

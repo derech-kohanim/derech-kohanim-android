@@ -11,6 +11,11 @@ object Routes {
     const val SIMULATION = "simulation"
     const val SETTINGS = "settings"
 
+    /** A settings sub-screen; the argument is a SettingsSection route segment. */
+    const val SETTINGS_ARG_SECTION = "section"
+    const val SETTINGS_SECTION_PATTERN = "$SETTINGS/{$SETTINGS_ARG_SECTION}"
+    fun settingsSection(section: String): String = "$SETTINGS/$section"
+
     /**
      * The policy documents and the deletion form. Reachable before the terms are accepted and
      * without an account, because that is exactly who needs them: a reader deciding whether to

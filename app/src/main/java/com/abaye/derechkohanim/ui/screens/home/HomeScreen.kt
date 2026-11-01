@@ -191,8 +191,8 @@ fun HomeScreen(
                 // The map draws edge-to-edge behind the status bar, but the controls must sit
                 // below it so they never overlap the clock/battery.
                 .statusBarsPadding()
-                .padding(DkTheme.spacing.s4),
-            verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s3),
+                .padding(DkTheme.spacing.s2),
+            verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -318,9 +318,12 @@ fun HomeScreen(
         }
 
         if (pickStringency) {
-            com.abaye.derechkohanim.ui.components.StringencyPickerSheet(
-                selected = state.stringency,
-                onSelect = onSetStringency,
+            com.abaye.derechkohanim.ui.components.StringencyDialog(
+                current = state.stringency,
+                onSave = {
+                    onSetStringency(it)
+                    pickStringency = false
+                },
                 onDismiss = { pickStringency = false },
             )
         }

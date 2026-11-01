@@ -28,6 +28,7 @@ import com.abaye.derechkohanim.ui.screens.onboarding.OnboardingRoute
 import com.abaye.derechkohanim.ui.screens.route.RouteReviewRoute
 import com.abaye.derechkohanim.ui.screens.search.DestinationSearchRoute
 import com.abaye.derechkohanim.ui.screens.settings.SettingsRoute
+import com.abaye.derechkohanim.ui.screens.settings.SettingsSection
 
 /**
  * One graph for the whole app. Live navigation and simulation share the same destination and
@@ -56,7 +57,7 @@ fun DkNavGraph(
                 Routes.SEARCH_PATTERN -> "search"
                 Routes.ROUTE_REVIEW -> "route_review"
                 Routes.NAVIGATION -> "navigation"
-                Routes.SETTINGS -> "settings"
+                Routes.SETTINGS, Routes.SETTINGS_SECTION_PATTERN -> "settings"
                 Routes.TERMS -> "terms"
                 Routes.PRIVACY -> "privacy"
                 Routes.DELETE_ACCOUNT -> "delete_account"
@@ -164,14 +165,18 @@ fun DkNavGraph(
                         popUpTo(Routes.ROUTE_REVIEW) { inclusive = true }
                     }
                 },
-                onChangeStringency = { navController.navigate(Routes.SETTINGS) },
+                onChangeStringency = {
+                    navController.navigate(Routes.settingsSection(SettingsSection.AVOIDANCE.route))
+                },
                 onBack = { navController.popBackStack() },
             )
         }
 
         composable(Routes.NAVIGATION) {
             NavigationRoute(
-                onOpenVoiceSettings = { navController.navigate(Routes.SETTINGS) },
+                onOpenVoiceSettings = {
+                    navController.navigate(Routes.settingsSection(SettingsSection.VOICE.route))
+                },
                 onFinished = {
                     navController.navigate(Routes.HOME) {
                         popUpTo(Routes.HOME) { inclusive = true }
@@ -182,7 +187,24 @@ fun DkNavGraph(
 
         composable(Routes.SETTINGS) {
             SettingsRoute(
+                section = null,
                 onBack = { navController.popBackStack() },
+                onOpenSection = { navController.navigate(Routes.settingsSection(it.route)) },
+                onSignIn = { navController.navigate(Routes.LOGIN) },
+                onOpenTerms = { navController.navigate(Routes.TERMS) },
+                onOpenPrivacy = { navController.navigate(Routes.PRIVACY) },
+                onDeleteAccount = { navController.navigate(Routes.DELETE_ACCOUNT) },
+            )
+        }
+
+        composable(
+            route = Routes.SETTINGS_SECTION_PATTERN,
+            arguments = listOf(navArgument(Routes.SETTINGS_ARG_SECTION) { type = NavType.StringType }),
+        ) { entry ->
+            SettingsRoute(
+                section = SettingsSection.fromRoute(entry.arguments?.getString(Routes.SETTINGS_ARG_SECTION)),
+                onBack = { navController.popBackStack() },
+                onOpenSection = { navController.navigate(Routes.settingsSection(it.route)) },
                 onSignIn = { navController.navigate(Routes.LOGIN) },
                 onOpenTerms = { navController.navigate(Routes.TERMS) },
                 onOpenPrivacy = { navController.navigate(Routes.PRIVACY) },

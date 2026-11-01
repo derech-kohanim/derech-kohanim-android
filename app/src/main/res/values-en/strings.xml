@@ -478,4 +478,35 @@
     <string name="route_proceed_confirm_title">Drive a route that crosses a zone?</string>
     <string name="route_proceed_confirm_body">This route passes through a zone that is forbidden at the avoidance level you chose. Driving it is your responsibility. During the drive you will be alerted before each zone entry.</string>
     <string name="route_proceed_confirm">Drive anyway</string>
+    <!-- Settings menu, avoidance dialog, about -->
+    <string name="avoidance_level_label">Avoidance:</string>
+    <string name="avoidance_dialog_title">Choose an avoidance level</string>
+    <string name="avoidance_lower_confirm_title">Lower the avoidance level?</string>
+    <string name="avoidance_lower_confirm_body">The level goes down from %1$s to %2$s. Routes may then pass through zones you have avoided until now.</string>
+    <string name="avoidance_lower_confirm">Lower it</string>
+    <string name="settings_menu_avoidance">Avoidance and route</string>
+    <string name="settings_menu_voice">Voice and guidance</string>
+    <string name="settings_menu_display">Display and language</string>
+    <string name="settings_menu_zone_data">Zone data</string>
+    <string name="settings_menu_account">Account</string>
+    <string name="settings_menu_about">About and legal</string>
+    <string name="settings_group_route">Route</string>
+    <string name="settings_voice_on">On</string>
+    <string name="settings_voice_off">Off</string>
+    <string name="settings_account_signed_in">Signed in</string>
+    <string name="settings_account_guest">Guest</string>
+    <string name="settings_account_signed_in_body">You are signed in. Your saved places and preferences are kept in your account.</string>
+    <string name="settings_account_guest_body">You are using the app as a guest. Signing in keeps your places and preferences across devices.</string>
+    <string name="settings_sign_out_confirm_title">Sign out of your account?</string>
+    <string name="settings_sign_out_confirm_body">Your saved places stay in the account and come back when you sign in again.</string>
+    <string name="settings_zones_updated_at">Updated %1$s</string>
+    <string name="settings_zones_status">Status</string>
+    <string name="settings_zones_last_update">Last update</string>
+    <string name="settings_zones_versions">Layer version</string>
+    <string name="settings_zones_update_now">Check for updates now</string>
+    <string name="settings_zones_source">Zone data courtesy of Taharat HaKohanim (gps.hakohanim.org). The layers are stored on the device and update in the background.</string>
+    <string name="about_tagline">Navigation for kohanim that goes around forbidden zones at the avoidance level you choose, with an alert before every zone entry.</string>
+    <string name="about_credits_title">Credits</string>
+    <string name="about_credits">Zone data courtesy of Taharat HaKohanim (gps.hakohanim.org). Road data: OpenStreetMap.</string>
+    <string name="about_open_source">Open source</string>
 </resources>

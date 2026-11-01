@@ -1,5 +1,16 @@
 package com.abaye.derechkohanim.ui.components
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -46,9 +57,9 @@ fun StringencyChip(
         onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(DkTheme.radius.full),
-        color = colors.primarySoft,
+        color = colors.surface,
         contentColor = colors.primary,
-        border = BorderStroke(Dp.Hairline, colors.primary.copy(alpha = 0.25f)),
+        border = BorderStroke(1.dp, colors.borderStrong),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -57,7 +68,15 @@ fun StringencyChip(
         ) {
             Icon(Icons.Outlined.Shield, contentDescription = null, modifier = Modifier.size(DkTheme.spacing.s4))
             Text(
-                text = stringResource(R.string.avoidance_level_chip, stringResource(stringencyTitleRes(stringency))),
+                text = buildAnnotatedString {
+                    withStyle(SpanStyle(color = colors.textMuted)) {
+                        append(stringResource(R.string.avoidance_level_label))
+                    }
+                    append(' ')
+                    withStyle(SpanStyle(color = colors.text)) {
+                        append(stringResource(stringencyTitleRes(stringency)))
+                    }
+                },
                 style = MaterialTheme.typography.labelMedium,
             )
         }
@@ -116,31 +135,94 @@ fun StringencyOptions(
     }
 }
 
-/** A planning sheet to change the avoidance level from the map or a route screen. */
+/**
+ * The one place the avoidance level is changed ("בחירת רמת הימנעות"), opened from the home pill
+ * and from the avoidance settings row. The choice is a draft until Save. Saving a less strict
+ * level does not apply at once: the dialog turns into a confirmation step first, because a lower
+ * level lets routes through zones the user has avoided until now.
+ */
 @Composable
-fun StringencyPickerSheet(
-    selected: Stringency,
-    onSelect: (Stringency) -> Unit,
+fun StringencyDialog(
+    current: Stringency,
+    onSave: (Stringency) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    DkBottomSheet(onDismissRequest = onDismiss) {
-        Text(
-            text = stringResource(R.string.avoidance_level_title),
-            style = MaterialTheme.typography.titleLarge,
-            color = DkTheme.colors.text,
-        )
-        Text(
-            text = stringResource(R.string.avoidance_level_hint),
-            style = MaterialTheme.typography.bodySmall,
-            color = DkTheme.colors.textMuted,
-            modifier = Modifier.padding(top = DkTheme.spacing.s1, bottom = DkTheme.spacing.s4),
-        )
-        StringencyOptions(
-            selected = selected,
-            onSelect = {
-                onSelect(it)
-                onDismiss()
-            },
-        )
-    }
+    var draft by remember(current) { mutableStateOf(current) }
+    var confirmLower by remember { mutableStateOf(false) }
+    val colors = DkTheme.colors
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = colors.surface,
+        shape = RoundedCornerShape(DkTheme.radius.lg),
+        title = {
+            Text(
+                text = stringResource(
+                    if (confirmLower) R.string.avoidance_lower_confirm_title else R.string.avoidance_dialog_title,
+                ),
+                style = MaterialTheme.typography.titleLarge,
+                color = colors.text,
+            )
+        },
+        text = {
+            if (confirmLower) {
+                Text(
+                    text = stringResource(
+                        R.string.avoidance_lower_confirm_body,
+                        stringResource(stringencyTitleRes(current)),
+                        stringResource(stringencyTitleRes(draft)),
+                    ),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = colors.textBody,
+                )
+            } else {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s3),
+                ) {
+                    Text(
+                        text = stringResource(R.string.avoidance_level_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.textMuted,
+                    )
+                    StringencyOptions(selected = draft, onSelect = { draft = it })
+                }
+            }
+        },
+        confirmButton = {
+            if (confirmLower) {
+                DkButton(
+                    text = stringResource(R.string.avoidance_lower_confirm),
+                    onClick = { onSave(draft) },
+                    variant = DkButtonVariant.Danger,
+                )
+            } else {
+                DkButton(
+                    text = stringResource(R.string.action_save),
+                    onClick = {
+                        when {
+                            draft == current -> onDismiss()
+                            draft.ordinal < current.ordinal -> confirmLower = true
+                            else -> onSave(draft)
+                        }
+                    },
+                )
+            }
+        },
+        dismissButton = {
+            if (confirmLower) {
+                DkButton(
+                    text = stringResource(R.string.action_back),
+                    onClick = { confirmLower = false },
+                    variant = DkButtonVariant.Ghost,
+                )
+            } else {
+                DkButton(
+                    text = stringResource(R.string.action_cancel),
+                    onClick = onDismiss,
+                    variant = DkButtonVariant.Ghost,
+                )
+            }
+        },
+    )
 }

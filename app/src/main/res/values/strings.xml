@@ -479,4 +479,35 @@
     <string name="route_proceed_confirm_title">לנסוע במסלול שעובר באזור?</string>
     <string name="route_proceed_confirm_body">המסלול הזה עובר באזור אסור לפי רמת ההימנעות שבחרת. הנסיעה היא באחריותך. בזמן הנסיעה תקבל התראה לפני כל כניסה לאזור.</string>
     <string name="route_proceed_confirm">לנסוע בכל זאת</string>
+    <!-- Settings menu, avoidance dialog, about -->
+    <string name="avoidance_level_label">רמת הימנעות:</string>
+    <string name="avoidance_dialog_title">בחירת רמת הימנעות</string>
+    <string name="avoidance_lower_confirm_title">להוריד את רמת ההימנעות?</string>
+    <string name="avoidance_lower_confirm_body">הרמה תרד מ%1$s ל%2$s. מסלולים יוכלו לעבור באזורים שנמנעת מהם עד עכשיו.</string>
+    <string name="avoidance_lower_confirm">להוריד</string>
+    <string name="settings_menu_avoidance">הימנעות ומסלול</string>
+    <string name="settings_menu_voice">קול והנחיות</string>
+    <string name="settings_menu_display">תצוגה ושפה</string>
+    <string name="settings_menu_zone_data">נתוני אזורים</string>
+    <string name="settings_menu_account">חשבון</string>
+    <string name="settings_menu_about">אודות ומידע משפטי</string>
+    <string name="settings_group_route">מסלול</string>
+    <string name="settings_voice_on">פועל</string>
+    <string name="settings_voice_off">כבוי</string>
+    <string name="settings_account_signed_in">מחובר</string>
+    <string name="settings_account_guest">אורח</string>
+    <string name="settings_account_signed_in_body">אתה מחובר. המקומות השמורים וההעדפות שלך נשמרים בחשבון.</string>
+    <string name="settings_account_guest_body">אתה משתמש כאורח. התחברות שומרת את המקומות וההעדפות שלך בין מכשירים.</string>
+    <string name="settings_sign_out_confirm_title">להתנתק מהחשבון?</string>
+    <string name="settings_sign_out_confirm_body">המקומות השמורים יישארו בחשבון ויחזרו בהתחברות הבאה.</string>
+    <string name="settings_zones_updated_at">עודכנו %1$s</string>
+    <string name="settings_zones_status">מצב</string>
+    <string name="settings_zones_last_update">עדכון אחרון</string>
+    <string name="settings_zones_versions">גרסת שכבות</string>
+    <string name="settings_zones_update_now">לבדוק עדכונים עכשיו</string>
+    <string name="settings_zones_source">נתוני האזורים באדיבות טהרת הכהנים (gps.hakohanim.org). השכבות נשמרות במכשיר ומתעדכנות ברקע.</string>
+    <string name="about_tagline">ניווט לכהנים שעוקף אזורים אסורים לפי רמת ההימנעות שבחרת, עם התראה לפני כל כניסה לאזור.</string>
+    <string name="about_credits_title">קרדיטים</string>
+    <string name="about_credits">נתוני האזורים באדיבות טהרת הכהנים (gps.hakohanim.org). נתוני הכבישים: OpenStreetMap.</string>
+    <string name="about_open_source">קוד פתוח</string>
 </resources>
