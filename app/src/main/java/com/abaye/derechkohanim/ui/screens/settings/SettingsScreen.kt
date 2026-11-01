@@ -1,7 +1,6 @@
 package com.abaye.derechkohanim.ui.screens.settings
 
-import androidx.compose.material.icons.outlined.Phone
-import com.abaye.derechkohanim.ui.components.TaharatContactDialog
+import com.abaye.derechkohanim.ui.components.TaharatContactCard
 import android.widget.Toast
 import androidx.compose.material.icons.automirrored.outlined.AltRoute
 import androidx.compose.material.icons.outlined.Lightbulb
@@ -17,6 +16,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -201,6 +201,8 @@ fun SettingsRoute(
 private fun SettingsPage(
     title: String,
     onBack: () -> Unit,
+    /** Pinned under the scrolling content, always visible. */
+    bottom: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
@@ -213,11 +215,18 @@ private fun SettingsPage(
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .navigationBarsPadding()
+                .then(if (bottom == null) Modifier.navigationBarsPadding() else Modifier)
                 .padding(DkTheme.spacing.s4),
             verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s6),
             content = content,
         )
+        if (bottom != null) {
+            Box(
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .padding(start = DkTheme.spacing.s4, end = DkTheme.spacing.s4, bottom = DkTheme.spacing.s4),
+            ) { bottom() }
+        }
     }
 }
 
@@ -239,9 +248,11 @@ private fun SettingsGroup(title: String?, hint: String? = null, content: @Compos
 
 @Composable
 fun SettingsMenuScreen(state: SettingsState, actions: SettingsActions) {
-    var contactOpen by remember { mutableStateOf(false) }
-    if (contactOpen) TaharatContactDialog(onDismiss = { contactOpen = false })
-    SettingsPage(title = stringResource(R.string.settings_title), onBack = actions.onBack) {
+    SettingsPage(
+        title = stringResource(R.string.settings_title),
+        onBack = actions.onBack,
+        bottom = { TaharatContactCard() },
+    ) {
         DkListBox {
             DkListRow(
                 title = stringResource(R.string.settings_menu_avoidance),
@@ -285,13 +296,6 @@ fun SettingsMenuScreen(state: SettingsState, actions: SettingsActions) {
                     null
                 },
                 onClick = { actions.onOpenSection(SettingsSection.ACCOUNT) },
-            )
-            DkListDivider()
-            DkListRow(
-                title = stringResource(R.string.taharat_contact_title),
-                supporting = stringResource(R.string.taharat_contact_summary),
-                icon = Icons.Outlined.Phone,
-                onClick = { contactOpen = true },
             )
             DkListDivider()
             DkListRow(
