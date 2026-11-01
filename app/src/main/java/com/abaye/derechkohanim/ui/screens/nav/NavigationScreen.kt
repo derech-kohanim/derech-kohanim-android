@@ -1,5 +1,13 @@
 package com.abaye.derechkohanim.ui.screens.nav
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Surface
+import androidx.compose.ui.unit.Dp
+import com.abaye.derechkohanim.ui.components.DkStat
+import com.abaye.derechkohanim.ui.components.DkStatTable
 import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.border
@@ -281,9 +289,7 @@ fun NavigationScreen(
                     onRepeat = onRepeatInstruction,
                     onOpenSteps = { showSteps = true },
                 )
-                state.secondManeuver?.let { second ->
-                    SecondTurnBox(maneuver = second, onClick = onRepeatInstruction)
-                }
+                NavStatusChips(state)
                 if (alert != null) {
                     EventAlertBanner(
                         text = eventAlertText(context, alert),
@@ -436,69 +442,131 @@ fun NavigationScreen(
 @Composable
 private fun NextManeuverPanel(state: NavigationState, onRepeat: () -> Unit, onOpenSteps: () -> Unit) {
     val context = LocalContext.current
+    val colors = DkTheme.colors
     val maneuver = state.nextManeuver ?: state.currentManeuver
-    DkCard(color = DkTheme.colors.surfaceOverlay, onClick = onRepeat) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (maneuver != null) {
-                val glyph = maneuverGlyph(maneuver.action)
-                Icon(
-                    imageVector = glyph.icon,
-                    contentDescription = stringResource(maneuverLabelRes(maneuver.action)),
-                    tint = DkTheme.colors.primary,
-                    modifier = Modifier
-                        .size(DkTheme.spacing.s12)
-                        .rotate(glyph.rotationDegrees),
-                )
-            }
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = DkTheme.spacing.s4),
+    // The instruction banner stays a solid royal fill (on-royal text), so the next action reads
+    // at a glance over any map. The second turn sits in a deeper royal strip under it.
+    val onBanner = colors.primaryContrast
+    Surface(
+        onClick = onRepeat,
+        shape = RoundedCornerShape(DkTheme.radius.lg),
+        color = colors.primary,
+        contentColor = onBanner,
+    ) {
+        Column {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(DkTheme.spacing.s4),
             ) {
-                Text(
-                    text = Formatters.distance(context, state.distanceToManeuverMeters),
-                    style = DkNavTextStyles.distance,
-                    color = DkTheme.colors.text,
-                )
                 if (maneuver != null) {
-                    Text(
-                        text = stringResource(maneuverLabelRes(maneuver.action)),
-                        style = DkNavTextStyles.instruction,
-                        color = DkTheme.colors.text,
+                    val glyph = maneuverGlyph(maneuver.action)
+                    Icon(
+                        imageVector = glyph.icon,
+                        contentDescription = stringResource(maneuverLabelRes(maneuver.action)),
+                        tint = onBanner,
+                        modifier = Modifier
+                            .size(DkTheme.spacing.s12)
+                            .rotate(glyph.rotationDegrees),
                     )
-                    maneuver.street?.let { street ->
+                }
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = DkTheme.spacing.s4),
+                ) {
+                    Text(
+                        text = Formatters.distance(context, state.distanceToManeuverMeters),
+                        style = DkNavTextStyles.distance,
+                        color = onBanner,
+                    )
+                    if (maneuver != null) {
                         Text(
-                            text = stringResource(R.string.maneuver_onto_street, street),
-                            style = DkNavTextStyles.street,
-                            color = DkTheme.colors.textMuted,
+                            text = stringResource(maneuverLabelRes(maneuver.action)),
+                            style = DkNavTextStyles.instruction,
+                            color = onBanner,
                         )
+                        maneuver.street?.let { street ->
+                            Text(
+                                text = stringResource(R.string.maneuver_onto_street, street),
+                                style = DkNavTextStyles.street,
+                                color = onBanner.copy(alpha = 0.85f),
+                            )
+                        }
                     }
                 }
+                DkIconButton(
+                    icon = Icons.AutoMirrored.Filled.List,
+                    contentDescription = stringResource(R.string.cd_open_steps),
+                    onClick = onOpenSteps,
+                    tint = onBanner,
+                )
             }
-            DkIconButton(
-                icon = Icons.AutoMirrored.Filled.List,
-                contentDescription = stringResource(R.string.cd_open_steps),
-                onClick = onOpenSteps,
-                tint = DkTheme.colors.textMuted,
-            )
+            val lanes = maneuver?.lanes
+            if (!lanes.isNullOrEmpty() && state.distanceToManeuverMeters <= LANES_VISIBLE_METERS) {
+                LanesRow(
+                    lanes = lanes,
+                    modifier = Modifier.padding(
+                        start = DkTheme.spacing.s4,
+                        end = DkTheme.spacing.s4,
+                        bottom = DkTheme.spacing.s3,
+                    ),
+                )
+            }
+            state.secondManeuver?.let { second ->
+                val glyph = maneuverGlyph(second.action)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(colors.primaryHover)
+                        .padding(horizontal = DkTheme.spacing.s4, vertical = DkTheme.spacing.s2),
+                ) {
+                    Text(
+                        text = stringResource(R.string.nav_then_short),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = onBanner.copy(alpha = 0.85f),
+                    )
+                    Icon(
+                        imageVector = glyph.icon,
+                        contentDescription = null,
+                        tint = onBanner,
+                        modifier = Modifier
+                            .size(DkTheme.spacing.s5)
+                            .rotate(glyph.rotationDegrees),
+                    )
+                    Text(
+                        text = stringResource(maneuverLabelRes(second.action)) +
+                            (second.street?.let { " · $it" } ?: ""),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = onBanner,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        text = Formatters.distance(context, second.distanceMeters),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = onBanner.copy(alpha = 0.85f),
+                    )
+                }
+            }
         }
-        val lanes = maneuver?.lanes
-        if (!lanes.isNullOrEmpty() && state.distanceToManeuverMeters <= LANES_VISIBLE_METERS) {
-            LanesRow(
-                lanes = lanes,
-                modifier = Modifier.padding(top = DkTheme.spacing.s2),
-            )
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = DkTheme.spacing.s3),
-            horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            CertaintyChip(state)
-            DkBadge(text = stringResource(stringencyTitleRes(state.stringency)))
-        }
+    }
+}
+
+/** The status chips under the instruction banner: a route state only when it is not plain clean, and the level. */
+@Composable
+private fun NavStatusChips(state: NavigationState) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CertaintyChip(state)
+        DkBadge(
+            text = stringResource(R.string.avoidance_level_chip, stringResource(stringencyTitleRes(state.stringency))),
+            tone = DkBadgeTone.Info,
+        )
     }
 }
 
@@ -583,11 +651,8 @@ private fun CertaintyChip(state: NavigationState) {
             icon = zoneWarningIcon,
         )
 
-        else -> DkBadge(
-            text = stringResource(R.string.nav_badge_verified),
-            tone = DkBadgeTone.Success,
-            icon = Icons.Filled.CheckCircle,
-        )
+        // Every route is verified; a plain clean one needs no chip.
+        else -> Unit
     }
 }
 
@@ -671,8 +736,12 @@ private fun BottomBar(
                 onSetSpeed = onSetSpeed,
             )
         }
-        DkCard(
-            color = DkTheme.colors.surfaceOverlay,
+        // Civic driving bar: a flush stat table (remaining, distance, arrival) over a row of
+        // outline actions, with the danger "stop" at the far end. Dragging it up opens the steps.
+        Surface(
+            shape = RoundedCornerShape(DkTheme.radius.lg),
+            color = DkTheme.colors.surface,
+            border = BorderStroke(Dp.Hairline, DkTheme.colors.border),
             modifier = Modifier
                 .fillMaxWidth()
                 .pointerInput(Unit) {
@@ -684,42 +753,51 @@ private fun BottomBar(
                     )
                 },
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
+            Column {
+                DkStatTable(
+                    stats = listOf(
+                        DkStat(stringResource(R.string.nav_remaining), Formatters.duration(context, state.durationRemainingSeconds)),
+                        DkStat(stringResource(R.string.route_distance), Formatters.distance(context, state.distanceRemainingMeters)),
+                        DkStat(stringResource(R.string.nav_arrival), Formatters.arrivalTime(state.durationRemainingSeconds)),
+                    ),
+                    bordered = false,
+                    valueStyle = DkNavTextStyles.stat,
+                )
+                if (state.trafficDelaySeconds > 60) {
                     Text(
-                        text = Formatters.arrivalTime(state.durationRemainingSeconds),
-                        style = DkNavTextStyles.stat,
-                        color = DkTheme.colors.text,
+                        text = stringResource(
+                            R.string.nav_traffic_delay,
+                            Formatters.duration(context, state.trafficDelaySeconds),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DkTheme.colors.warning,
+                        modifier = Modifier.padding(horizontal = DkTheme.spacing.s3),
                     )
-                    Text(
-                        text = Formatters.distance(context, state.distanceRemainingMeters) +
-                            "  ·  " +
-                            Formatters.duration(context, state.durationRemainingSeconds),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = DkTheme.colors.textMuted,
-                    )
-                    if (state.trafficDelaySeconds > 60) {
-                        Text(
-                            text = stringResource(
-                                R.string.nav_traffic_delay,
-                                Formatters.duration(context, state.trafficDelaySeconds),
-                            ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = DkTheme.colors.warning,
-                        )
-                    }
                 }
-                MuteButton(
-                    muted = state.muted,
-                    onToggle = onToggleMute,
-                    onLongPress = onOpenVoiceSettings,
-                )
-                Spacer(Modifier.width(DkTheme.spacing.s2))
-                DkButton(
-                    text = stringResource(R.string.nav_stop),
-                    onClick = onStop,
-                    variant = DkButtonVariant.Danger,
-                )
+                HorizontalDivider(thickness = Dp.Hairline, color = DkTheme.colors.border)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2),
+                    modifier = Modifier.padding(DkTheme.spacing.s3),
+                ) {
+                    DkButton(
+                        text = stringResource(R.string.nav_steps_button),
+                        onClick = onOpenSteps,
+                        variant = DkButtonVariant.Secondary,
+                        leadingIcon = Icons.AutoMirrored.Filled.List,
+                    )
+                    MuteButton(
+                        muted = state.muted,
+                        onToggle = onToggleMute,
+                        onLongPress = onOpenVoiceSettings,
+                    )
+                    Spacer(Modifier.weight(1f))
+                    DkButton(
+                        text = stringResource(R.string.nav_stop),
+                        onClick = onStop,
+                        variant = DkButtonVariant.Danger,
+                    )
+                }
             }
         }
     }

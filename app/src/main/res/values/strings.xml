@@ -193,7 +193,7 @@
     <string name="nav_then">לאחר מכן</string>
     <string name="nav_remaining">נותר</string>
     <string name="nav_eta">הגעה</string>
-    <string name="nav_stop">עצור ניווט</string>
+    <string name="nav_stop">סיום</string>
     <string name="nav_rerouting">מחשב מסלול מחדש</string>
     <string name="nav_badge_verified">מאומת</string>
     <string name="nav_badge_unverified">לא מאומת</string>
@@ -470,4 +470,6 @@
     <string name="avoidance_level_chip">רמת הימנעות: %1$s</string>
     <string name="avoidance_level_title">רמת הימנעות</string>
     <string name="avoidance_level_hint">אילו אזורים המסלול עוקף. כל רמה כוללת את הקודמת לה.</string>
+    <string name="nav_steps_button">הנחיות</string>
+    <string name="nav_arrival">הגעה</string>
 </resources>

@@ -469,4 +469,6 @@
     <string name="avoidance_level_chip">Avoidance: %1$s</string>
     <string name="avoidance_level_title">Avoidance level</string>
     <string name="avoidance_level_hint">Which zones the route goes around. Each level includes the one before it.</string>
+    <string name="nav_steps_button">Steps</string>
+    <string name="nav_arrival">Arrival</string>
 </resources>
