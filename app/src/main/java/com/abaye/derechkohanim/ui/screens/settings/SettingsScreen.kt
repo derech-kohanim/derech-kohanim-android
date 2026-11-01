@@ -1,5 +1,7 @@
 package com.abaye.derechkohanim.ui.screens.settings
 
+import androidx.compose.material.icons.outlined.StarOutline
+import androidx.compose.ui.res.pluralStringResource
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
@@ -90,6 +92,7 @@ enum class SettingsSection(val route: String) {
     DISPLAY("display"),
     ZONE_DATA("zones"),
     ACCOUNT("account"),
+    SAVED_PLACES("places"),
     ABOUT("about"),
     ;
 
@@ -118,6 +121,7 @@ class SettingsActions(
     val onDownloadVoice: () -> Unit,
     val onDownloadZones: () -> Unit,
     val onSignOut: () -> Unit,
+    val onPlaceChosen: () -> Unit = {},
 ) {
     companion object {
         val Preview = SettingsActions({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
@@ -137,6 +141,7 @@ fun SettingsRoute(
     onOpenTerms: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
     onDeleteAccount: () -> Unit = {},
+    onPlaceChosen: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -159,6 +164,7 @@ fun SettingsRoute(
         onDownloadVoice = viewModel::downloadVoicePack,
         onDownloadZones = viewModel::downloadZoneLayers,
         onSignOut = viewModel::signOut,
+        onPlaceChosen = onPlaceChosen,
     )
     when (section) {
         null -> SettingsMenuScreen(state, actions)
@@ -167,6 +173,11 @@ fun SettingsRoute(
         SettingsSection.DISPLAY -> DisplaySettingsScreen(state, actions)
         SettingsSection.ZONE_DATA -> ZoneDataSettingsScreen(state, actions)
         SettingsSection.ACCOUNT -> AccountSettingsScreen(state, actions)
+        SettingsSection.SAVED_PLACES -> SavedPlacesRoute(
+            onBack = onBack,
+            onSignIn = onSignIn,
+            onPlaceChosen = onPlaceChosen,
+        )
         SettingsSection.ABOUT -> AboutScreen(actions)
     }
 }
@@ -252,6 +263,17 @@ fun SettingsMenuScreen(state: SettingsState, actions: SettingsActions) {
                 ),
                 icon = Icons.Outlined.Person,
                 onClick = { actions.onOpenSection(SettingsSection.ACCOUNT) },
+            )
+            DkListDivider()
+            DkListRow(
+                title = stringResource(R.string.settings_menu_saved_places),
+                supporting = when {
+                    !state.signedIn -> stringResource(R.string.settings_saved_places_sign_in)
+                    state.savedPlaceCount == null -> null
+                    else -> pluralStringResource(R.plurals.settings_saved_places_count, state.savedPlaceCount, state.savedPlaceCount)
+                },
+                icon = Icons.Outlined.StarOutline,
+                onClick = { actions.onOpenSection(SettingsSection.SAVED_PLACES) },
             )
             DkListDivider()
             DkListRow(

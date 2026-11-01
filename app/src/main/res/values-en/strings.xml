@@ -510,4 +510,21 @@
     <string name="about_credits_title">Credits</string>
     <string name="about_credits">Zone data courtesy of Taharat HaKohanim (gps.hakohanim.org). Road data: OpenStreetMap.</string>
     <string name="about_open_source">Open source</string>
+    <!-- Saved places -->
+    <string name="settings_menu_saved_places">Saved places</string>
+    <string name="settings_saved_places_sign_in">Sign in to save places</string>
+    <string name="saved_places_guest_title">Your saved places will appear here</string>
+    <string name="saved_places_guest_body">To save home, work and other places you need to sign in. That keeps them saved and in sync across your devices.</string>
+    <string name="saved_places_continue_guest">Continue as a guest</string>
+    <string name="saved_places_empty_title">No saved places yet</string>
+    <string name="saved_places_empty_body">You can save a destination from the route review screen by tapping the star.</string>
+    <string name="saved_places_failed_title">Could not load your places</string>
+    <string name="saved_places_failed_body">Check the network connection and try again in a moment.</string>
+    <string name="saved_places_remove">Remove</string>
+    <string name="saved_places_remove_title">Remove this place?</string>
+    <string name="saved_places_remove_body">%1$s will be removed from your saved places.</string>
+    <plurals name="settings_saved_places_count">
+        <item quantity="one">1 saved place</item>
+        <item quantity="other">%d saved places</item>
+    </plurals>
 </resources>

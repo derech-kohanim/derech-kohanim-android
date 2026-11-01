@@ -1,5 +1,10 @@
 package com.abaye.derechkohanim.ui.screens.settings
 
+import com.abaye.derechkohanim.core.DkResult
+import com.abaye.derechkohanim.data.repository.PlacesRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -36,6 +41,8 @@ data class SettingsState(
     val signedIn: Boolean = false,
     val voicePack: VoicePackStatus = VoicePackStatus(),
     val zoneLayer: ZoneLayerStatus = ZoneLayerStatus(),
+    /** How many places the account has saved; null for a guest or before it loads. */
+    val savedPlaceCount: Int? = null,
 )
 
 @HiltViewModel
@@ -44,14 +51,31 @@ class SettingsViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val voicePackManager: VoicePackManager,
     private val zoneLayerStore: ZoneLayerStore,
+    private val placesRepository: PlacesRepository,
 ) : ViewModel() {
+
+    /** Loaded whenever the session becomes signed in; cleared on sign-out. */
+    private val savedPlaceCount = MutableStateFlow<Int?>(null)
+
+    init {
+        viewModelScope.launch {
+            sessionStore.snapshots.map { it.isSignedIn }.distinctUntilChanged().collect { signedIn ->
+                savedPlaceCount.value = if (signedIn) {
+                    (placesRepository.savedPlaces() as? DkResult.Success)?.value?.size
+                } else {
+                    null
+                }
+            }
+        }
+    }
 
     val state: StateFlow<SettingsState> =
         combine(
             sessionStore.snapshots,
             voicePackManager.status,
             zoneLayerStore.status,
-        ) { snapshot, voicePack, zoneLayer ->
+            savedPlaceCount,
+        ) { snapshot, voicePack, zoneLayer, savedCount ->
             SettingsState(
                 language = snapshot.language,
                 theme = snapshot.theme,
@@ -65,6 +89,7 @@ class SettingsViewModel @Inject constructor(
                 signedIn = snapshot.isSignedIn,
                 voicePack = voicePack,
                 zoneLayer = zoneLayer,
+                savedPlaceCount = savedCount,
             )
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsState())

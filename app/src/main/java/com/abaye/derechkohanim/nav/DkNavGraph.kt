@@ -203,6 +203,7 @@ fun DkNavGraph(
         ) { entry ->
             SettingsRoute(
                 section = SettingsSection.fromRoute(entry.arguments?.getString(Routes.SETTINGS_ARG_SECTION)),
+                onPlaceChosen = { navController.navigate(Routes.ROUTE_REVIEW) },
                 onBack = { navController.popBackStack() },
                 onOpenSection = { navController.navigate(Routes.settingsSection(it.route)) },
                 onSignIn = { navController.navigate(Routes.LOGIN) },

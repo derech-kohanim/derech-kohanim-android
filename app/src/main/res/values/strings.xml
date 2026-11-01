@@ -511,4 +511,22 @@
     <string name="about_credits_title">קרדיטים</string>
     <string name="about_credits">נתוני האזורים באדיבות טהרת הכהנים (gps.hakohanim.org). נתוני הכבישים: OpenStreetMap.</string>
     <string name="about_open_source">קוד פתוח</string>
+    <!-- Saved places -->
+    <string name="settings_menu_saved_places">מקומות שמורים</string>
+    <string name="settings_saved_places_sign_in">צריך להתחבר כדי לשמור מקומות</string>
+    <string name="saved_places_guest_title">המקומות השמורים שלך יופיעו כאן</string>
+    <string name="saved_places_guest_body">כדי לשמור בית, עבודה ומקומות נוספים צריך להתחבר לחשבון. כך הם נשמרים ומסונכרנים בין המכשירים.</string>
+    <string name="saved_places_continue_guest">המשך כאורח</string>
+    <string name="saved_places_empty_title">עוד אין מקומות שמורים</string>
+    <string name="saved_places_empty_body">אפשר לשמור יעד ממסך סקירת המסלול, בלחיצה על הכוכב.</string>
+    <string name="saved_places_failed_title">לא הצלחנו לטעון את המקומות</string>
+    <string name="saved_places_failed_body">בדוק את החיבור לרשת ונסה שוב בעוד רגע.</string>
+    <string name="saved_places_remove">הסרה</string>
+    <string name="saved_places_remove_title">להסיר את המקום?</string>
+    <string name="saved_places_remove_body">%1$s יוסר מהמקומות השמורים.</string>
+    <plurals name="settings_saved_places_count">
+        <item quantity="one">מקום שמור אחד</item>
+        <item quantity="two">שני מקומות שמורים</item>
+        <item quantity="other">%d מקומות שמורים</item>
+    </plurals>
 </resources>
