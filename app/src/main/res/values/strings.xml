@@ -599,4 +599,5 @@
     <string name="taharat_contact_body">נתוני האזורים נלקחו מפרסומים של התאחדות טהרת הכהנים. בכל שאלה, ספק או מקרה מיוחד, ולדיווח על טעות בנתונים, אפשר לפנות אליהם:</string>
     <string name="taharat_contact_phone">טלפון</string>
     <string name="taharat_contact_email">מייל</string>
+    <string name="onboarding_permission_granted">ניתנה הרשאה</string>
 </resources>

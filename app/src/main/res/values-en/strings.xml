@@ -597,4 +597,5 @@
     <string name="taharat_contact_body">The zone data is taken from publications of the Taharat HaKohanim association. For any question, doubt or special case, and to report a mistake in the data, contact them:</string>
     <string name="taharat_contact_phone">Phone</string>
     <string name="taharat_contact_email">Email</string>
+    <string name="onboarding_permission_granted">Granted</string>
 </resources>

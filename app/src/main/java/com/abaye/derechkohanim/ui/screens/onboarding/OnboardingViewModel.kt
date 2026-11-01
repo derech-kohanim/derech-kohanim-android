@@ -14,11 +14,11 @@ import com.abaye.derechkohanim.data.repository.AuthRepository
 import javax.inject.Inject
 
 /**
- * The first-run flow, five short screens shown once, in the order the web client presents
- * them: welcome, how it works, where the data comes from, the avoidance level, and the terms
- * (which cannot be skipped). Location is asked for later, the first time it is needed.
+ * The first-run flow, shown once: welcome, how it works, where the data comes from, the
+ * avoidance level, location (with background location and the pre-download advice), and the
+ * terms, which cannot be skipped.
  */
-enum class OnboardingStep { Welcome, HowItWorks, DataSource, Stringency, Terms }
+enum class OnboardingStep { Welcome, HowItWorks, DataSource, Stringency, Permissions, Terms }
 
 data class OnboardingState(
     val step: OnboardingStep = OnboardingStep.Welcome,

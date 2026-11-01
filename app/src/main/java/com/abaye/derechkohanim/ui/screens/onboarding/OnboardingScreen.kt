@@ -1,5 +1,11 @@
 package com.abaye.derechkohanim.ui.screens.onboarding
 
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.CheckCircle
+import com.abaye.derechkohanim.ui.components.DkBadge
+import com.abaye.derechkohanim.ui.components.DkBadgeTone
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.text.LinkAnnotation
@@ -108,6 +114,9 @@ fun OnboardingScreen(
     onOpenTerms: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
 ) {
+    val context = LocalContext.current
+    val permissions = rememberLocationPermissionState(context)
+
     Scaffold(containerColor = DkTheme.colors.background) { padding ->
         Column(
             modifier = Modifier
@@ -137,6 +146,12 @@ fun OnboardingScreen(
                         onOpenPrivacy = onOpenPrivacy,
                     )
                     OnboardingStep.Stringency -> StringencyStep(state.stringency, onStringencySelected)
+                    OnboardingStep.Permissions -> PermissionsStep(
+                        hasForeground = permissions.hasForeground,
+                        hasBackground = permissions.hasBackground,
+                        onAskForeground = permissions::askForeground,
+                        onAskBackground = permissions::askBackground,
+                    )
                 }
             }
 
@@ -332,6 +347,99 @@ private fun StringencyStep(selected: Stringency, onSelect: (Stringency) -> Unit)
     StepTitle(stringResource(R.string.onboarding_stringency_title))
     Lead(stringResource(R.string.onboarding_stringency_hint))
     StringencyOptions(selected = selected, onSelect = onSelect)
+}
+
+/**
+ * Location, background location and the pre-download advice, each as a Civic row: a chip, the
+ * title and why, and the grant action. Granted actions turn into a muted "granted" state.
+ */
+@Composable
+private fun PermissionsStep(
+    hasForeground: Boolean,
+    hasBackground: Boolean,
+    onAskForeground: () -> Unit,
+    onAskBackground: () -> Unit,
+) {
+    StepTitle(stringResource(R.string.onboarding_permission_title))
+    Lead(stringResource(R.string.onboarding_permission_body))
+    DkListBox {
+        PermissionRow(
+            icon = Icons.Filled.MyLocation,
+            title = stringResource(R.string.onboarding_permission_title),
+            actionText = stringResource(R.string.onboarding_permission_grant),
+            granted = hasForeground,
+            enabled = !hasForeground,
+            onAction = onAskForeground,
+        )
+        DkListDivider()
+        PermissionRow(
+            icon = Icons.Filled.LocationOn,
+            title = stringResource(R.string.onboarding_background_title),
+            body = stringResource(R.string.onboarding_background_body),
+            actionText = stringResource(R.string.onboarding_background_grant),
+            granted = hasBackground,
+            enabled = hasForeground && !hasBackground,
+            onAction = onAskBackground,
+        )
+        DkListDivider()
+        PermissionRow(
+            icon = Icons.Filled.CloudDownload,
+            title = stringResource(R.string.onboarding_downloads_title),
+            body = stringResource(R.string.onboarding_downloads_body),
+        )
+    }
+}
+
+@Composable
+private fun PermissionRow(
+    icon: ImageVector,
+    title: String,
+    body: String? = null,
+    actionText: String? = null,
+    granted: Boolean = false,
+    enabled: Boolean = true,
+    onAction: () -> Unit = {},
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = DkTheme.spacing.s4, vertical = DkTheme.spacing.s3),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s3)) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(DkTheme.spacing.s8)
+                    .background(DkTheme.colors.primarySoft, CircleShape),
+            ) {
+                Icon(icon, contentDescription = null, tint = DkTheme.colors.primary, modifier = Modifier.size(DkTheme.spacing.s5))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = title, style = MaterialTheme.typography.titleSmall, color = DkTheme.colors.text)
+                if (body != null) {
+                    Text(text = body, style = MaterialTheme.typography.bodySmall, color = DkTheme.colors.textMuted)
+                }
+            }
+        }
+        if (actionText != null) {
+            if (granted) {
+                DkBadge(
+                    text = stringResource(R.string.onboarding_permission_granted),
+                    tone = DkBadgeTone.Success,
+                    icon = Icons.Filled.CheckCircle,
+                )
+            } else {
+                DkButton(
+                    text = actionText,
+                    onClick = onAction,
+                    enabled = enabled,
+                    variant = DkButtonVariant.Secondary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
 }
 
 @Composable
