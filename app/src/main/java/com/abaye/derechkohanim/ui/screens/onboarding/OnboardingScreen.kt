@@ -1,5 +1,17 @@
 package com.abaye.derechkohanim.ui.screens.onboarding
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.WarningAmber
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import com.abaye.derechkohanim.ui.components.DkListBox
+import com.abaye.derechkohanim.ui.components.DkListDivider
+import com.abaye.derechkohanim.ui.components.StringencyOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -87,9 +99,6 @@ fun OnboardingScreen(
     onOpenTerms: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
 ) {
-    val context = LocalContext.current
-    val permissions = rememberLocationPermissionState(context)
-
     Scaffold(containerColor = DkTheme.colors.background) { padding ->
         Column(
             modifier = Modifier
@@ -98,11 +107,7 @@ fun OnboardingScreen(
                 .padding(DkTheme.spacing.s4),
             verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s4),
         ) {
-            // Progress: which of the six steps we are on. The welcome screen stays clean, so the
-            // bar only appears once the tour has begun.
-            if (!state.isFirst) {
-                StepProgress(index = state.stepIndex, count = state.stepCount)
-            }
+            StepDots(index = state.stepIndex, count = state.stepCount)
 
             Column(
                 modifier = Modifier
@@ -115,7 +120,6 @@ fun OnboardingScreen(
                     OnboardingStep.HowItWorks -> HowItWorksStep()
                     OnboardingStep.DataSource -> DataSourceStep()
                     OnboardingStep.Terms -> TermsStep(
-                        title = state.termsTitle,
                         body = state.termsBody,
                         loading = state.termsLoading,
                         accepted = state.termsAccepted,
@@ -124,12 +128,6 @@ fun OnboardingScreen(
                         onOpenPrivacy = onOpenPrivacy,
                     )
                     OnboardingStep.Stringency -> StringencyStep(state.stringency, onStringencySelected)
-                    OnboardingStep.Permissions -> PermissionsStep(
-                        hasForeground = permissions.hasForeground,
-                        hasBackground = permissions.hasBackground,
-                        onAskForeground = permissions::askForeground,
-                        onAskBackground = permissions::askBackground,
-                    )
                 }
             }
 
@@ -146,7 +144,11 @@ fun OnboardingScreen(
                 }
                 DkButton(
                     text = stringResource(
-                        if (state.isLast) R.string.onboarding_finish else R.string.action_continue
+                        when {
+                            state.isFirst -> R.string.onboarding_start
+                            state.isLast -> R.string.onboarding_finish
+                            else -> R.string.action_continue
+                        },
                     ),
                     onClick = onNext,
                     // Terms acceptance gates the flow, matching the web client and the auth screens.
@@ -159,23 +161,44 @@ fun OnboardingScreen(
     }
 }
 
+/** Civic progress: one dot per screen, the ones reached filled in royal. */
 @Composable
-private fun StepProgress(index: Int, count: Int) {
-    Column(verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2)) {
-        LinearProgressIndicator(
-            progress = { (index + 1).toFloat() / count.toFloat() },
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(DkTheme.radius.full)),
-            color = DkTheme.colors.primary,
-            trackColor = DkTheme.colors.surfaceMuted,
-        )
-        Text(
-            text = stringResource(R.string.onboarding_progress, index + 1, count),
-            style = MaterialTheme.typography.labelSmall,
-            color = DkTheme.colors.textMuted,
-        )
+private fun StepDots(index: Int, count: Int) {
+    val description = stringResource(R.string.onboarding_progress, index + 1, count)
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s1),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics { contentDescription = description },
+    ) {
+        repeat(count) { i ->
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(DkTheme.radius.full))
+                    .background(if (i <= index) DkTheme.colors.primary else DkTheme.colors.border),
+            )
+        }
     }
+}
+
+@Composable
+private fun StepTitle(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.headlineLarge,
+        color = DkTheme.colors.text,
+    )
+}
+
+@Composable
+private fun Lead(text: String, muted: Boolean = false) {
+    Text(
+        text = text,
+        style = if (muted) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
+        color = if (muted) DkTheme.colors.textMuted else DkTheme.colors.textBody,
+    )
 }
 
 @Composable
@@ -185,30 +208,24 @@ private fun WelcomeStep() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s4),
     ) {
-        Spacer(Modifier.size(DkTheme.spacing.s10))
-        Surface(
-            shape = RoundedCornerShape(DkTheme.radius.xl),
-            color = DkTheme.colors.primary,
-            contentColor = DkTheme.colors.primaryContrast,
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.AltRoute,
-                contentDescription = null,
-                modifier = Modifier
-                    .padding(DkTheme.spacing.s5)
-                    .size(DkTheme.spacing.s10),
-            )
-        }
+        Spacer(Modifier.size(DkTheme.spacing.s12))
+        Image(
+            painter = painterResource(R.drawable.app_icon),
+            contentDescription = null,
+            modifier = Modifier
+                .size(120.dp)
+                .clip(RoundedCornerShape(28.dp)),
+        )
         Text(
-            text = stringResource(R.string.onboarding_welcome_title),
-            style = MaterialTheme.typography.displayMedium,
+            text = stringResource(R.string.app_name),
+            style = MaterialTheme.typography.displayLarge,
             color = DkTheme.colors.text,
             textAlign = TextAlign.Center,
         )
         Text(
             text = stringResource(R.string.onboarding_welcome_body),
             style = MaterialTheme.typography.bodyLarge,
-            color = DkTheme.colors.textMuted,
+            color = DkTheme.colors.textBody,
             textAlign = TextAlign.Center,
         )
     }
@@ -216,129 +233,59 @@ private fun WelcomeStep() {
 
 @Composable
 private fun HowItWorksStep() {
-    Text(
-        text = stringResource(R.string.onboarding_how_title),
-        style = MaterialTheme.typography.displaySmall,
-        color = DkTheme.colors.text,
-    )
-    HowItWorksCard(
-        icon = Icons.Filled.Search,
-        title = stringResource(R.string.onboarding_how_step1_title),
-        body = stringResource(R.string.onboarding_how_step1_body),
-    )
-    HowItWorksCard(
-        icon = Icons.AutoMirrored.Filled.AltRoute,
-        title = stringResource(R.string.onboarding_how_step2_title),
-        body = stringResource(R.string.onboarding_how_step2_body),
-    )
-    HowItWorksCard(
-        icon = Icons.Filled.EventAvailable,
-        title = stringResource(R.string.onboarding_how_step3_title),
-        body = stringResource(R.string.onboarding_how_step3_body),
-    )
-    HowItWorksCard(
-        icon = Icons.Filled.RecordVoiceOver,
-        title = stringResource(R.string.onboarding_how_step4_title),
-        body = stringResource(R.string.onboarding_how_step4_body),
-    )
+    StepTitle(stringResource(R.string.onboarding_how_title))
+    DkListBox {
+        HowRow(Icons.Filled.Search, R.string.onboarding_how_step1_title, R.string.onboarding_how_step1_body)
+        DkListDivider()
+        HowRow(Icons.AutoMirrored.Filled.AltRoute, R.string.onboarding_how_step2_title, R.string.onboarding_how_step2_body)
+        DkListDivider()
+        HowRow(Icons.Filled.WarningAmber, R.string.onboarding_how_step3_title, R.string.onboarding_how_step3_body)
+        DkListDivider()
+        HowRow(Icons.Filled.RecordVoiceOver, R.string.onboarding_how_step4_title, R.string.onboarding_how_step4_body)
+    }
 }
 
 @Composable
-private fun HowItWorksCard(icon: ImageVector, title: String, body: String) {
-    DkCard(modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Surface(
-                shape = RoundedCornerShape(DkTheme.radius.md),
-                color = DkTheme.colors.surfaceMuted,
-                contentColor = DkTheme.colors.primary,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .padding(DkTheme.spacing.s2)
-                        .size(DkTheme.spacing.s6),
-                )
-            }
-            Column(modifier = Modifier.padding(start = DkTheme.spacing.s3)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = DkTheme.colors.text,
-                )
-                Text(
-                    text = body,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = DkTheme.colors.textMuted,
-                    modifier = Modifier.padding(top = DkTheme.spacing.s1),
-                )
-            }
+private fun HowRow(icon: ImageVector, titleRes: Int, bodyRes: Int) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s3),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = DkTheme.spacing.s4, vertical = DkTheme.spacing.s3),
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(DkTheme.spacing.s8)
+                .background(DkTheme.colors.primarySoft, CircleShape),
+        ) {
+            Icon(icon, contentDescription = null, tint = DkTheme.colors.primary, modifier = Modifier.size(DkTheme.spacing.s5))
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = stringResource(titleRes), style = MaterialTheme.typography.titleSmall, color = DkTheme.colors.text)
+            Text(text = stringResource(bodyRes), style = MaterialTheme.typography.bodySmall, color = DkTheme.colors.textMuted)
         }
     }
 }
 
 @Composable
 private fun DataSourceStep() {
-    Text(
-        text = stringResource(R.string.onboarding_data_title),
-        style = MaterialTheme.typography.displaySmall,
-        color = DkTheme.colors.text,
-    )
-    DkCard(modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Filled.Verified,
-                contentDescription = null,
-                tint = DkTheme.colors.primary,
-                modifier = Modifier.size(DkTheme.spacing.s6),
-            )
-            Text(
-                text = stringResource(R.string.onboarding_data_source_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = DkTheme.colors.text,
-                modifier = Modifier.padding(start = DkTheme.spacing.s3),
-            )
-        }
-        Text(
-            text = stringResource(R.string.onboarding_data_source_body),
-            style = MaterialTheme.typography.bodyMedium,
-            color = DkTheme.colors.textMuted,
-            modifier = Modifier.padding(top = DkTheme.spacing.s2),
-        )
-    }
-    DkCard(modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Filled.Gavel,
-                contentDescription = null,
-                tint = DkTheme.colors.warning,
-                modifier = Modifier.size(DkTheme.spacing.s6),
-            )
-            Text(
-                text = stringResource(R.string.onboarding_limits_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = DkTheme.colors.text,
-                modifier = Modifier.padding(start = DkTheme.spacing.s3),
-            )
-        }
-        Text(
-            text = stringResource(R.string.onboarding_limits_body),
-            style = MaterialTheme.typography.bodyMedium,
-            color = DkTheme.colors.textMuted,
-            modifier = Modifier.padding(top = DkTheme.spacing.s2),
-        )
-        Text(
-            text = stringResource(R.string.onboarding_privacy),
-            style = MaterialTheme.typography.bodySmall,
-            color = DkTheme.colors.textMuted,
-            modifier = Modifier.padding(top = DkTheme.spacing.s3),
-        )
-    }
+    StepTitle(stringResource(R.string.onboarding_data_title))
+    Lead(stringResource(R.string.onboarding_data_source_body))
+    Lead(stringResource(R.string.onboarding_limits_body))
+    Lead(stringResource(R.string.onboarding_privacy), muted = true)
+}
+
+@Composable
+private fun StringencyStep(selected: Stringency, onSelect: (Stringency) -> Unit) {
+    StepTitle(stringResource(R.string.onboarding_stringency_title))
+    Lead(stringResource(R.string.onboarding_stringency_hint))
+    StringencyOptions(selected = selected, onSelect = onSelect)
 }
 
 @Composable
 private fun TermsStep(
-    title: String,
     body: String,
     loading: Boolean,
     accepted: Boolean,
@@ -346,20 +293,11 @@ private fun TermsStep(
     onOpenTerms: () -> Unit,
     onOpenPrivacy: () -> Unit,
 ) {
-    Text(
-        text = title.ifBlank { stringResource(R.string.onboarding_terms_title) },
-        style = MaterialTheme.typography.displaySmall,
-        color = DkTheme.colors.text,
-    )
-    Text(
-        text = stringResource(R.string.onboarding_terms_intro),
-        style = MaterialTheme.typography.bodyMedium,
-        color = DkTheme.colors.textMuted,
-    )
-    DkCard(modifier = Modifier.fillMaxWidth()) {
-        // The document itself is scrollable inside a bounded box, so long terms never push the
-        // accept control off the screen. The body comes from the server as Markdown; no legal
-        // text is authored here.
+    StepTitle(stringResource(R.string.onboarding_terms_title))
+    Lead(stringResource(R.string.onboarding_terms_intro))
+    // The real terms document from the server, in a bounded scrolling box so the accept control
+    // never leaves the screen. No legal text is authored here.
+    DkListBox {
         val placeholder = when {
             loading -> stringResource(R.string.state_loading)
             body.isBlank() -> stringResource(R.string.onboarding_terms_placeholder)
@@ -367,17 +305,18 @@ private fun TermsStep(
         }
         val bodyModifier = Modifier
             .fillMaxWidth()
-            .heightIn(max = 320.dp)
+            .heightIn(max = 300.dp)
             .verticalScroll(rememberScrollState())
+            .padding(DkTheme.spacing.s4)
         if (placeholder != null) {
-            Text(
-                text = placeholder,
-                style = MaterialTheme.typography.bodyMedium,
-                color = DkTheme.colors.text,
-                modifier = bodyModifier,
-            )
+            Text(text = placeholder, style = MaterialTheme.typography.bodyMedium, color = DkTheme.colors.text, modifier = bodyModifier)
         } else {
-            MarkdownText(markdown = body, modifier = bodyModifier)
+            MarkdownText(
+                markdown = body,
+                modifier = bodyModifier,
+                color = DkTheme.colors.textBody,
+                numberHeadings = true,
+            )
         }
     }
     Row(
@@ -387,7 +326,11 @@ private fun TermsStep(
             .toggleable(value = accepted, role = Role.Checkbox, onValueChange = onAcceptedChange)
             .padding(vertical = DkTheme.spacing.s2),
     ) {
-        Checkbox(checked = accepted, onCheckedChange = null)
+        Checkbox(
+            checked = accepted,
+            onCheckedChange = null,
+            colors = CheckboxDefaults.colors(checkedColor = DkTheme.colors.primary, uncheckedColor = DkTheme.colors.borderStrong),
+        )
         Text(
             text = stringResource(R.string.onboarding_terms_accept),
             style = MaterialTheme.typography.bodyLarge,
@@ -397,27 +340,6 @@ private fun TermsStep(
     }
     // The full documents are their own destinations, so the wizard keeps its place behind them.
     LegalLinksRow(onOpenTerms = onOpenTerms, onOpenPrivacy = onOpenPrivacy)
-}
-
-@Composable
-private fun StringencyStep(selected: Stringency, onSelect: (Stringency) -> Unit) {
-    Text(
-        text = stringResource(R.string.onboarding_stringency_title),
-        style = MaterialTheme.typography.displaySmall,
-        color = DkTheme.colors.text,
-    )
-    Text(
-        text = stringResource(R.string.onboarding_stringency_hint),
-        style = MaterialTheme.typography.bodyMedium,
-        color = DkTheme.colors.textMuted,
-    )
-    Stringency.entries.forEach { option ->
-        StringencyOption(
-            option = option,
-            selected = option == selected,
-            onSelect = { onSelect(option) },
-        )
-    }
 }
 
 @Composable
@@ -456,62 +378,6 @@ fun stringencyDescriptionRes(stringency: Stringency): Int = when (stringency) {
     Stringency.BASIC -> R.string.stringency_basic_description
     Stringency.TAHARAT -> R.string.stringency_taharat_description
     Stringency.MACHMIRIM -> R.string.stringency_machmirim_description
-}
-
-@Composable
-private fun PermissionsStep(
-    hasForeground: Boolean,
-    hasBackground: Boolean,
-    onAskForeground: () -> Unit,
-    onAskBackground: () -> Unit,
-) {
-    Text(
-        text = stringResource(R.string.onboarding_permission_title),
-        style = MaterialTheme.typography.displaySmall,
-        color = DkTheme.colors.text,
-    )
-    Text(
-        text = stringResource(R.string.onboarding_permission_body),
-        style = MaterialTheme.typography.bodyMedium,
-        color = DkTheme.colors.textMuted,
-    )
-    DkButton(
-        text = stringResource(R.string.onboarding_permission_grant),
-        onClick = onAskForeground,
-        enabled = !hasForeground,
-        modifier = Modifier.fillMaxWidth(),
-    )
-
-    Text(
-        text = stringResource(R.string.onboarding_background_title),
-        style = MaterialTheme.typography.titleMedium,
-        color = DkTheme.colors.text,
-        modifier = Modifier.padding(top = DkTheme.spacing.s4),
-    )
-    Text(
-        text = stringResource(R.string.onboarding_background_body),
-        style = MaterialTheme.typography.bodyMedium,
-        color = DkTheme.colors.textMuted,
-    )
-    DkButton(
-        text = stringResource(R.string.onboarding_background_grant),
-        onClick = onAskBackground,
-        variant = DkButtonVariant.Secondary,
-        enabled = hasForeground && !hasBackground,
-        modifier = Modifier.fillMaxWidth(),
-    )
-
-    Text(
-        text = stringResource(R.string.onboarding_downloads_title),
-        style = MaterialTheme.typography.titleMedium,
-        color = DkTheme.colors.text,
-        modifier = Modifier.padding(top = DkTheme.spacing.s4),
-    )
-    Text(
-        text = stringResource(R.string.onboarding_downloads_body),
-        style = MaterialTheme.typography.bodyMedium,
-        color = DkTheme.colors.textMuted,
-    )
 }
 
 @Preview(name = "Onboarding, welcome Hebrew", showBackground = true, locale = "he")
