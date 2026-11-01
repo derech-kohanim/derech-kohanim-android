@@ -62,9 +62,9 @@ fun DkSwitchRow(
                 checkedThumbColor = colors.primaryContrast,
                 checkedTrackColor = colors.primary,
                 checkedBorderColor = colors.primary,
-                uncheckedThumbColor = colors.textMuted,
-                uncheckedTrackColor = colors.surfaceMuted,
-                uncheckedBorderColor = colors.border,
+                uncheckedThumbColor = colors.borderStrong,
+                uncheckedTrackColor = colors.surface,
+                uncheckedBorderColor = colors.borderStrong,
             ),
         )
     }

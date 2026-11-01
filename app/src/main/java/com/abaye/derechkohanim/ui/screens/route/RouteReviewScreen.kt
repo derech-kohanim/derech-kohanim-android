@@ -1,5 +1,20 @@
 package com.abaye.derechkohanim.ui.screens.route
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import com.abaye.derechkohanim.ui.components.DkIconButton
+import com.abaye.derechkohanim.ui.components.DkStat
+import com.abaye.derechkohanim.ui.components.DkStatTable
+import com.abaye.derechkohanim.ui.components.ZoneLegendButton
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -150,7 +165,7 @@ fun RouteReviewScreen(
 
         // The legend explains the per-layer zone colours; shown when any zones are present.
         if (visibleZones.isNotEmpty() || visibleDangerZones.isNotEmpty()) {
-            ZoneLegend(
+            ZoneLegendButton(
                 showDanger = visibleDangerZones.isNotEmpty(),
                 modifier = Modifier
                     .align(Alignment.TopStart)
@@ -235,228 +250,252 @@ private fun RouteReadyPanel(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val certainty = state.certainty
-    val visual = certaintyVisual(certainty)
+    val colors = DkTheme.colors
     var chooserOpen by remember { mutableStateOf(false) }
 
-    DkCard(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(DkTheme.spacing.s4)
-            .verticalScroll(rememberScrollState()),
-        color = DkTheme.colors.surfaceOverlay,
+    // Civic bottom panel: a white surface with a hairline top edge, no shadow.
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(topStart = DkTheme.radius.lg, topEnd = DkTheme.radius.lg),
+        color = colors.surface,
+        border = BorderStroke(Dp.Hairline, colors.border),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            CertaintyBadge(certainty)
-            Spacer(Modifier.weight(1f))
-            // Save-to-favourites. Once saved, the control reflects it and stops prompting.
-            if (state.savedToFavorites) {
-                DkBadge(
-                    text = stringResource(R.string.route_saved),
-                    tone = DkBadgeTone.Success,
-                    icon = Icons.Filled.Favorite,
-                )
-            } else {
-                DkButton(
-                    text = stringResource(R.string.route_save),
-                    onClick = { chooserOpen = !chooserOpen },
-                    variant = DkButtonVariant.Secondary,
-                    leadingIcon = Icons.Filled.FavoriteBorder,
-                )
-            }
-        }
-
-        AnimatedVisibility(visible = chooserOpen && !state.savedToFavorites) {
-            Column(modifier = Modifier.padding(top = DkTheme.spacing.s2)) {
+        Column(
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(DkTheme.spacing.s4),
+            verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s4),
+        ) {
+            // Every route shown here was verified against the zones, so a clean route carries no
+            // badge. Only a route that passes close to a zone gets a notice.
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = stringResource(R.string.route_save_as),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = DkTheme.colors.textMuted,
+                    text = state.destination?.title.orEmpty(),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = colors.text,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
                 )
-                Row(
-                    modifier = Modifier.padding(top = DkTheme.spacing.s2),
-                    horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2),
-                ) {
-                    SaveChoice(R.string.category_home, PlaceCategory.HOME, onSave) { chooserOpen = false }
-                    SaveChoice(R.string.category_work, PlaceCategory.WORK, onSave) { chooserOpen = false }
-                    SaveChoice(R.string.route_save_other, PlaceCategory.OTHER, onSave) { chooserOpen = false }
+                if (state.savedToFavorites) {
+                    DkBadge(
+                        text = stringResource(R.string.route_saved),
+                        tone = DkBadgeTone.Success,
+                        icon = Icons.Filled.Favorite,
+                    )
+                } else {
+                    Surface(
+                        shape = CircleShape,
+                        color = colors.surface,
+                        border = BorderStroke(1.dp, colors.borderStrong),
+                    ) {
+                        DkIconButton(
+                            icon = Icons.Filled.FavoriteBorder,
+                            contentDescription = stringResource(R.string.route_save),
+                            onClick = { chooserOpen = !chooserOpen },
+                            tint = colors.primary,
+                        )
+                    }
                 }
             }
-        }
 
-        // Up to three alternatives. Tapping one selects it - the map highlights it and
-        // navigation will use its id. The extra time between alternatives is route choice,
-        // never "avoidance", so it is shown neutrally relative to the fastest.
-        if (state.routes.size > 1) {
-            val fastestSeconds = state.routes.minOf { it.durationSeconds }
-            Text(
-                text = stringResource(R.string.route_alternatives),
-                style = MaterialTheme.typography.labelMedium,
-                color = DkTheme.colors.textMuted,
-                modifier = Modifier.padding(top = DkTheme.spacing.s3),
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(top = DkTheme.spacing.s2),
-                horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2),
-            ) {
-                state.routes.take(3).forEach { candidate ->
-                    RouteChoiceCard(
-                        route = candidate,
-                        selected = candidate.id == route.id,
-                        deltaToFastestSeconds = candidate.durationSeconds - fastestSeconds,
-                        onClick = { onSelectRoute(candidate.id) },
+            AnimatedVisibility(visible = chooserOpen && !state.savedToFavorites) {
+                Column {
+                    Text(
+                        text = stringResource(R.string.route_save_as),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = colors.textMuted,
+                    )
+                    Row(
+                        modifier = Modifier.padding(top = DkTheme.spacing.s2),
+                        horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2),
+                    ) {
+                        SaveChoice(R.string.category_home, PlaceCategory.HOME, onSave) { chooserOpen = false }
+                        SaveChoice(R.string.category_work, PlaceCategory.WORK, onSave) { chooserOpen = false }
+                        SaveChoice(R.string.route_save_other, PlaceCategory.OTHER, onSave) { chooserOpen = false }
+                    }
+                }
+            }
+
+            if (state.certainty == Certainty.ZoneNearby) {
+                val visual = certaintyVisual(Certainty.ZoneNearby)
+                Column(verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s1)) {
+                    CertaintyBadge(Certainty.ZoneNearby)
+                    Text(
+                        text = stringResource(visual.bodyRes),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.textMuted,
                     )
                 }
             }
-        }
 
-        Text(
-            text = stringResource(visual.bodyRes),
-            style = MaterialTheme.typography.bodyMedium,
-            color = DkTheme.colors.textMuted,
-            modifier = Modifier.padding(top = DkTheme.spacing.s3),
-        )
+            Column(verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s1)) {
+                DkStatTable(
+                    stats = listOf(
+                        DkStat(stringResource(R.string.route_duration), Formatters.duration(context, route.durationSeconds)),
+                        DkStat(stringResource(R.string.route_distance), Formatters.distance(context, route.distanceMeters)),
+                        DkStat(stringResource(R.string.route_eta), Formatters.arrivalTime(route.durationSeconds)),
+                    ),
+                )
+                // The real avoidance cost: chosen route versus the plain unavoided route. Only
+                // shown when the server returned an unavoided route to compare against.
+                state.unavoidedRoute?.let { unavoided ->
+                    val delta = route.durationSeconds - unavoided.durationSeconds
+                    val cost = Formatters.avoidanceCostByDelta(context, delta)
+                    Text(
+                        text = cost ?: stringResource(R.string.route_avoidance_none),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.textMuted,
+                    )
+                }
+            }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = DkTheme.spacing.s3),
-            horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s4),
-        ) {
-            Stat(
-                label = stringResource(R.string.route_duration),
-                value = Formatters.duration(context, route.durationSeconds),
-            )
-            Stat(
-                label = stringResource(R.string.route_distance),
-                value = Formatters.distance(context, route.distanceMeters),
-            )
-            Stat(
-                label = stringResource(R.string.route_eta),
-                value = Formatters.arrivalTime(route.durationSeconds),
-            )
-        }
+            // Up to three alternatives as Civic list rows in one bordered box. Tapping one selects
+            // it. The extra time is route choice, never avoidance, so it reads neutrally.
+            if (state.routes.size > 1) {
+                val fastestSeconds = state.routes.minOf { it.durationSeconds }
+                Column(verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2)) {
+                    Text(
+                        text = stringResource(R.string.route_alternatives),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = colors.textMuted,
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(DkTheme.radius.md),
+                        color = colors.surface,
+                        border = BorderStroke(Dp.Hairline, colors.border),
+                    ) {
+                        Column {
+                            state.routes.take(3).forEachIndexed { index, candidate ->
+                                if (index > 0) HorizontalDivider(thickness = Dp.Hairline, color = colors.border)
+                                RouteChoiceRow(
+                                    route = candidate,
+                                    selected = candidate.id == route.id,
+                                    deltaToFastestSeconds = candidate.durationSeconds - fastestSeconds,
+                                    onClick = { onSelectRoute(candidate.id) },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
 
-        // The real avoidance cost: chosen route versus the plain unavoided route. Only shown
-        // when the server returned an unavoided route to compare against.
-        state.unavoidedRoute?.let { unavoided ->
-            val delta = route.durationSeconds - unavoided.durationSeconds
-            val cost = Formatters.avoidanceCostByDelta(context, delta)
-            Text(
-                text = cost ?: stringResource(R.string.route_avoidance_none),
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (cost != null) DkTheme.colors.warning else DkTheme.colors.textMuted,
-                modifier = Modifier.padding(top = DkTheme.spacing.s3),
-            )
-        }
+            Column {
+                // Toggling this re-prices the trip; the server returns the new durationSeconds.
+                DkSwitchRow(
+                    label = stringResource(R.string.route_traffic_aware),
+                    checked = state.trafficAware,
+                    onCheckedChange = onSetTrafficAware,
+                )
+                HorizontalDivider(thickness = Dp.Hairline, color = colors.border)
+                // Avoiding tolls changes the route, so it recomputes.
+                DkSwitchRow(
+                    label = stringResource(R.string.route_avoid_tolls),
+                    checked = state.avoidTolls,
+                    onCheckedChange = onSetAvoidTolls,
+                )
+                HorizontalDivider(thickness = Dp.Hairline, color = colors.border)
+                // Danger zones (Area A). On by default; recomputes on change.
+                DkSwitchRow(
+                    label = stringResource(R.string.route_avoid_danger_zones),
+                    checked = state.avoidDangerZones,
+                    onCheckedChange = onSetAvoidDangerZones,
+                )
+                // Only offered when the server actually returned an unavoided route.
+                if (state.unavoidedRoute != null) {
+                    HorizontalDivider(thickness = Dp.Hairline, color = colors.border)
+                    DkSwitchRow(
+                        label = stringResource(R.string.route_show_unavoided),
+                        checked = state.showUnavoided,
+                        onCheckedChange = onSetShowUnavoided,
+                    )
+                    AnimatedVisibility(visible = state.showUnavoided) {
+                        Text(
+                            text = stringResource(R.string.route_unavoided_warning),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.danger,
+                            modifier = Modifier.padding(horizontal = DkTheme.spacing.s4),
+                        )
+                    }
+                }
+            }
 
-        // Toggling this re-prices the trip; the server returns the new durationSeconds.
-        DkSwitchRow(
-            label = stringResource(R.string.route_traffic_aware),
-            checked = state.trafficAware,
-            onCheckedChange = onSetTrafficAware,
-        )
-        // Avoiding tolls changes the route, so it recomputes.
-        DkSwitchRow(
-            label = stringResource(R.string.route_avoid_tolls),
-            checked = state.avoidTolls,
-            onCheckedChange = onSetAvoidTolls,
-        )
-        // Danger zones (Area A). On by default; recomputes on change.
-        DkSwitchRow(
-            label = stringResource(R.string.route_avoid_danger_zones),
-            checked = state.avoidDangerZones,
-            onCheckedChange = onSetAvoidDangerZones,
-        )
-        // Only offered when the server actually returned an unavoided route.
-        if (state.unavoidedRoute != null) {
-            DkSwitchRow(
-                label = stringResource(R.string.route_show_unavoided),
-                checked = state.showUnavoided,
-                onCheckedChange = onSetShowUnavoided,
-            )
-            AnimatedVisibility(visible = state.showUnavoided) {
-                Text(
-                    text = stringResource(R.string.route_unavoided_warning),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DkTheme.colors.warning,
-                    modifier = Modifier.padding(top = DkTheme.spacing.s1),
+            Row(horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2)) {
+                DkButton(
+                    text = stringResource(R.string.route_start),
+                    onClick = { onStart(false) },
+                    large = true,
+                    modifier = Modifier.weight(1f),
+                )
+                DkButton(
+                    text = stringResource(R.string.route_simulate),
+                    onClick = { onStart(true) },
+                    variant = DkButtonVariant.Secondary,
+                    large = true,
                 )
             }
         }
-
-        DkButton(
-            text = stringResource(R.string.route_start),
-            onClick = { onStart(false) },
-            large = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = DkTheme.spacing.s2),
-        )
-        DkButton(
-            text = stringResource(R.string.route_simulate),
-            onClick = { onStart(true) },
-            variant = DkButtonVariant.Ghost,
-            modifier = Modifier.fillMaxWidth(),
-        )
     }
 }
 
 /**
- * A selectable alternative: a neutral time indicator (the fastest reads "fastest", the rest
- * read "+Xmin" relative to it - this is route choice, never avoidance), distance/duration,
- * and a verified-clean badge.
+ * A selectable alternative as a Civic list row: radio, a neutral time label (the fastest reads
+ * "fastest", the rest "+X min" relative to it: route choice, never avoidance), and duration and
+ * distance. Only a route that could not be verified is marked.
  */
 @Composable
-private fun RouteChoiceCard(
+private fun RouteChoiceRow(
     route: RouteResult,
     selected: Boolean,
     deltaToFastestSeconds: Double,
     onClick: () -> Unit,
 ) {
     val context = LocalContext.current
+    val colors = DkTheme.colors
     val isFastest = deltaToFastestSeconds < 60.0
-    DkCard(
-        // A fixed width: inside a horizontalScroll the child gets an unbounded width, and the
-        // weight(1f) below then collapses the label to zero width, wrapping the Hebrew one glyph
-        // per line (columns instead of a row). A concrete width keeps the row readable.
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s3),
         modifier = Modifier
-            .width(180.dp)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
-        color = if (selected) DkTheme.colors.surfaceMuted else DkTheme.colors.surface,
-        borderColor = if (selected) DkTheme.colors.primary else DkTheme.colors.border,
+            .fillMaxWidth()
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .background(if (selected) colors.band else colors.surface)
+            .defaultMinSize(minHeight = DkTheme.touch.minTarget)
+            .padding(horizontal = DkTheme.spacing.s3, vertical = DkTheme.spacing.s2),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = if (isFastest) {
-                    stringResource(R.string.route_label_fastest)
-                } else {
-                    Formatters.relativeLonger(context, deltaToFastestSeconds)
-                },
-                style = MaterialTheme.typography.titleSmall,
-                color = DkTheme.colors.text,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            if (route.verifiedClean) {
-                DkBadge(
-                    text = stringResource(R.string.route_verified_short),
-                    tone = DkBadgeTone.Success,
-                    icon = Icons.Filled.CheckCircle,
-                )
-            }
-        }
+        RadioButton(
+            selected = selected,
+            onClick = null,
+            colors = RadioButtonDefaults.colors(
+                selectedColor = colors.primary,
+                unselectedColor = colors.borderStrong,
+            ),
+        )
+        Text(
+            text = if (isFastest) {
+                stringResource(R.string.route_label_fastest)
+            } else {
+                Formatters.relativeLonger(context, deltaToFastestSeconds)
+            },
+            style = if (selected) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyLarge,
+            color = colors.text,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
         Text(
             text = Formatters.duration(context, route.durationSeconds) +
-                "  ·  " + Formatters.distance(context, route.distanceMeters),
+                " · " + Formatters.distance(context, route.distanceMeters),
             style = MaterialTheme.typography.bodySmall,
-            color = DkTheme.colors.textMuted,
-            modifier = Modifier.padding(top = DkTheme.spacing.s1),
+            color = colors.textMuted,
         )
+        if (!route.verifiedClean) {
+            Text(
+                text = stringResource(R.string.route_unverified),
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.danger,
+            )
+        }
     }
 }
 
@@ -476,22 +515,6 @@ private fun androidx.compose.foundation.layout.RowScope.SaveChoice(
         variant = DkButtonVariant.Secondary,
         modifier = Modifier.weight(1f),
     )
-}
-
-@Composable
-private fun androidx.compose.foundation.layout.RowScope.Stat(label: String, value: String) {
-    Column(modifier = Modifier.weight(1f)) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleLarge,
-            color = DkTheme.colors.text,
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = DkTheme.colors.textMuted,
-        )
-    }
 }
 
 @Composable

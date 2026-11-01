@@ -159,8 +159,8 @@
     <string name="route_computing">מחשב מסלול...</string>
     <string name="route_computing_to">מחשב מסלול אל %1$s</string>
     <string name="cd_route_computing">מחשב מסלול, אנא המתן</string>
-    <string name="route_start">התחל ניווט</string>
-    <string name="route_simulate">הרצה</string>
+    <string name="route_start">התחלת ניווט</string>
+    <string name="route_simulate">הרצת סימולציה</string>
     <string name="route_traffic_aware">התחשבות בעומסי תנועה</string>
     <string name="route_avoid_tolls">הימנעות מכבישי אגרה</string>
     <string name="route_alternatives">מסלולים חלופיים</string>
