@@ -55,6 +55,10 @@ data class SessionSnapshot(
     val zoneLayerStringency: String? = null,
     /** The danger-zone (Area A) layer version already downloaded and cached. */
     val dangerLayerVersion: Int = 0,
+    /** The signed-in account's display name, email and picture URL, for the settings screens. */
+    val profileName: String? = null,
+    val profileEmail: String? = null,
+    val profileAvatarUrl: String? = null,
 ) {
     val isSignedIn: Boolean get() = accessToken != null
 }
@@ -66,6 +70,9 @@ class SessionStore @Inject constructor(
     private object Keys {
         val accessToken = stringPreferencesKey("access_token")
         val refreshToken = stringPreferencesKey("refresh_token")
+        val profileName = stringPreferencesKey("profile_name")
+        val profileEmail = stringPreferencesKey("profile_email")
+        val profileAvatarUrl = stringPreferencesKey("profile_avatar_url")
         val language = stringPreferencesKey("language")
         val theme = stringPreferencesKey("theme")
         val stringency = stringPreferencesKey("stringency")
@@ -110,10 +117,20 @@ class SessionStore @Inject constructor(
             zoneLayerVersion = prefs[Keys.zoneLayerVersion] ?: 0,
             zoneLayerStringency = prefs[Keys.zoneLayerStringency],
             dangerLayerVersion = prefs[Keys.dangerLayerVersion] ?: 0,
+            profileName = prefs[Keys.profileName],
+            profileEmail = prefs[Keys.profileEmail],
+            profileAvatarUrl = prefs[Keys.profileAvatarUrl],
         )
     }
 
     suspend fun snapshot(): SessionSnapshot = snapshots.first()
+
+    /** Stores who is signed in, for display only; cleared with the session. */
+    suspend fun setProfile(name: String?, email: String?, avatarUrl: String?) = context.dataStore.edit { prefs ->
+        if (name.isNullOrBlank()) prefs.remove(Keys.profileName) else prefs[Keys.profileName] = name
+        if (email.isNullOrBlank()) prefs.remove(Keys.profileEmail) else prefs[Keys.profileEmail] = email
+        if (avatarUrl.isNullOrBlank()) prefs.remove(Keys.profileAvatarUrl) else prefs[Keys.profileAvatarUrl] = avatarUrl
+    }
 
     suspend fun setTokens(access: String?, refresh: String?) = context.dataStore.edit { prefs ->
         if (access == null) prefs.remove(Keys.accessToken) else prefs[Keys.accessToken] = access
@@ -185,6 +202,9 @@ class SessionStore @Inject constructor(
     suspend fun clearSession() = context.dataStore.edit {
         it.remove(Keys.accessToken)
         it.remove(Keys.refreshToken)
+        it.remove(Keys.profileName)
+        it.remove(Keys.profileEmail)
+        it.remove(Keys.profileAvatarUrl)
     }
 
     /**

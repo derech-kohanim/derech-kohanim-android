@@ -69,6 +69,8 @@ fun DkListRow(
     trailing: String? = null,
     titleColor: Color = DkTheme.colors.text,
     showChevron: Boolean = true,
+    /** Drawn instead of the icon chip, e.g. the user's avatar. */
+    leading: (@Composable () -> Unit)? = null,
 ) {
     val colors = DkTheme.colors
     Row(
@@ -80,7 +82,9 @@ fun DkListRow(
             .defaultMinSize(minHeight = DkTheme.touch.comfortableTarget)
             .padding(horizontal = DkTheme.spacing.s4, vertical = DkTheme.spacing.s3),
     ) {
-        if (icon != null) {
+        if (leading != null) {
+            leading()
+        } else if (icon != null) {
             val (bg, fg) = when (chipTone) {
                 DkChipTone.Royal -> colors.primarySoft to colors.primary
                 DkChipTone.Danger -> colors.dangerSoft to colors.danger

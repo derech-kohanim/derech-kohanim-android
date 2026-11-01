@@ -1,5 +1,6 @@
 package com.abaye.derechkohanim.ui.screens.settings
 
+import com.abaye.derechkohanim.ui.components.UserAvatar
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.ui.res.pluralStringResource
 import android.content.Intent
@@ -260,8 +261,15 @@ fun SettingsMenuScreen(state: SettingsState, actions: SettingsActions) {
                 title = stringResource(R.string.settings_menu_account),
                 supporting = stringResource(
                     if (state.signedIn) R.string.settings_account_signed_in else R.string.settings_account_guest,
-                ),
+                ).let { status ->
+                    if (state.signedIn) state.profileName ?: state.profileEmail ?: status else status
+                },
                 icon = Icons.Outlined.Person,
+                leading = if (state.signedIn) {
+                    { UserAvatar(state.profileAvatarUrl, state.profileName ?: state.profileEmail, DkTheme.spacing.s8) }
+                } else {
+                    null
+                },
                 onClick = { actions.onOpenSection(SettingsSection.ACCOUNT) },
             )
             DkListDivider()
@@ -494,6 +502,22 @@ fun ZoneDataSettingsScreen(state: SettingsState, actions: SettingsActions) {
 fun AccountSettingsScreen(state: SettingsState, actions: SettingsActions) {
     var confirmSignOut by remember { mutableStateOf(false) }
     SettingsPage(title = stringResource(R.string.settings_menu_account), onBack = actions.onBack) {
+        if (state.signedIn) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s4),
+            ) {
+                UserAvatar(state.profileAvatarUrl, state.profileName ?: state.profileEmail, 64.dp)
+                Column {
+                    state.profileName?.let {
+                        Text(text = it, style = MaterialTheme.typography.titleMedium, color = DkTheme.colors.text)
+                    }
+                    state.profileEmail?.let {
+                        Text(text = it, style = MaterialTheme.typography.bodyMedium, color = DkTheme.colors.textMuted)
+                    }
+                }
+            }
+        }
         Text(
             text = stringResource(
                 if (state.signedIn) R.string.settings_account_signed_in_body else R.string.settings_account_guest_body,

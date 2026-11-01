@@ -38,6 +38,8 @@ data class User(
     val id: String,
     val email: String? = null,
     val displayName: String? = null,
+    /** Profile picture URL (the Google account photo), refreshed on every Google sign-in. */
+    val avatarUrl: String? = null,
     val tier: UserTier,
     val providers: List<AuthProvider> = emptyList(),
     val preferences: UserPreferences,

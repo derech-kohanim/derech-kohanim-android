@@ -101,6 +101,7 @@ class RemoteAuthRepository @Inject constructor(
     private suspend fun DkResult<AuthResponse>.persist(): DkResult<User> {
         if (this is DkResult.Success) {
             sessionStore.setTokens(value.tokens.accessToken, value.tokens.refreshToken)
+            sessionStore.setProfile(value.user.displayName, value.user.email, value.user.avatarUrl)
             sessionStore.setLanguage(value.user.preferences.language)
             sessionStore.setStringency(value.user.preferences.stringency)
             sessionStore.setTheme(value.user.preferences.theme)

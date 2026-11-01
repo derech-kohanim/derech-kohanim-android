@@ -43,6 +43,9 @@ data class SettingsState(
     val zoneLayer: ZoneLayerStatus = ZoneLayerStatus(),
     /** How many places the account has saved; null for a guest or before it loads. */
     val savedPlaceCount: Int? = null,
+    val profileName: String? = null,
+    val profileEmail: String? = null,
+    val profileAvatarUrl: String? = null,
 )
 
 @HiltViewModel
@@ -60,6 +63,12 @@ class SettingsViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             sessionStore.snapshots.map { it.isSignedIn }.distinctUntilChanged().collect { signedIn ->
+                // Refresh the stored profile (a newer Google photo, a renamed account).
+                if (signedIn) {
+                    (authRepository.currentUser() as? DkResult.Success)?.value?.let { user ->
+                        sessionStore.setProfile(user.displayName, user.email, user.avatarUrl)
+                    }
+                }
                 savedPlaceCount.value = if (signedIn) {
                     (placesRepository.savedPlaces() as? DkResult.Success)?.value?.size
                 } else {
@@ -90,6 +99,9 @@ class SettingsViewModel @Inject constructor(
                 voicePack = voicePack,
                 zoneLayer = zoneLayer,
                 savedPlaceCount = savedCount,
+                profileName = snapshot.profileName,
+                profileEmail = snapshot.profileEmail,
+                profileAvatarUrl = snapshot.profileAvatarUrl,
             )
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsState())
