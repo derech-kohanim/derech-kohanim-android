@@ -5,5 +5,4 @@
         read the generated tokens. This value mirrors tokens.colors.light.primary and is the
         only literal colour in the project. Update it when that token changes.
     -->
-    <color name="ic_launcher_background">#0D84D3</color>
 </resources>

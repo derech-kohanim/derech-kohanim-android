@@ -557,19 +557,14 @@ fun AboutScreen(actions: SettingsActions) {
             verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Surface(
-                // The launcher foreground is white; it sits on the royal fill like the launcher icon.
-                shape = RoundedCornerShape(DkTheme.radius.xl),
-                color = DkTheme.colors.primary,
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.ic_launcher_foreground),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(96.dp)
-                        .clip(RoundedCornerShape(DkTheme.radius.xl)),
-                )
-            }
+            // The full app icon, gradient and artwork, as the launcher shows it.
+            Image(
+                painter = painterResource(R.drawable.app_icon),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(RoundedCornerShape(24.dp)),
+            )
             Text(
                 text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.headlineLarge,
