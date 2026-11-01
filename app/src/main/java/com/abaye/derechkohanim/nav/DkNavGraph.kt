@@ -187,7 +187,9 @@ fun DkNavGraph(
                     navController.navigate(Routes.settingsSection(SettingsSection.VOICE.route))
                 },
                 onDescribeMark = { mark ->
-                    navController.navigate(Routes.report(kind = "ROUTE", routeId = mark.routeId, location = mark.location, marked = true))
+                    navController.navigate(Routes.report(kind = "ROUTE", routeId = mark.routeId, location = mark.location, marked = true)) {
+                        popUpTo(Routes.HOME)
+                    }
                 },
                 onFinished = {
                     navController.navigate(Routes.HOME) {

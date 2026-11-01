@@ -114,8 +114,11 @@ fun NavigationRoute(
     val tourViewModel: TourViewModel = hiltViewModel()
     val tourPending by tourViewModel.pending(Tour.NAVIGATION).collectAsStateWithLifecycle()
 
+    // Set when a marked problem is being described: the report form takes over from the usual
+    // return to home when the drive ends.
+    var leavingForReport by remember { mutableStateOf(false) }
     LaunchedEffect(state.status) {
-        if (state.status == NavigationStatus.CANCELLED) onFinished()
+        if (state.status == NavigationStatus.CANCELLED && !leavingForReport) onFinished()
     }
 
     // The spoken phrase is assembled here from the announcement's structured parts, never
@@ -155,7 +158,10 @@ fun NavigationRoute(
         },
         marks = { viewModel.marks() },
         onDescribeMark = { mark ->
+            // Describing a mark ends the drive and opens the report form in its place.
+            leavingForReport = true
             viewModel.clearMarks()
+            viewModel.stop()
             onDescribeMark(mark)
         },
         onDismissMarks = viewModel::clearMarks,
@@ -505,6 +511,13 @@ fun NavigationScreen(
                 onStop()
             },
             onDismiss = { showStopFeedback = false },
+            marks = remember { marks() },
+            // Describing ends the drive too (the route stops it), then opens the report form.
+            onDescribeMark = { mark ->
+                showStopFeedback = false
+                onDescribeMark(mark)
+            },
+            onDismissMarks = onDismissMarks,
         )
     }
 }
@@ -994,37 +1007,15 @@ private fun ArrivalPanel(
         )
         // Problems marked on the way: offer to describe the first, or let them go.
         if (marksPending) {
-            Surface(
-                shape = RoundedCornerShape(DkTheme.radius.md),
-                color = DkTheme.colors.primarySoft,
-                border = BorderStroke(Dp.Hairline, DkTheme.colors.primary.copy(alpha = 0.25f)),
+            MarksPrompt(
+                marks = marks,
+                onDescribeMark = onDescribeMark,
+                onDismiss = {
+                    marksPending = false
+                    onDismissMarks()
+                },
                 modifier = Modifier.padding(top = DkTheme.spacing.s3),
-            ) {
-                Column(
-                    modifier = Modifier.padding(DkTheme.spacing.s3),
-                    verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2),
-                ) {
-                    Text(
-                        text = stringResource(R.string.nav_marks_prompt),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = DkTheme.colors.text,
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2)) {
-                        DkButton(
-                            text = stringResource(R.string.nav_marks_describe),
-                            onClick = { marks.firstOrNull()?.let(onDescribeMark) },
-                        )
-                        DkButton(
-                            text = stringResource(R.string.nav_marks_later),
-                            onClick = {
-                                marksPending = false
-                                onDismissMarks()
-                            },
-                            variant = DkButtonVariant.Ghost,
-                        )
-                    }
-                }
-            }
+            )
         }
         FeedbackControls(
             onSubmitFeedback = onSubmitFeedback,
@@ -1044,13 +1035,67 @@ private fun StopFeedbackSheet(
     onSubmitFeedback: (NavFeedbackRating, String?) -> Unit,
     onStop: () -> Unit,
     onDismiss: () -> Unit,
+    marks: List<DriveMark> = emptyList(),
+    onDescribeMark: (DriveMark) -> Unit = {},
+    onDismissMarks: () -> Unit = {},
 ) {
+    var marksPending by remember { mutableStateOf(marks.isNotEmpty()) }
     DkBottomSheet(onDismissRequest = onDismiss) {
+        // Ending early with problems marked: the same offer as on arrival.
+        if (marksPending) {
+            MarksPrompt(
+                marks = marks,
+                onDescribeMark = onDescribeMark,
+                onDismiss = {
+                    marksPending = false
+                    onDismissMarks()
+                },
+                modifier = Modifier.padding(bottom = DkTheme.spacing.s3),
+            )
+        }
         FeedbackControls(
             onSubmitFeedback = onSubmitFeedback,
             onProceed = onStop,
             proceedLabelRes = R.string.nav_stop,
         )
+    }
+}
+
+/** "You marked a problem on the way. Want to describe it?" with describe and not now. */
+@Composable
+private fun MarksPrompt(
+    marks: List<DriveMark>,
+    onDescribeMark: (DriveMark) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = RoundedCornerShape(DkTheme.radius.md),
+        color = DkTheme.colors.primarySoft,
+        border = BorderStroke(Dp.Hairline, DkTheme.colors.primary.copy(alpha = 0.25f)),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(DkTheme.spacing.s3),
+            verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2),
+        ) {
+            Text(
+                text = stringResource(R.string.nav_marks_prompt),
+                style = MaterialTheme.typography.titleSmall,
+                color = DkTheme.colors.text,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2)) {
+                DkButton(
+                    text = stringResource(R.string.nav_marks_describe),
+                    onClick = { marks.firstOrNull()?.let(onDescribeMark) },
+                )
+                DkButton(
+                    text = stringResource(R.string.nav_marks_later),
+                    onClick = onDismiss,
+                    variant = DkButtonVariant.Ghost,
+                )
+            }
+        }
     }
 }
 
