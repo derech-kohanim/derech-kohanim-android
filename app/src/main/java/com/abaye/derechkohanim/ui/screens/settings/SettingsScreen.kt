@@ -21,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Login
 import androidx.compose.material.icons.outlined.Description
@@ -566,6 +567,37 @@ fun AboutScreen(actions: SettingsActions) {
             )
         }
 
+        // The developer, as in the other abaye apps: logo, name and the site.
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s2),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Image(
+                painter = painterResource(R.drawable.developer_abaye),
+                contentDescription = "abaye",
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape),
+            )
+            Text(
+                text = stringResource(R.string.about_developed_by),
+                style = MaterialTheme.typography.titleMedium,
+                color = DkTheme.colors.text,
+            )
+            DkButton(
+                text = "abaye.co",
+                variant = DkButtonVariant.Secondary,
+                leadingIcon = Icons.Filled.Language,
+                onClick = {
+                    runCatching {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(DEVELOPER_URL)))
+                    }
+                },
+            )
+        }
+
         SettingsGroup(title = stringResource(R.string.about_credits_title)) {
             Text(
                 text = stringResource(R.string.about_credits),
@@ -602,6 +634,7 @@ fun AboutScreen(actions: SettingsActions) {
 }
 
 private const val OPEN_SOURCE_URL = "https://github.com/derech-kohanim"
+private const val DEVELOPER_URL = "https://abaye.co"
 
 // -- shared rows -----------------------------------------------------------------------------------
 

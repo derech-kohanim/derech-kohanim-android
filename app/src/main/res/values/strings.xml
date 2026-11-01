@@ -507,6 +507,7 @@
     <string name="settings_zones_update_now">לבדוק עדכונים עכשיו</string>
     <string name="settings_zones_source">נתוני האזורים באדיבות טהרת הכהנים (gps.hakohanim.org). השכבות נשמרות במכשיר ומתעדכנות ברקע.</string>
     <string name="about_tagline">ניווט לכהנים שעוקף אזורים אסורים לפי רמת ההימנעות שבחרת, עם התראה לפני כל כניסה לאזור.</string>
+    <string name="about_developed_by">פיתוח: abaye</string>
     <string name="about_credits_title">קרדיטים</string>
     <string name="about_credits">נתוני האזורים באדיבות טהרת הכהנים (gps.hakohanim.org). נתוני הכבישים: OpenStreetMap.</string>
     <string name="about_open_source">קוד פתוח</string>

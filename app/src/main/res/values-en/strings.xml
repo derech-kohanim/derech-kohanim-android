@@ -506,6 +506,7 @@
     <string name="settings_zones_update_now">Check for updates now</string>
     <string name="settings_zones_source">Zone data courtesy of Taharat HaKohanim (gps.hakohanim.org). The layers are stored on the device and update in the background.</string>
     <string name="about_tagline">Navigation for kohanim that goes around forbidden zones at the avoidance level you choose, with an alert before every zone entry.</string>
+    <string name="about_developed_by">Developed by abaye</string>
     <string name="about_credits_title">Credits</string>
     <string name="about_credits">Zone data courtesy of Taharat HaKohanim (gps.hakohanim.org). Road data: OpenStreetMap.</string>
     <string name="about_open_source">Open source</string>
