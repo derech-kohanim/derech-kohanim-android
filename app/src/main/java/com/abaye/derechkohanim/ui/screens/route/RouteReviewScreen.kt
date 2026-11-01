@@ -1,5 +1,18 @@
 package com.abaye.derechkohanim.ui.screens.route
 
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.text.font.FontWeight
+import com.abaye.derechkohanim.ui.components.DkChipTone
+import com.abaye.derechkohanim.ui.components.DkConfirmDialog
+import com.abaye.derechkohanim.ui.components.DkListBox
+import com.abaye.derechkohanim.ui.components.DkListDivider
+import com.abaye.derechkohanim.ui.components.DkListRow
+import com.abaye.derechkohanim.ui.components.DkSectionTitle
+import com.abaye.derechkohanim.ui.screens.onboarding.stringencyTitleRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.defaultMinSize
@@ -201,6 +214,8 @@ fun RouteReviewScreen(
                 )
             state.certainty == Certainty.Unverified || route == null ->
                 RouteFailurePanel(
+                    route = route,
+                    stringency = state.stringency,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .navigationBarsPadding(),
@@ -517,56 +532,130 @@ private fun androidx.compose.foundation.layout.RowScope.SaveChoice(
     )
 }
 
+/**
+ * No clean route: a danger notice, then the three ways forward as Civic list rows. Driving the
+ * blocked route anyway asks for an explicit confirmation first; zone alerts stay active on it.
+ */
 @Composable
 private fun RouteFailurePanel(
+    route: RouteResult?,
+    stringency: Stringency,
     onChangeDestination: () -> Unit,
     onChangeStringency: () -> Unit,
     onProceed: () -> Unit,
     canProceed: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    DkCard(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(DkTheme.spacing.s4),
-        color = DkTheme.colors.surfaceOverlay,
-        borderColor = DkTheme.colors.danger,
+    val context = LocalContext.current
+    val colors = DkTheme.colors
+    var confirmProceed by remember { mutableStateOf(false) }
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(topStart = DkTheme.radius.lg, topEnd = DkTheme.radius.lg),
+        color = colors.surface,
+        border = BorderStroke(Dp.Hairline, colors.border),
     ) {
-        CertaintyBadge(Certainty.Unverified)
-        Text(
-            text = stringResource(R.string.route_failure_title),
-            style = MaterialTheme.typography.titleLarge,
-            color = DkTheme.colors.text,
-            modifier = Modifier.padding(top = DkTheme.spacing.s2),
-        )
-        Text(
-            text = stringResource(R.string.route_failure_body),
-            style = MaterialTheme.typography.bodyMedium,
-            color = DkTheme.colors.textMuted,
-            modifier = Modifier.padding(top = DkTheme.spacing.s2),
-        )
-        DkButton(
-            text = stringResource(R.string.route_failure_change_destination),
-            onClick = onChangeDestination,
-            large = true,
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = DkTheme.spacing.s4),
-        )
-        DkButton(
-            text = stringResource(R.string.route_failure_change_stringency),
-            onClick = onChangeStringency,
-            variant = DkButtonVariant.Secondary,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        if (canProceed) {
+                .verticalScroll(rememberScrollState())
+                .padding(DkTheme.spacing.s4),
+            verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s4),
+        ) {
+            // Civic notice: one emphasized line and one sentence, on the soft danger fill.
+            Surface(
+                shape = RoundedCornerShape(DkTheme.radius.md),
+                color = colors.dangerSoft,
+                border = BorderStroke(Dp.Hairline, colors.danger.copy(alpha = 0.3f)),
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(DkTheme.spacing.s3),
+                    modifier = Modifier.padding(DkTheme.spacing.s4),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Warning,
+                        contentDescription = null,
+                        tint = colors.danger,
+                        modifier = Modifier.size(DkTheme.spacing.s6),
+                    )
+                    Column {
+                        Text(
+                            text = stringResource(R.string.route_failure_title),
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = colors.danger,
+                        )
+                        Text(
+                            text = stringResource(R.string.route_failure_body),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.textBody,
+                        )
+                    }
+                }
+            }
+
+            Column {
+                DkSectionTitle(stringResource(R.string.route_failure_options_title))
+                DkListBox {
+                    DkListRow(
+                        title = stringResource(R.string.route_failure_change_destination),
+                        icon = Icons.Filled.Search,
+                        onClick = onChangeDestination,
+                    )
+                    DkListDivider()
+                    DkListRow(
+                        title = stringResource(R.string.route_failure_change_stringency),
+                        supporting = stringResource(
+                            R.string.route_failure_current_level,
+                            stringResource(stringencyTitleRes(stringency)),
+                        ),
+                        icon = Icons.Outlined.Shield,
+                        onClick = onChangeStringency,
+                    )
+                    if (canProceed) {
+                        DkListDivider()
+                        DkListRow(
+                            title = stringResource(R.string.route_failure_proceed),
+                            supporting = stringResource(R.string.route_failure_proceed_hint),
+                            icon = Icons.Filled.Warning,
+                            chipTone = DkChipTone.Danger,
+                            onClick = { confirmProceed = true },
+                        )
+                    }
+                }
+            }
+
+            if (route != null) {
+                DkStatTable(
+                    stats = listOf(
+                        DkStat(stringResource(R.string.route_duration), Formatters.duration(context, route.durationSeconds)),
+                        DkStat(stringResource(R.string.route_distance), Formatters.distance(context, route.distanceMeters)),
+                        DkStat(stringResource(R.string.route_eta), Formatters.arrivalTime(route.durationSeconds)),
+                    ),
+                )
+            }
+
             DkButton(
-                text = stringResource(R.string.route_failure_proceed),
-                onClick = onProceed,
-                variant = DkButtonVariant.Ghost,
+                text = stringResource(R.string.route_failure_change_destination),
+                onClick = onChangeDestination,
+                large = true,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+    }
+
+    if (confirmProceed) {
+        DkConfirmDialog(
+            title = stringResource(R.string.route_proceed_confirm_title),
+            body = stringResource(R.string.route_proceed_confirm_body),
+            confirmText = stringResource(R.string.route_proceed_confirm),
+            dismissText = stringResource(R.string.action_cancel),
+            destructive = true,
+            onConfirm = {
+                confirmProceed = false
+                onProceed()
+            },
+            onDismiss = { confirmProceed = false },
+        )
     }
 }
 
