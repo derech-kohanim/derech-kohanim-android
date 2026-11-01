@@ -94,8 +94,6 @@ data class NavigationState(
     val stringency: Stringency = Stringency.BASIC,
     val simulated: Boolean = false,
     val muted: Boolean = false,
-    /** True when the feminine Hebrew voice is chosen; the spoken texts follow it. */
-    val voiceFemale: Boolean = false,
     val activeAlert: RouteAlert? = null,
     /**
      * True while the driver has left the route and a new one is being computed (online only).

@@ -397,44 +397,26 @@
     <string name="delete_account_sent_body">הבקשה התקבלה ותטופל. אם נצטרך לאמת את הזהות, נפנה לכתובת שמסרת.</string>
     <string name="delete_account_failed">לא הצלחנו לרשום את הבקשה, אפשר לנסות שוב</string>
     <!-- Spoken voice texts (device speech fallback). Verbs carry niqqud so the Hebrew engine reads
-         them right; the masculine and feminine (_f) forms follow the voice the user picked. Wording
-         after DirGo's iw_tts.js / he_tts.js (GPLv3) and the server clip catalogue. -->
+         them right. The driver is addressed in the masculine whichever voice is picked. Wording
+         after DirGo's iw_tts.js (GPLv3) and the server clip catalogue. -->
     <string name="voice_action_depart">צֵא לדרך</string>
-    <string name="voice_action_depart_f">צְאִי לדרך</string>
     <string name="voice_action_turn_left">פְּנֵה שמאלה</string>
-    <string name="voice_action_turn_left_f">פְּנִי שמאלה</string>
     <string name="voice_action_turn_right">פְּנֵה ימינה</string>
-    <string name="voice_action_turn_right_f">פְּנִי ימינה</string>
     <string name="voice_action_slight_left">פְּנֵה קַלּוֹת שמאלה</string>
-    <string name="voice_action_slight_left_f">פְּנִי קַלּוֹת שמאלה</string>
     <string name="voice_action_slight_right">פְּנֵה קַלּוֹת ימינה</string>
-    <string name="voice_action_slight_right_f">פְּנִי קַלּוֹת ימינה</string>
     <string name="voice_action_sharp_left">פְּנֵה חַדּוֹת שמאלה</string>
-    <string name="voice_action_sharp_left_f">פְּנִי חַדּוֹת שמאלה</string>
     <string name="voice_action_sharp_right">פְּנֵה חַדּוֹת ימינה</string>
-    <string name="voice_action_sharp_right_f">פְּנִי חַדּוֹת ימינה</string>
     <string name="voice_action_keep_left">הִיצָּמֵד לשמאל</string>
-    <string name="voice_action_keep_left_f">הִיצָּמְדִי לשמאל</string>
     <string name="voice_action_keep_right">הִיצָּמֵד לימין</string>
-    <string name="voice_action_keep_right_f">הִיצָּמְדִי לימין</string>
     <string name="voice_action_continue">הַמְשֵׁךְ ישר</string>
-    <string name="voice_action_continue_f">הַמְשִׁיכִי ישר</string>
     <string name="voice_action_uturn">בַּצֵּעַ פניית פרסה</string>
-    <string name="voice_action_uturn_f">בַּצְּעִי פניית פרסה</string>
     <string name="voice_action_roundabout_enter">הִיכָּנֵס לכיכר</string>
-    <string name="voice_action_roundabout_enter_f">הִיכָּנְסִי לכיכר</string>
     <string name="voice_action_roundabout_exit">צֵא מהכיכר</string>
-    <string name="voice_action_roundabout_exit_f">צְאִי מהכיכר</string>
     <string name="voice_action_merge">הִשְׁתַּלֵּב</string>
-    <string name="voice_action_merge_f">הִשְׁתַּלְּבִי</string>
     <string name="voice_action_ramp_left">קַח את המחלף שמאלה</string>
-    <string name="voice_action_ramp_left_f">קְחִי את המחלף שמאלה</string>
     <string name="voice_action_ramp_right">קַח את המחלף ימינה</string>
-    <string name="voice_action_ramp_right_f">קְחִי את המחלף ימינה</string>
     <string name="voice_action_arrive">הִגַּעְתָּ ליעד</string>
-    <string name="voice_action_arrive_f">הִגַּעְתְּ ליעד</string>
     <string name="voice_action_unknown">הַמְשֵׁךְ לפי המפה</string>
-    <string name="voice_action_unknown_f">הַמְשִׁיכִי לפי המפה</string>
     <string name="voice_exit_1">ביציאה הראשונה</string>
     <string name="voice_exit_2">ביציאה השנייה</string>
     <string name="voice_exit_3">ביציאה השלישית</string>
@@ -444,29 +426,19 @@
     <string name="voice_exit_7">ביציאה השביעית</string>
     <string name="voice_exit_8">ביציאה השמינית</string>
     <string name="voice_cue_zone_enter">שִׂים לֵב, נכנסים לאזור אסור</string>
-    <string name="voice_cue_zone_enter_f">שִׂימִי לֵב, נכנסים לאזור אסור</string>
     <string name="voice_cue_zone_exit">יצאנו מהאזור האסור</string>
-    <string name="voice_cue_zone_exit_f">יצאנו מהאזור האסור</string>
     <string name="voice_cue_zone_ahead">אזור אסור לפנינו</string>
-    <string name="voice_cue_zone_ahead_f">אזור אסור לפנינו</string>
     <string name="voice_cue_speed_camera">מַצְלֵמַת מְהִירוּת לְפָנֶיךָ</string>
-    <string name="voice_cue_speed_camera_f">מַצְלֵמַת מְהִירוּת לְפָנַיִךְ</string>
     <string name="voice_cue_rail_crossing">מפגש מסילת ברזל לְפָנֶיךָ</string>
-    <string name="voice_cue_rail_crossing_f">מפגש מסילת ברזל לְפָנַיִךְ</string>
     <string name="voice_cue_speeding">שִׂים לֵב, אַתָּה חוֹרֵג מהמהירות המותרת</string>
-    <string name="voice_cue_speeding_f">שִׂימִי לֵב, אַתְּ חוֹרֶגֶת מהמהירות המותרת</string>
     <string name="voice_cue_gps_lost">אין קליטת לוויין</string>
-    <string name="voice_cue_gps_lost_f">אין קליטת לוויין</string>
     <string name="voice_cue_gps_recovered">הקליטה חזרה</string>
-    <string name="voice_cue_gps_recovered_f">הקליטה חזרה</string>
     <string name="voice_cue_back_on_route">חָזַרְתָּ למסלול</string>
-    <string name="voice_cue_back_on_route_f">חָזַרְתְּ למסלול</string>
     <string name="voice_cue_return_to_route">חֲזוֹר למסלול</string>
-    <string name="voice_cue_return_to_route_f">חִזְרִי למסלול</string>
 
     <!-- Voice choice -->
     <string name="settings_voice_gender">קול ההנחיות</string>
-    <string name="settings_voice_gender_hint">ההנחיות נאמרות בלשון זכר או נקבה, לפי הבחירה.</string>
+    <string name="settings_voice_gender_hint">מי מקריא את ההנחיות המוקלטות: קריין או קריינית.</string>
     <string name="settings_voice_male">קול גבר</string>
     <string name="settings_voice_female">קול אישה</string>
     <!-- Road alerts from the map -->

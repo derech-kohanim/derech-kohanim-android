@@ -56,7 +56,6 @@ import com.abaye.derechkohanim.ui.screens.nav.NavigationState
 import com.abaye.derechkohanim.ui.screens.nav.ReturnGuidance
 import com.abaye.derechkohanim.ui.screens.nav.RouteAlert
 import com.abaye.derechkohanim.ui.screens.nav.speedKmh
-import com.abaye.derechkohanim.data.model.VoiceIds
 import com.abaye.derechkohanim.voice.SpokenInstruction
 import com.abaye.derechkohanim.voice.VoiceCue
 import com.abaye.derechkohanim.voice.VoiceInstruction
@@ -235,7 +234,6 @@ class NavigationEngine @Inject constructor(
                 simulated = simulated,
                 stringency = snapshot.stringency,
                 muted = !snapshot.voiceEnabled,
-                voiceFemale = VoiceIds.isFemale(snapshot.voiceId),
                 status = NavigationStatus.NAVIGATING,
                 currentLocation = geometry.getOrNull(progressIndex) ?: geometry.firstOrNull(),
                 remainingRoutePoints = geometry,

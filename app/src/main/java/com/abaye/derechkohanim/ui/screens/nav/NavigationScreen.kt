@@ -98,7 +98,7 @@ fun NavigationRoute(
     // from the banner text. Then it is handed to the player, which never blocks navigation.
     LaunchedEffect(Unit) {
         viewModel.announcements.collect { announcement ->
-            viewModel.speak(buildSpokenInstruction(context, announcement, viewModel.state.value.voiceFemale))
+            viewModel.speak(buildSpokenInstruction(context, announcement))
         }
     }
 
@@ -135,13 +135,12 @@ fun NavigationRoute(
 private fun buildSpokenInstruction(
     context: Context,
     announcement: Announcement,
-    female: Boolean,
 ): SpokenInstruction {
     val cue = announcement.cue
     return if (cue != null) {
         SpokenInstruction(
             clipKeys = VoiceInstruction.cueClipKeys(cue, announcement.bucketMeters),
-            text = VoicePhrase.cue(context, cue, announcement.bucketMeters, female),
+            text = VoicePhrase.cue(context, cue, announcement.bucketMeters),
             urgent = announcement.urgent,
         )
     } else if (announcement.maneuverAction != null) {
@@ -157,7 +156,6 @@ private fun buildSpokenInstruction(
                 announcement.maneuverAction,
                 announcement.bucketMeters,
                 announcement.street,
-                female,
                 announcement.exitNumber,
             ),
             urgent = announcement.urgent,

@@ -177,7 +177,7 @@ fun SettingsScreen(
                     checked = state.voiceEnabled,
                     onCheckedChange = onVoiceEnabled,
                 )
-                // Only Hebrew is gendered; English has a single voice.
+                // Hebrew has a male and a female speaker; English has a single voice.
                 if (state.language == Language.HE) {
                     ChoiceRow(
                         label = stringResource(R.string.settings_voice_gender),

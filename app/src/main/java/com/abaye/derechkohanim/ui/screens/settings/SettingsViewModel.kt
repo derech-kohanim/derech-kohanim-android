@@ -92,7 +92,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * Switches between the masculine and feminine Hebrew voice. The texts differ by gender, so the
+     * Switches between the male and female Hebrew speaker. Each is its own recorded pack, so the
      * pack for the new voice is fetched right away rather than at the next periodic refresh.
      */
     fun setVoiceFemale(female: Boolean) {

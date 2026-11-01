@@ -14,13 +14,13 @@ import kotlin.math.abs
  *
  * Shape, per language:
  *   "בעוד 200 מטר, פְּנֵה ימינה אל ז'בוטינסקי"
- *   "פְּנִי ימינה עכשיו"                       (feminine voice)
+ *   "פְּנֵה ימינה עכשיו"
  *   "הִיכָּנֵס לכיכר, ביציאה השנייה"
  *   "In 200 m, turn right onto Jabotinsky"
  *
  * The verb texts are the dedicated voice_* strings, not the banner labels: they carry niqqud so
- * the device speech engine pronounces the verbs right, and come in a masculine and a feminine
- * form that follows the voice the user picked.
+ * the device speech engine pronounces the verbs right. The driver is addressed in the masculine
+ * whichever voice is picked: the voice choice is the speaker, not the listener.
  *
  * Commas separate the segments so the device speech engine inserts a natural pause; the
  * recorded-clip path gets the same pauses from the clip boundaries.
@@ -48,7 +48,6 @@ object VoicePhrase {
         action: String,
         distanceBucketMeters: Int,
         street: String?,
-        female: Boolean = false,
         exitNumber: Int? = null,
     ): String {
         val parts = mutableListOf<String>()
@@ -57,7 +56,7 @@ object VoicePhrase {
         }
 
         val core = buildString {
-            append(context.getString(actionTextRes(action, female)))
+            append(context.getString(actionTextRes(action)))
             if (!street.isNullOrBlank() && speaksStreet(action)) {
                 append(' ')
                 append(context.getString(R.string.maneuver_onto_street, street))
@@ -73,8 +72,8 @@ object VoicePhrase {
     }
 
     /** The spoken string for a fixed alert or status cue, e.g. "בעוד 500 מטר, מצלמת מהירות לפניך". */
-    fun cue(context: Context, cue: VoiceCue, distanceBucketMeters: Int, female: Boolean = false): String {
-        val text = context.getString(cue.textFor(female))
+    fun cue(context: Context, cue: VoiceCue, distanceBucketMeters: Int): String {
+        val text = context.getString(cue.textRes)
         return if (cue.takesDistance && distanceBucketMeters > 0) {
             "${distancePrefix(context, distanceBucketMeters)}, $text"
         } else {
@@ -118,30 +117,27 @@ object VoicePhrase {
 
     fun isRoundaboutEntry(action: String): Boolean = action == "roundabout_enter" || action == "roundabout"
 
-    /** The voice text (with niqqud, gendered) for an action key. */
-    fun actionTextRes(action: String, female: Boolean): Int {
-        val (male, fem) = when (action) {
-            "depart" -> R.string.voice_action_depart to R.string.voice_action_depart_f
-            "turn_left" -> R.string.voice_action_turn_left to R.string.voice_action_turn_left_f
-            "turn_right" -> R.string.voice_action_turn_right to R.string.voice_action_turn_right_f
-            "slight_left" -> R.string.voice_action_slight_left to R.string.voice_action_slight_left_f
-            "slight_right" -> R.string.voice_action_slight_right to R.string.voice_action_slight_right_f
-            "sharp_left" -> R.string.voice_action_sharp_left to R.string.voice_action_sharp_left_f
-            "sharp_right" -> R.string.voice_action_sharp_right to R.string.voice_action_sharp_right_f
-            "keep_left" -> R.string.voice_action_keep_left to R.string.voice_action_keep_left_f
-            "keep_right" -> R.string.voice_action_keep_right to R.string.voice_action_keep_right_f
-            "continue" -> R.string.voice_action_continue to R.string.voice_action_continue_f
-            "uturn" -> R.string.voice_action_uturn to R.string.voice_action_uturn_f
-            "roundabout", "roundabout_enter" ->
-                R.string.voice_action_roundabout_enter to R.string.voice_action_roundabout_enter_f
-            "roundabout_exit" -> R.string.voice_action_roundabout_exit to R.string.voice_action_roundabout_exit_f
-            "merge" -> R.string.voice_action_merge to R.string.voice_action_merge_f
-            "ramp_left" -> R.string.voice_action_ramp_left to R.string.voice_action_ramp_left_f
-            "ramp_right" -> R.string.voice_action_ramp_right to R.string.voice_action_ramp_right_f
-            "arrive" -> R.string.voice_action_arrive to R.string.voice_action_arrive_f
-            else -> R.string.voice_action_unknown to R.string.voice_action_unknown_f
-        }
-        return if (female) fem else male
+    /** The voice text (with niqqud) for an action key. */
+    fun actionTextRes(action: String): Int = when (action) {
+        "depart" -> R.string.voice_action_depart
+        "turn_left" -> R.string.voice_action_turn_left
+        "turn_right" -> R.string.voice_action_turn_right
+        "slight_left" -> R.string.voice_action_slight_left
+        "slight_right" -> R.string.voice_action_slight_right
+        "sharp_left" -> R.string.voice_action_sharp_left
+        "sharp_right" -> R.string.voice_action_sharp_right
+        "keep_left" -> R.string.voice_action_keep_left
+        "keep_right" -> R.string.voice_action_keep_right
+        "continue" -> R.string.voice_action_continue
+        "uturn" -> R.string.voice_action_uturn
+        "roundabout", "roundabout_enter" ->
+            R.string.voice_action_roundabout_enter
+        "roundabout_exit" -> R.string.voice_action_roundabout_exit
+        "merge" -> R.string.voice_action_merge
+        "ramp_left" -> R.string.voice_action_ramp_left
+        "ramp_right" -> R.string.voice_action_ramp_right
+        "arrive" -> R.string.voice_action_arrive
+        else -> R.string.voice_action_unknown
     }
 
     /** Arrival and departure never carry a street clause. */
