@@ -1,5 +1,9 @@
 package com.abaye.derechkohanim
 
+import android.content.Intent
+import com.abaye.derechkohanim.nav.NavigationEngine
+import com.abaye.derechkohanim.data.model.NavigationStatus
+import kotlinx.coroutines.flow.MutableStateFlow
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -43,6 +47,12 @@ class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var analytics: Analytics
 
+    @Inject
+    lateinit var navigationEngine: NavigationEngine
+
+    /** Bumped each time the navigation notification is tapped while a drive is live. */
+    private val openNavigationRequests = MutableStateFlow(0)
+
     // POST_NOTIFICATIONS is declared but must be requested at runtime from Android 13+. The
     // ongoing navigation notification depends on it, so we ask once at app start; a denial only
     // means the drive runs without its notification, never that navigation fails.
@@ -53,7 +63,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         requestNotificationPermissionIfNeeded()
+        handleOpenNavigation(intent)
         setContent {
+            val openNavigation by openNavigationRequests.collectAsStateWithLifecycle()
             val state by appViewModel.state.collectAsStateWithLifecycle()
             val dark = when (state.theme) {
                 ThemePreference.LIGHT -> false
@@ -69,11 +81,26 @@ class MainActivity : AppCompatActivity() {
                             onConfirmResume = appViewModel::confirmResume,
                             onDiscardResume = appViewModel::discardResume,
                             onScreen = analytics::screen,
+                            openNavigationRequest = openNavigation,
                         )
                     }
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleOpenNavigation(intent)
+    }
+
+    /** The navigation notification asks for the live drive: open it only while one is running. */
+    private fun handleOpenNavigation(intent: Intent?) {
+        if (intent?.getBooleanExtra(EXTRA_OPEN_NAVIGATION, false) != true) return
+        intent.removeExtra(EXTRA_OPEN_NAVIGATION)
+        val status = navigationEngine.state.value.status
+        val live = status == NavigationStatus.NAVIGATING || status == NavigationStatus.REROUTING
+        if (live) openNavigationRequests.value += 1
     }
 
     private fun requestNotificationPermissionIfNeeded() {
@@ -96,5 +123,10 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    }
+
+    companion object {
+        /** Set on the navigation notification's tap intent. */
+        const val EXTRA_OPEN_NAVIGATION = "open_navigation"
     }
 }

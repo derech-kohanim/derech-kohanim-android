@@ -253,10 +253,12 @@ class NavigationEngine @Inject constructor(
             prefetchRouteClips(route)
             observeZoneLayers()
 
+            // Both kinds of drive get the ongoing notification, so a simulation can be reopened or
+            // ended from it like a real drive.
+            startForegroundService()
             if (simulated) {
                 startLoop()
             } else {
-                startForegroundService()
                 startRealFeed()
                 startPersistLoop()
                 if (persistImmediately) persistNow()

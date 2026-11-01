@@ -650,4 +650,5 @@
     <string name="tip_report_body">From a zone card, or in settings under \"Report and feedback\". Needs an account.</string>
     <string name="route_saved_star">Saved in your places</string>
     <string name="route_saved_removed">Removed from your saved places</string>
+    <string name="service_notification_end">End navigation</string>
 </resources>

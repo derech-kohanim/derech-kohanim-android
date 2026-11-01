@@ -652,4 +652,5 @@
     <string name="tip_report_body">בכרטיס של אזור, או בהגדרות תחת \"דיווח ומשוב\". צריך חשבון.</string>
     <string name="route_saved_star">שמור במקומות השמורים</string>
     <string name="route_saved_removed">הוסר מהמקומות השמורים</string>
+    <string name="service_notification_end">סיום ניווט</string>
 </resources>

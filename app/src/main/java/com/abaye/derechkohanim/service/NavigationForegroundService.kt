@@ -31,7 +31,7 @@ import javax.inject.Inject
  * service exists purely to keep the process alive (a foreground service the platform will not kill)
  * and to mirror the engine's [NavigationEngine.state] into an ongoing CATEGORY_NAVIGATION
  * notification with the next instruction, distance and ETA. Tapping the notification returns to the
- * navigation screen via MainActivity (singleTask). The engine starts this service when a real drive
+ * navigation screen via MainActivity (singleTask), and its "end navigation" action ends the drive. The engine starts this service when a real drive
  * begins and stops it when the drive ends; the service also stops itself if the engine reaches a
  * terminal state on its own (e.g. arrival).
  */
@@ -47,10 +47,19 @@ class NavigationForegroundService : Service() {
     override fun onBind(intent: Intent): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP) {
-            engine.stop()
-            stopSelfAndForeground()
-            return START_NOT_STICKY
+        when (intent?.action) {
+            // The engine has ended the drive: only the foreground state goes.
+            ACTION_STOP -> {
+                stopSelfAndForeground()
+                return START_NOT_STICKY
+            }
+            // "End navigation" on the notification: end the drive itself. The engine then asks
+            // for ACTION_STOP, and an open navigation screen returns home on the terminal state.
+            ACTION_END_DRIVE -> {
+                engine.stop()
+                stopSelfAndForeground()
+                return START_NOT_STICKY
+            }
         }
         // Post the first notification immediately (the platform requires it within a few seconds).
         startForegroundWithState(engine.state.value)
@@ -84,10 +93,20 @@ class NavigationForegroundService : Service() {
     }
 
     private fun buildNotification(state: NavigationState): Notification {
+        // Tapping the notification brings the app back on the live navigation screen, also when
+        // the activity was destroyed while the service kept the process alive.
         val contentIntent = PendingIntent.getActivity(
             this,
-            0,
-            Intent(this, MainActivity::class.java),
+            REQUEST_OPEN_NAVIGATION,
+            Intent(this, MainActivity::class.java)
+                .putExtra(MainActivity.EXTRA_OPEN_NAVIGATION, true)
+                .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val endIntent = PendingIntent.getService(
+            this,
+            REQUEST_END_DRIVE,
+            Intent(this, NavigationForegroundService::class.java).setAction(ACTION_END_DRIVE),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
@@ -111,6 +130,7 @@ class NavigationForegroundService : Service() {
             .setContentTitle(title)
             .setContentText(text)
             .setContentIntent(contentIntent)
+            .addAction(R.drawable.ic_notification_stop, getString(R.string.service_notification_end), endIntent)
             .setOngoing(true)
             .setSilent(true)
             .setOnlyAlertOnce(true)
@@ -135,6 +155,9 @@ class NavigationForegroundService : Service() {
         const val CHANNEL_ID = "navigation"
         private const val NOTIFICATION_ID = 1001
         private const val ACTION_STOP = "com.abaye.derechkohanim.STOP_NAVIGATION"
+        private const val ACTION_END_DRIVE = "com.abaye.derechkohanim.END_NAVIGATION"
+        private const val REQUEST_OPEN_NAVIGATION = 1
+        private const val REQUEST_END_DRIVE = 2
 
         fun start(context: Context) {
             val intent = Intent(context, NavigationForegroundService::class.java)

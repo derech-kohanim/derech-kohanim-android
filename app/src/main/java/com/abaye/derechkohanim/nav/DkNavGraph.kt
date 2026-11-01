@@ -1,5 +1,6 @@
 package com.abaye.derechkohanim.nav
 
+import androidx.compose.runtime.LaunchedEffect
 import com.abaye.derechkohanim.ui.screens.report.ReportRoute
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
@@ -42,8 +43,20 @@ fun DkNavGraph(
     onConfirmResume: () -> Unit = {},
     onDiscardResume: () -> Unit = {},
     onScreen: (String) -> Unit = {},
+    /** Bumped when the navigation notification was tapped during a live drive. */
+    openNavigationRequest: Int = 0,
     navController: NavHostController = rememberNavController(),
 ) {
+    // Back to the live drive from the notification: the navigation screen attaches to the running
+    // engine, it never starts a new drive.
+    LaunchedEffect(openNavigationRequest) {
+        if (openNavigationRequest > 0 && navController.currentDestination?.route != Routes.NAVIGATION) {
+            navController.navigate(Routes.NAVIGATION) {
+                popUpTo(Routes.HOME)
+                launchSingleTop = true
+            }
+        }
+    }
     // Emit a GA4 screen_view as the back stack changes. Analytics is injected in MainActivity and
     // handed in as [onScreen]. Every destination reports a stable logical name of its own, so the
     // funnel from onboarding to a driven route is readable in GA; the search route reports one
