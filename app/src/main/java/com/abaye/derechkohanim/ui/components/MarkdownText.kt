@@ -166,8 +166,21 @@ fun MarkdownText(
     modifier: Modifier = Modifier,
     style: TextStyle = MaterialTheme.typography.bodyMedium,
     color: Color = DkTheme.colors.text,
+    /** Number the top-level (## and #) headings "1.", "2.", as the clauses of a document. */
+    numberHeadings: Boolean = false,
 ) {
     val blocks = remember(markdown) { parseMarkdown(markdown) }
+    // The clause number of each top-level heading, by block index.
+    val clauseNumbers = remember(blocks, numberHeadings) {
+        if (!numberHeadings) {
+            emptyMap()
+        } else {
+            var n = 0
+            blocks.withIndex()
+                .filter { (_, b) -> b is MarkdownBlock.Heading && b.level <= 2 }
+                .associate { (i, _) -> i to ++n }
+        }
+    }
     val linkColor = DkTheme.colors.primary
     val codeBackground = DkTheme.colors.surfaceMuted
 
@@ -178,7 +191,11 @@ fun MarkdownText(
         blocks.forEachIndexed { index, block ->
             when (block) {
                 is MarkdownBlock.Heading -> Text(
-                    text = inlineText(block.text, linkColor, codeBackground),
+                    text = inlineText(
+                        clauseNumbers[index]?.let { "$it. ${block.text}" } ?: block.text,
+                        linkColor,
+                        codeBackground,
+                    ),
                     style = if (block.level <= 2) {
                         MaterialTheme.typography.titleMedium
                     } else {

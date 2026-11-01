@@ -1,5 +1,12 @@
 package com.abaye.derechkohanim.ui.screens.legal
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
+import androidx.compose.ui.unit.Dp
+import com.abaye.derechkohanim.ui.components.DkTopBar
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -117,64 +124,53 @@ fun LegalScreen(
     onBack: () -> Unit,
     footer: @Composable (() -> Unit)? = null,
 ) {
-    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
-    Scaffold(containerColor = DkTheme.colors.background) { padding ->
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DkTheme.colors.background),
+    ) {
+        DkTopBar(title = title, onBack = onBack)
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .navigationBarsPadding()
+                .padding(DkTheme.spacing.s4),
+            verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s4),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(DkTheme.spacing.s2),
-            ) {
-                DkIconButton(
-                    icon = Icons.Filled.ArrowUpward,
-                    contentDescription = stringResource(R.string.cd_back),
-                    onClick = onBack,
-                    modifier = Modifier.rotate(if (rtl) 90f else -90f),
-                )
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = DkTheme.colors.text,
-                    modifier = Modifier.padding(start = DkTheme.spacing.s2),
-                )
-            }
-
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(
-                        start = DkTheme.spacing.s4,
-                        end = DkTheme.spacing.s4,
-                        bottom = DkTheme.spacing.s4,
-                    ),
-                verticalArrangement = Arrangement.spacedBy(DkTheme.spacing.s3),
-            ) {
-                if (bundled) {
-                    // The document on screen is the shipped copy, not the server's, and a reader
-                    // deciding whether to accept deserves to know that.
+            if (bundled) {
+                // The document on screen is the shipped copy, not the server's, and a reader
+                // deciding whether to accept deserves to know that. A Civic notice on the band.
+                Surface(
+                    shape = RoundedCornerShape(DkTheme.radius.md),
+                    color = DkTheme.colors.band,
+                    border = BorderStroke(Dp.Hairline, DkTheme.colors.border),
+                ) {
                     Text(
                         text = stringResource(R.string.legal_bundled_notice),
                         style = MaterialTheme.typography.bodySmall,
-                        color = DkTheme.colors.warning,
+                        color = DkTheme.colors.textBody,
+                        modifier = Modifier.padding(DkTheme.spacing.s3),
                     )
                 }
-                DkCard(modifier = Modifier.fillMaxWidth()) {
-                    if (loading) {
-                        Text(
-                            text = stringResource(R.string.state_loading),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = DkTheme.colors.textMuted,
-                        )
-                    } else {
-                        MarkdownText(markdown = body, modifier = Modifier.fillMaxWidth())
-                    }
-                }
-                footer?.invoke()
             }
+            // A document reads as running text on the page, not inside a card.
+            if (loading) {
+                Text(
+                    text = stringResource(R.string.state_loading),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = DkTheme.colors.textMuted,
+                )
+            } else {
+                MarkdownText(
+                    markdown = body,
+                    modifier = Modifier.fillMaxWidth(),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = DkTheme.colors.textBody,
+                    numberHeadings = true,
+                )
+            }
+            footer?.invoke()
         }
     }
 }
