@@ -70,7 +70,7 @@
     <string name="onboarding_permission_body">Navigation needs to know where you are. Location is used to compute the route and to detect proximity to a zone, and is not stored on the server.</string>
     <string name="onboarding_permission_grant">Allow location access</string>
     <string name="onboarding_background_title">Background location</string>
-    <string name="onboarding_background_body">To keep navigating while the screen is off, background location is also needed. Without it navigation still works, but stops when you leave the app.</string>
+    <string name="onboarding_background_body">Derech Kohanim collects location data to keep voice guidance and impurity-zone alerts running during navigation, even when the app is closed or not in use. Location is used only while navigation is active.</string>
     <string name="onboarding_background_grant">Allow background location</string>
     <string name="onboarding_downloads_title">Download in advance</string>
     <string name="onboarding_downloads_body">Downloading the zone layers and the voice pack now keeps navigation working in poor reception.</string>

@@ -70,7 +70,7 @@
     <string name="onboarding_permission_body">כדי לנווט צריך לדעת איפה אתה. המיקום משמש לחישוב המסלול ולזיהוי קרבה לאזור, ואינו נשמר בשרת.</string>
     <string name="onboarding_permission_grant">אפשר גישה למיקום</string>
     <string name="onboarding_background_title">מיקום ברקע</string>
-    <string name="onboarding_background_body">כדי שהניווט ימשיך כשהמסך כבוי, נדרשת גם הרשאת מיקום ברקע. בלעדיה הניווט עובד, אך נעצר כשיוצאים מהאפליקציה.</string>
+    <string name="onboarding_background_body">דרך כהנים אוסף נתוני מיקום כדי להמשיך בהנחיות הקוליות ובהתראות על אזורי טומאה במהלך ניווט, גם כשהאפליקציה סגורה או לא בשימוש. המיקום משמש רק בזמן ניווט פעיל.</string>
     <string name="onboarding_background_grant">אפשר מיקום ברקע</string>
     <string name="onboarding_downloads_title">הורדה מראש</string>
     <string name="onboarding_downloads_body">מומלץ להוריד עכשיו את שכבות האזורים ואת חבילת הקול, כדי שהניווט יעבוד גם בקליטה גרועה.</string>
